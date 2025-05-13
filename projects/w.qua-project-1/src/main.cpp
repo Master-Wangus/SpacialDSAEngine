@@ -37,8 +37,8 @@ int main()
         
         // Create shader
         auto shader = std::make_shared<Shader>(
-            "projects/w.qua-project-1/shaders/phong.vert",
-            "projects/w.qua-project-1/shaders/phong.frag"
+            "../projects/w.qua-project-1/shaders/my-project-1.vert",
+            "../projects/w.qua-project-1/shaders/my-project-1.frag"
         );
         
         // Create registry
