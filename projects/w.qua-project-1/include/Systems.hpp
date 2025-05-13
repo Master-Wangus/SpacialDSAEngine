@@ -24,14 +24,21 @@ namespace Systems
         float xOffset,
         float yOffset);
 
-    class FPSCameraSystem {
+    class FPSCameraSystem : public Camera {
     public:
         FPSCameraSystem(entt::registry& registry, Window& window);
+        
+        // Override Camera methods
         void update(float deltaTime);
+        glm::mat4 getViewMatrix() const override;
+        glm::mat4 getProjectionMatrix(float aspectRatio) const override;
+        glm::vec3 getPosition() const override;
+        glm::vec3 getForward() const override;
+        glm::vec3 getRight() const override;
+        glm::vec3 getUp() const override;
+        
+        // Additional FPSCameraSystem methods
         entt::entity getActiveCameraEntity() const;
-        glm::mat4 getViewMatrix() const;
-        glm::mat4 getProjectionMatrix(float aspectRatio) const;
-        glm::vec3 getPosition() const;
         
     private:
         entt::registry& m_registry;

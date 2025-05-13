@@ -61,6 +61,16 @@ namespace Systems
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(DirectionalLight), &light);
         }
         
+        // Get view matrix once for this frame
+        glm::mat4 viewMatrix = camera.getViewMatrix();
+        
+        // Get camera position for specular lighting calculations
+        glm::vec3 cameraPosition = camera.getPosition();
+        
+        // Get projection matrix for this frame
+        float aspectRatio = 1024.0f / 768.0f; // Example aspect ratio
+        glm::mat4 projectionMatrix = camera.getProjectionMatrix(aspectRatio);
+        
         // Process each entity
         for (auto entity : view) 
         {
@@ -73,10 +83,9 @@ namespace Systems
             mesh.shader->use();
             
             // Set transformation matrices
-            float aspectRatio = 1024.0f / 768.0f; // Example aspect ratio
             mesh.shader->setMat4("model", transform.model);
-            mesh.shader->setMat4("view", camera.getViewMatrix());
-            mesh.shader->setMat4("projection", camera.getProjectionMatrix(aspectRatio));
+            mesh.shader->setMat4("view", viewMatrix);
+            mesh.shader->setMat4("projection", projectionMatrix);
             
             // Bind uniform blocks to their respective binding points
             GLuint lightBlockIndex = glGetUniformBlockIndex(mesh.shader->getID(), "DirectionalLight");
@@ -106,7 +115,7 @@ namespace Systems
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &mat);
             
             // Set camera position for specular lighting
-            mesh.shader->setVec3("viewPos", camera.getPosition());
+            mesh.shader->setVec3("viewPos", cameraPosition);
             
             // Bind mesh and draw
             mesh.buffer.bind();
@@ -293,7 +302,8 @@ namespace Systems
     
     // FPSCameraSystem implementation
     FPSCameraSystem::FPSCameraSystem(entt::registry& registry, Window& window)
-        : m_registry(registry)
+        : Camera() // Call the base class constructor
+        , m_registry(registry)
         , m_window(window)
         , m_lastX(window.getWidth() / 2.0f)
         , m_lastY(window.getHeight() / 2.0f)
@@ -388,6 +398,43 @@ namespace Systems
         const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
         return cameraComp.getPosition();
     }
+
+    glm::vec3 FPSCameraSystem::getForward() const
+    {
+        if (!m_registry.valid(m_activeCameraEntity)) 
+        {
+            return glm::vec3(0.0f, 0.0f, -1.0f);
+        }
+        
+        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
+        return cameraComp.fps.cameraFront;
+    }
+    
+    glm::vec3 FPSCameraSystem::getRight() const
+    {
+        if (!m_registry.valid(m_activeCameraEntity)) 
+        {
+            return glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+        
+        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
+        auto front = cameraComp.fps.cameraFront;
+        auto up = cameraComp.fps.cameraUpDirection;
+        return glm::normalize(glm::cross(front, up));
+    }
+    
+    glm::vec3 FPSCameraSystem::getUp() const
+    {
+        if (!m_registry.valid(m_activeCameraEntity)) 
+        {
+            return glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+        
+        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
+        auto front = cameraComp.fps.cameraFront;
+        auto right = this->getRight();
+        return glm::normalize(glm::cross(right, front));
+    }
     
     void FPSCameraSystem::processMouseMovement(double xpos, double ypos) 
     {
@@ -404,7 +451,25 @@ namespace Systems
         m_lastX = static_cast<float>(xpos);
         m_lastY = static_cast<float>(ypos);
         
-        processCameraMouseMovement(m_registry, xOffset, yOffset);
+        // Make sure the sensitivity is applied correctly
+        xOffset *= 0.1f;  // Apply consistent mouse sensitivity
+        yOffset *= 0.1f;
+        
+        // Apply the mouse movement directly to the camera component
+        if (m_registry.valid(m_activeCameraEntity)) {
+            auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
+            auto& fps = cameraComp.fps;
+            
+            // Update yaw and pitch angles
+            fps.yawAngle += xOffset;
+            fps.pitchAngle += yOffset;
+            
+            // Clamp the pitch angle to prevent gimbal lock
+            fps.pitchAngle = std::clamp(fps.pitchAngle, -89.0f, 89.0f);
+            
+            // Update the camera vectors based on new angles
+            fps.updateVectors();
+        }
     }
     
     // Helper function to create cube vertices

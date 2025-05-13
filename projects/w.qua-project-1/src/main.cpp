@@ -90,37 +90,8 @@ int main()
             // Check for collisions
             Systems::collisionSystem(registry);
             
-            // Create a Camera adapter for the renderSystem (for backward compatibility)
-            class FPSCameraAdapter : public Camera 
-            {
-            public:
-                FPSCameraAdapter(const Systems::FPSCameraSystem& system, float aspectRatio)
-                    : m_system(system), m_aspectRatio(aspectRatio) {}
-                
-                glm::mat4 getViewMatrix() const 
-                {
-                    return m_system.getViewMatrix();
-                }
-                
-                glm::mat4 getProjectionMatrix(float aspectRatio) const 
-                {
-                    return m_system.getProjectionMatrix(aspectRatio);
-                }
-                
-                glm::vec3 getPosition() const 
-                {
-                    // Use the camera system's position getter
-                    return m_system.getPosition();
-                }
-                
-            private:
-                const Systems::FPSCameraSystem& m_system;
-                float m_aspectRatio;
-            };
-            
-            // Create adapter and render the scene
-            FPSCameraAdapter cameraAdapter(cameraSystem, static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT);
-            Systems::renderSystem(registry, cameraAdapter);
+            // Render the scene directly using the cameraSystem as a Camera
+            Systems::renderSystem(registry, cameraSystem);
             
             // Swap buffers and poll events
             window.swapBuffers();
