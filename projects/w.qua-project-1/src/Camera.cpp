@@ -21,7 +21,8 @@ Camera::Camera(const glm::vec3& position, const glm::vec3& worldUp)
     updateCameraVectors();
 }
 
-void Camera::update(const Window& window, float deltaTime) {
+void Camera::update(const Window& window, float deltaTime) 
+{
     // Handle keyboard input for camera movement
     float velocity = m_movementSpeed * deltaTime;
     
@@ -46,7 +47,8 @@ void Camera::update(const Window& window, float deltaTime) {
     }
 }
 
-glm::mat4 Camera::getViewMatrix() const {
+glm::mat4 Camera::getViewMatrix() const 
+{
     return glm::lookAt(m_position, m_position + m_front, m_up);
 }
 
@@ -70,7 +72,8 @@ glm::vec3 Camera::getUp() const {
     return m_up;
 }
 
-void Camera::processMouseMovement(float xOffset, float yOffset) {
+void Camera::processMouseMovement(float xOffset, float yOffset) 
+{
     // Scale the offsets by sensitivity
     xOffset *= m_mouseSensitivity;
     yOffset *= m_mouseSensitivity;
@@ -86,7 +89,8 @@ void Camera::processMouseMovement(float xOffset, float yOffset) {
     updateCameraVectors();
 }
 
-void Camera::updateCameraVectors() {
+void Camera::updateCameraVectors() 
+{
     // Calculate new front vector from Euler angles
     glm::vec3 front;
     front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));

@@ -54,6 +54,20 @@ macro(import_glew)
     endif()
 endmacro()
 
+# Macro to import entt
+macro(import_entt)
+    if(NOT TARGET entt)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            entt
+            GIT_REPOSITORY https://github.com/skypjack/entt.git
+            GIT_TAG v3.13.2
+        )
+        FetchContent_MakeAvailable(entt)
+        
+        include_directories(${entt_SOURCE_DIR})
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -69,6 +83,10 @@ macro(importDependencies)
     message(STATUS "Importing GLEW...")
     import_glew()
     message(STATUS "GLEW imported successfully.")
+    
+    message(STATUS "Importing EnTT...")
+    import_entt()
+    message(STATUS "EnTT imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

@@ -21,6 +21,7 @@ add_definitions(-DUSE_CSD3151_AUTOMATION=0) # Used for instructor's automation
 set(ALL_LIBS
   PRIVATE glfw
   PRIVATE libglew_static
+  EnTT::EnTT
 )
 
 # Include path for GLM (optional if not using FetchContent)

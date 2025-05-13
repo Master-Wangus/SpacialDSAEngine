@@ -14,11 +14,13 @@ Cube::Cube(const glm::vec3& position, float size, const glm::vec3& color)
     updateModelMatrix();
 }
 
-Cube::~Cube() {
+Cube::~Cube() 
+{
     // Buffer will be cleaned up by its destructor
 }
 
-void Cube::initialize(const std::shared_ptr<Shader>& shader) {
+void Cube::initialize(const std::shared_ptr<Shader>& shader) 
+{
     m_shader = shader;
     
     // Create vertices and set up buffer
@@ -26,7 +28,8 @@ void Cube::initialize(const std::shared_ptr<Shader>& shader) {
     m_buffer.setup(vertices);
 }
 
-void Cube::render(const glm::mat4& viewMatrix, const glm::mat4& projMatrix) {
+void Cube::render(const glm::mat4& viewMatrix, const glm::mat4& projMatrix) 
+{
     if (!m_shader) return;
     
     m_shader->use();
@@ -48,7 +51,8 @@ void Cube::render(const glm::mat4& viewMatrix, const glm::mat4& projMatrix) {
     m_buffer.unbind();
 }
 
-AABB Cube::getAABB() const {
+AABB Cube::getAABB() const 
+{
     // Half of the cube's size
     float halfSize = m_size * 0.5f;
     
@@ -56,7 +60,8 @@ AABB Cube::getAABB() const {
     return AABB(m_position, glm::vec3(halfSize));
 }
 
-BoundingSphere Cube::getBoundingSphere() const {
+BoundingSphere Cube::getBoundingSphere() const 
+{
     // For a cube, the radius of the bounding sphere is half the diagonal length
     float radius = m_size * 0.5f * std::sqrt(3.0f);
     
@@ -64,27 +69,32 @@ BoundingSphere Cube::getBoundingSphere() const {
     return BoundingSphere(m_position, radius);
 }
 
-void Cube::setPosition(const glm::vec3& position) {
+void Cube::setPosition(const glm::vec3& position) 
+{
     m_position = position;
     updateModelMatrix();
 }
 
-glm::vec3 Cube::getPosition() const {
+glm::vec3 Cube::getPosition() const 
+{
     return m_position;
 }
 
-void Cube::setMaterial(const Material& material) {
+void Cube::setMaterial(const Material& material) 
+{
     m_material = material;
 }
 
-std::vector<Vertex> Cube::createVertices() {
+std::vector<Vertex> Cube::createVertices() 
+{
     std::vector<Vertex> vertices;
     
     // Generate normalized vertex positions for a cube centered at the origin
     float halfSize = 0.5f;
     
     // Define the 8 corners of the cube
-    glm::vec3 corners[8] = {
+    glm::vec3 corners[8] = 
+    {
         glm::vec3(-halfSize, -halfSize, -halfSize), // 0: left-bottom-back
         glm::vec3( halfSize, -halfSize, -halfSize), // 1: right-bottom-back
         glm::vec3( halfSize,  halfSize, -halfSize), // 2: right-top-back
@@ -96,7 +106,8 @@ std::vector<Vertex> Cube::createVertices() {
     };
     
     // Define the normals for each face
-    glm::vec3 normals[6] = {
+    glm::vec3 normals[6] = 
+    {
         glm::vec3( 0.0f,  0.0f, -1.0f), // back
         glm::vec3( 0.0f,  0.0f,  1.0f), // front
         glm::vec3(-1.0f,  0.0f,  0.0f), // left
@@ -106,7 +117,8 @@ std::vector<Vertex> Cube::createVertices() {
     };
     
     // Define texture coordinates for each vertex of a face
-    glm::vec2 texCoords[4] = {
+    glm::vec2 texCoords[4] = 
+    {
         glm::vec2(0.0f, 0.0f), // bottom-left
         glm::vec2(1.0f, 0.0f), // bottom-right
         glm::vec2(1.0f, 1.0f), // top-right
@@ -114,7 +126,8 @@ std::vector<Vertex> Cube::createVertices() {
     };
     
     // Helper to add a face to the vertices vector
-    auto addFace = [&](int v0, int v1, int v2, int v3, int normalIndex) {
+    auto addFace = [&](int v0, int v1, int v2, int v3, int normalIndex) 
+    {
         Vertex vertex;
         
         // First triangle (v0, v1, v2)
@@ -157,7 +170,8 @@ std::vector<Vertex> Cube::createVertices() {
     return vertices;
 }
 
-void Cube::updateModelMatrix() {
+void Cube::updateModelMatrix() 
+{
     // Build model matrix from translation
     m_modelMatrix = glm::translate(glm::mat4(1.0f), m_position);
     

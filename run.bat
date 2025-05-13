@@ -6,17 +6,26 @@ if not exist build (
 )
 
 REM BUILDING DEBUG
+echo Building Debug configuration...
 pushd build
-cmake ..
-cmake --build . --config Debug
+cmake .. || goto :error
+cmake --build . --config Debug || goto :error
 popd
 
 REM BUILDING RELEASE
-if not exist build (
-    mkdir build
-)
-
+echo Building Release configuration...
 pushd build
-cmake ..
-cmake --build . --config Release
+cmake .. || goto :error
+cmake --build . --config Release || goto :error
 popd
+
+echo Build completed successfully!
+goto :end
+
+:error
+echo *** ERROR: An error occurred during the build process ***
+pause
+exit /b %errorlevel%
+
+:end
+pause

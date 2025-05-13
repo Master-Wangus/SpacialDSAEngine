@@ -2,11 +2,8 @@
 
 #include "Primitives.hpp"
 
-/**
- * @class Intersection
- * @brief Static class providing intersection/collision tests between different geometric primitives
- */
-class Intersection {
+class Intersection 
+{
 public:
     // Sphere-related tests
     static bool sphereVsSphere(const BoundingSphere& a, const BoundingSphere& b);

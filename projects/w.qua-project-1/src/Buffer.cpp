@@ -1,14 +1,16 @@
 #include "../include/Buffer.hpp"
 #include <iostream>
 
-Buffer::Buffer() : m_vao(0), m_vbo(0), m_vertexCount(0) {
-}
+Buffer::Buffer() : m_vao(0), m_vbo(0), m_vertexCount(0) 
+{}
 
-Buffer::~Buffer() {
+Buffer::~Buffer() 
+{
     cleanUp();
 }
 
-void Buffer::setup(const std::vector<Vertex>& vertices) {
+void Buffer::setup(const std::vector<Vertex>& vertices) 
+{
     // Clean up any existing buffers
     cleanUp();
     
@@ -16,19 +18,23 @@ void Buffer::setup(const std::vector<Vertex>& vertices) {
     createBuffers(vertices);
 }
 
-void Buffer::bind() const {
+void Buffer::bind() const 
+{
     glBindVertexArray(m_vao);
 }
 
-void Buffer::unbind() const {
+void Buffer::unbind() const 
+{
     glBindVertexArray(0);
 }
 
-size_t Buffer::getVertexCount() const {
+size_t Buffer::getVertexCount() const 
+{
     return m_vertexCount;
 }
 
-void Buffer::updateVertices(const std::vector<Vertex>& vertices) {
+void Buffer::updateVertices(const std::vector<Vertex>& vertices) 
+{
     m_vertexCount = vertices.size();
     
     // Bind VBO and update data
@@ -36,7 +42,8 @@ void Buffer::updateVertices(const std::vector<Vertex>& vertices) {
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 }
 
-void Buffer::createBuffers(const std::vector<Vertex>& vertices) {
+void Buffer::createBuffers(const std::vector<Vertex>& vertices) 
+{
     m_vertexCount = vertices.size();
     
     // Create and bind VAO
@@ -70,7 +77,8 @@ void Buffer::createBuffers(const std::vector<Vertex>& vertices) {
     glBindVertexArray(0);
 }
 
-void Buffer::cleanUp() {
+void Buffer::cleanUp() 
+{
     // Delete buffer objects if they exist
     if (m_vbo != 0) {
         glDeleteBuffers(1, &m_vbo);

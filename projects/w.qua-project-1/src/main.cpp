@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -16,40 +17,13 @@ const int WINDOW_WIDTH = 1024;
 const int WINDOW_HEIGHT = 768;
 const char* WINDOW_TITLE = "Geometry Toolbox";
 
-// Global variables
-Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
-float lastX = WINDOW_WIDTH / 2.0f;
-float lastY = WINDOW_HEIGHT / 2.0f;
-bool firstMouse = true;
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
-// Mouse callback function
-void mouseCallback(double xpos, double ypos) {
-    if (firstMouse) {
-        lastX = static_cast<float>(xpos);
-        lastY = static_cast<float>(ypos);
-        firstMouse = false;
-    }
-    
-    float xoffset = static_cast<float>(xpos) - lastX;
-    float yoffset = lastY - static_cast<float>(ypos); // Reversed since y-coordinates go from bottom to top
-    
-    lastX = static_cast<float>(xpos);
-    lastY = static_cast<float>(ypos);
-    
-    camera.processMouseMovement(xoffset, yoffset);
-}
-
-int main() {
+int main() 
+{
     try {
         // Create window
         Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
         window.makeContextCurrent();
         window.setInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        
-        // Set mouse callback
-        window.setCursorPosCallback(mouseCallback);
         
         // Initialize GLEW
         glewExperimental = GL_TRUE;
@@ -63,12 +37,15 @@ int main() {
         
         // Create shader
         auto shader = std::make_shared<Shader>(
-            "../projects/project-1-geometry-toolbox/shaders/phong.vert",
-            "../projects/project-1-geometry-toolbox/shaders/phong.frag"
+            "projects/w.qua-project-1/shaders/phong.vert",
+            "projects/w.qua-project-1/shaders/phong.frag"
         );
         
         // Create registry
         entt::registry registry;
+        
+        // Create the FPS camera system
+        Systems::FPSCameraSystem cameraSystem(registry, window);
         
         // Create light
         Systems::createDirectionalLight(
@@ -86,15 +63,19 @@ int main() {
         Systems::createCubeEntity(registry, glm::vec3(0.0f, 2.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.31f, 0.5f), shader);
         Systems::createCubeEntity(registry, glm::vec3(0.0f, -2.0f, 0.0f), 1.0f, glm::vec3(0.31f, 1.0f, 0.5f), shader);
         
+        // Timing variables
+        float lastFrame = 0.0f;
+        
         // Main loop
-        while (!window.shouldClose()) {
+        while (!window.shouldClose()) 
+        {
             // Calculate delta time
             auto currentFrame = static_cast<float>(glfwGetTime());
-            deltaTime = currentFrame - lastFrame;
+            float deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
             
-            // Process input
-            camera.update(window, deltaTime);
+            // Process input and update camera
+            cameraSystem.update(deltaTime);
             
             // Clear buffers
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -109,8 +90,37 @@ int main() {
             // Check for collisions
             Systems::collisionSystem(registry);
             
-            // Render scene
-            Systems::renderSystem(registry, camera);
+            // Create a Camera adapter for the renderSystem (for backward compatibility)
+            class FPSCameraAdapter : public Camera 
+            {
+            public:
+                FPSCameraAdapter(const Systems::FPSCameraSystem& system, float aspectRatio)
+                    : m_system(system), m_aspectRatio(aspectRatio) {}
+                
+                glm::mat4 getViewMatrix() const 
+                {
+                    return m_system.getViewMatrix();
+                }
+                
+                glm::mat4 getProjectionMatrix(float aspectRatio) const 
+                {
+                    return m_system.getProjectionMatrix(aspectRatio);
+                }
+                
+                glm::vec3 getPosition() const 
+                {
+                    // Use the camera system's position getter
+                    return m_system.getPosition();
+                }
+                
+            private:
+                const Systems::FPSCameraSystem& m_system;
+                float m_aspectRatio;
+            };
+            
+            // Create adapter and render the scene
+            FPSCameraAdapter cameraAdapter(cameraSystem, static_cast<float>(WINDOW_WIDTH) / WINDOW_HEIGHT);
+            Systems::renderSystem(registry, cameraAdapter);
             
             // Swap buffers and poll events
             window.swapBuffers();
@@ -118,7 +128,8 @@ int main() {
         }
         
         return 0;
-    } catch (const std::exception& e) {
+    } catch (const std::exception& e) 
+    {
         std::cerr << "Error: " << e.what() << std::endl;
         return -1;
     }

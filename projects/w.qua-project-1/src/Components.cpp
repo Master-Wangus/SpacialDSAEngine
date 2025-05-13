@@ -1,7 +1,8 @@
 #include "../include/Components.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-void TransformComponent::updateModelMatrix() {
+void TransformComponent::updateModelMatrix() 
+{
     // Start with identity matrix
     model = glm::mat4(1.0f);
     

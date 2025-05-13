@@ -2,27 +2,28 @@
 #include <limits>
 #include <algorithm>
 
-/**
- * @brief Creates a bounding sphere from a set of points (using a simple approach)
- * @param points Vector of points to be enclosed
- * @return A bounding sphere that encloses all points
- */
-BoundingSphere BoundingSphere::fromPoints(const std::vector<glm::vec3>& points) {
-    if (points.empty()) {
+BoundingSphere BoundingSphere::fromPoints(const std::vector<glm::vec3>& points) 
+{
+    if (points.empty()) 
+    {
         return BoundingSphere();
     }
     
     // First compute the center as the average of all points
     glm::vec3 center(0.0f);
-    for (const auto& point : points) {
+    for (const auto& point : points) 
+    {
         center += point;
     }
     center /= static_cast<float>(points.size());
     
     // Then find the point farthest from the center
     float maxDistSq = 0.0f;
-    for (const auto& point : points) {
-        float distSq = glm::distance2(center, point);
+    for (const auto& point : points) 
+    {
+        // Calculate squared distance manually
+        glm::vec3 diff = point - center;
+        float distSq = glm::dot(diff, diff);
         maxDistSq = std::max(maxDistSq, distSq);
     }
     
@@ -32,13 +33,9 @@ BoundingSphere BoundingSphere::fromPoints(const std::vector<glm::vec3>& points) 
     return BoundingSphere(center, radius);
 }
 
-/**
- * @brief Creates an AABB from a set of points
- * @param points Vector of points to be enclosed
- * @return An AABB that encloses all points
- */
 AABB AABB::fromPoints(const std::vector<glm::vec3>& points) {
-    if (points.empty()) {
+    if (points.empty()) 
+    {
         return AABB();
     }
     
@@ -47,7 +44,8 @@ AABB AABB::fromPoints(const std::vector<glm::vec3>& points) {
     glm::vec3 maxCorner(std::numeric_limits<float>::lowest());
     
     // Find min and max corners
-    for (const auto& point : points) {
+    for (const auto& point : points) 
+    {
         minCorner = glm::min(minCorner, point);
         maxCorner = glm::max(maxCorner, point);
     }

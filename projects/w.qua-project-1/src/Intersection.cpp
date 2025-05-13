@@ -4,7 +4,8 @@
 #include <cmath>
 
 // Sphere vs Sphere intersection test
-bool Intersection::sphereVsSphere(const BoundingSphere& a, const BoundingSphere& b) {
+bool Intersection::sphereVsSphere(const BoundingSphere& a, const BoundingSphere& b) 
+{
     // Calculate the squared distance between centers
     float distSquared = glm::distance2(a.center, b.center);
     
@@ -16,7 +17,8 @@ bool Intersection::sphereVsSphere(const BoundingSphere& a, const BoundingSphere&
 }
 
 // AABB vs AABB intersection test
-bool Intersection::aabbVsAABB(const AABB& a, const AABB& b) {
+bool Intersection::aabbVsAABB(const AABB& a, const AABB& b) 
+{
     // Get min and max corners
     glm::vec3 aMin = a.getMin();
     glm::vec3 aMax = a.getMax();
@@ -30,7 +32,8 @@ bool Intersection::aabbVsAABB(const AABB& a, const AABB& b) {
 }
 
 // Sphere vs AABB intersection test
-bool Intersection::sphereVsAABB(const BoundingSphere& sphere, const AABB& aabb) {
+bool Intersection::sphereVsAABB(const BoundingSphere& sphere, const AABB& aabb) 
+{
     // Find the closest point on the AABB to the sphere's center
     glm::vec3 closestPoint = glm::clamp(
         sphere.center, 
@@ -46,22 +49,26 @@ bool Intersection::sphereVsAABB(const BoundingSphere& sphere, const AABB& aabb) 
 }
 
 // AABB vs Sphere intersection test (delegates to sphereVsAABB)
-bool Intersection::aabbVsSphere(const AABB& aabb, const BoundingSphere& sphere) {
+bool Intersection::aabbVsSphere(const AABB& aabb, const BoundingSphere& sphere) 
+{
     return sphereVsAABB(sphere, aabb);
 }
 
 // Point vs Sphere intersection test
-bool Intersection::pointVsSphere(const glm::vec3& point, const BoundingSphere& sphere) {
+bool Intersection::pointVsSphere(const glm::vec3& point, const BoundingSphere& sphere) 
+{
     return glm::distance2(point, sphere.center) <= sphere.radius * sphere.radius;
 }
 
 // Sphere vs Point intersection test (delegates to pointVsSphere)
-bool Intersection::sphereVsPoint(const BoundingSphere& sphere, const glm::vec3& point) {
+bool Intersection::sphereVsPoint(const BoundingSphere& sphere, const glm::vec3& point) 
+{
     return pointVsSphere(point, sphere);
 }
 
 // Point vs AABB intersection test
-bool Intersection::pointVsAABB(const glm::vec3& point, const AABB& aabb) {
+bool Intersection::pointVsAABB(const glm::vec3& point, const AABB& aabb) 
+{
     glm::vec3 min = aabb.getMin();
     glm::vec3 max = aabb.getMax();
     
@@ -71,18 +78,21 @@ bool Intersection::pointVsAABB(const glm::vec3& point, const AABB& aabb) {
 }
 
 // AABB vs Point intersection test (delegates to pointVsAABB)
-bool Intersection::aabbVsPoint(const AABB& aabb, const glm::vec3& point) {
+bool Intersection::aabbVsPoint(const AABB& aabb, const glm::vec3& point) 
+{
     return pointVsAABB(point, aabb);
 }
 
 // Ray vs Sphere intersection test
-bool Intersection::rayVsSphere(const Ray& ray, const BoundingSphere& sphere, float& t) {
+bool Intersection::rayVsSphere(const Ray& ray, const BoundingSphere& sphere, float& t) 
+{
     glm::vec3 m = ray.origin - sphere.center;
     float b = glm::dot(m, ray.direction);
     float c = glm::dot(m, m) - sphere.radius * sphere.radius;
     
     // Exit if ray origin is outside sphere and ray is pointing away from sphere
-    if (c > 0.0f && b > 0.0f) {
+    if (c > 0.0f && b > 0.0f) 
+    {
         return false;
     }
     
@@ -90,7 +100,8 @@ bool Intersection::rayVsSphere(const Ray& ray, const BoundingSphere& sphere, flo
     float discriminant = b * b - c;
     
     // Exit if discriminant is negative (no real roots)
-    if (discriminant < 0.0f) {
+    if (discriminant < 0.0f) 
+    {
         return false;
     }
     
@@ -98,7 +109,8 @@ bool Intersection::rayVsSphere(const Ray& ray, const BoundingSphere& sphere, flo
     t = -b - std::sqrt(discriminant);
     
     // If t is negative, the intersection is behind the ray's origin
-    if (t < 0.0f) {
+    if (t < 0.0f) 
+    {
         t = -b + std::sqrt(discriminant);
     }
     
@@ -107,33 +119,40 @@ bool Intersection::rayVsSphere(const Ray& ray, const BoundingSphere& sphere, flo
 }
 
 // Sphere vs Ray intersection test (delegates to rayVsSphere)
-bool Intersection::sphereVsRay(const BoundingSphere& sphere, const Ray& ray, float& t) {
+bool Intersection::sphereVsRay(const BoundingSphere& sphere, const Ray& ray, float& t) 
+{
     return rayVsSphere(ray, sphere, t);
 }
 
 // Ray vs AABB intersection test (slab method)
-bool Intersection::rayVsAABB(const Ray& ray, const AABB& aabb, float& t) {
+bool Intersection::rayVsAABB(const Ray& ray, const AABB& aabb, float& t) 
+{
     glm::vec3 aabbMin = aabb.getMin();
     glm::vec3 aabbMax = aabb.getMax();
     
     float tMin = -INFINITY;
     float tMax = INFINITY;
     
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) 
+    {
         // Handle division by zero
-        if (std::fabs(ray.direction[i]) < 1e-8f) {
+        if (std::fabs(ray.direction[i]) < 1e-8f) 
+        {
             // Ray is parallel to slab, check if origin is within slab
-            if (ray.origin[i] < aabbMin[i] || ray.origin[i] > aabbMax[i]) {
+            if (ray.origin[i] < aabbMin[i] || ray.origin[i] > aabbMax[i]) 
+            {
                 return false;
             }
-        } else {
+        } else 
+        {
             // Compute intersection t values with near and far slab planes
             float invD = 1.0f / ray.direction[i];
             float t1 = (aabbMin[i] - ray.origin[i]) * invD;
             float t2 = (aabbMax[i] - ray.origin[i]) * invD;
             
             // Swap t1 and t2 if necessary
-            if (t1 > t2) {
+            if (t1 > t2) 
+            {
                 std::swap(t1, t2);
             }
             
@@ -142,7 +161,8 @@ bool Intersection::rayVsAABB(const Ray& ray, const AABB& aabb, float& t) {
             tMax = std::min(tMax, t2);
             
             // Exit if no overlap
-            if (tMin > tMax) {
+            if (tMin > tMax) 
+            {
                 return false;
             }
         }
@@ -156,12 +176,14 @@ bool Intersection::rayVsAABB(const Ray& ray, const AABB& aabb, float& t) {
 }
 
 // AABB vs Ray intersection test (delegates to rayVsAABB)
-bool Intersection::aabbVsRay(const AABB& aabb, const Ray& ray, float& t) {
+bool Intersection::aabbVsRay(const AABB& aabb, const Ray& ray, float& t) 
+{
     return rayVsAABB(ray, aabb, t);
 }
 
 // Ray vs Plane intersection test
-bool Intersection::rayVsPlane(const Ray& ray, const Plane& plane, float& t) {
+bool Intersection::rayVsPlane(const Ray& ray, const Plane& plane, float& t) 
+{
     // Get the plane normal
     glm::vec3 normal = plane.getNormal();
     
@@ -169,7 +191,8 @@ bool Intersection::rayVsPlane(const Ray& ray, const Plane& plane, float& t) {
     float denom = glm::dot(normal, ray.direction);
     
     // Ray and plane are parallel (or nearly parallel) if denominator is close to 0
-    if (std::fabs(denom) < 1e-8f) {
+    if (std::fabs(denom) < 1e-8f) 
+    {
         return false;
     }
     
@@ -181,7 +204,8 @@ bool Intersection::rayVsPlane(const Ray& ray, const Plane& plane, float& t) {
 }
 
 // Point vs Plane intersection test
-bool Intersection::pointVsPlane(const glm::vec3& point, const Plane& plane) {
+bool Intersection::pointVsPlane(const glm::vec3& point, const Plane& plane) 
+{
     // A point lies on a plane if the distance is zero
     // Compute signed distance from point to plane
     float distance = glm::dot(plane.getNormal(), point) + plane.mData.w;
@@ -191,7 +215,8 @@ bool Intersection::pointVsPlane(const glm::vec3& point, const Plane& plane) {
 }
 
 // Ray vs Triangle intersection test (Möller–Trumbore algorithm)
-bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float& t) {
+bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float& t) 
+{
     const glm::vec3& v0 = triangle.vertices[0].mData;
     const glm::vec3& v1 = triangle.vertices[1].mData;
     const glm::vec3& v2 = triangle.vertices[2].mData;
@@ -207,7 +232,8 @@ bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float
     float det = glm::dot(e1, p);
     
     // Check if ray is parallel to the triangle
-    if (det > -1e-8f && det < 1e-8f) {
+    if (det > -1e-8f && det < 1e-8f) 
+    {
         return false;
     }
     
@@ -220,7 +246,8 @@ bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float
     float u = glm::dot(s, p) * invDet;
     
     // Check bounds
-    if (u < 0.0f || u > 1.0f) {
+    if (u < 0.0f || u > 1.0f) 
+    {
         return false;
     }
     
@@ -229,7 +256,8 @@ bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float
     float v = glm::dot(ray.direction, q) * invDet;
     
     // Check bounds
-    if (v < 0.0f || u + v > 1.0f) {
+    if (v < 0.0f || u + v > 1.0f) 
+    {
         return false;
     }
     
@@ -241,7 +269,8 @@ bool Intersection::rayVsTriangle(const Ray& ray, const Triangle& triangle, float
 }
 
 // Point vs Triangle intersection test (barycentric coordinates)
-bool Intersection::pointVsTriangle(const glm::vec3& point, const Triangle& triangle) {
+bool Intersection::pointVsTriangle(const glm::vec3& point, const Triangle& triangle) 
+{
     const glm::vec3& v0 = triangle.vertices[0].mData;
     const glm::vec3& v1 = triangle.vertices[1].mData;
     const glm::vec3& v2 = triangle.vertices[2].mData;
@@ -264,7 +293,8 @@ bool Intersection::pointVsTriangle(const glm::vec3& point, const Triangle& trian
 }
 
 // Plane vs Sphere intersection test
-bool Intersection::planeVsSphere(const Plane& plane, const BoundingSphere& sphere) {
+bool Intersection::planeVsSphere(const Plane& plane, const BoundingSphere& sphere) 
+{
     // Calculate the signed distance from sphere center to plane
     float distance = glm::dot(plane.getNormal(), sphere.center) + plane.mData.w;
     
@@ -273,12 +303,14 @@ bool Intersection::planeVsSphere(const Plane& plane, const BoundingSphere& spher
 }
 
 // Sphere vs Plane intersection test (delegates to planeVsSphere)
-bool Intersection::sphereVsPlane(const BoundingSphere& sphere, const Plane& plane) {
+bool Intersection::sphereVsPlane(const BoundingSphere& sphere, const Plane& plane) 
+{
     return planeVsSphere(plane, sphere);
 }
 
 // Plane vs AABB intersection test
-bool Intersection::planeVsAABB(const Plane& plane, const AABB& aabb) {
+bool Intersection::planeVsAABB(const Plane& plane, const AABB& aabb) 
+{
     // Calculate the positive extends in the direction of the plane normal
     glm::vec3 extents = aabb.mHalfExtents;
     
@@ -295,6 +327,7 @@ bool Intersection::planeVsAABB(const Plane& plane, const AABB& aabb) {
 }
 
 // AABB vs Plane intersection test (delegates to planeVsAABB)
-bool Intersection::aabbVsPlane(const AABB& aabb, const Plane& plane) {
+bool Intersection::aabbVsPlane(const AABB& aabb, const Plane& plane) 
+{
     return planeVsAABB(plane, aabb);
 } 

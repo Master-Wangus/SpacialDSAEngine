@@ -2,49 +2,49 @@
 
 #include <entt/entt.hpp>
 #include "Camera.hpp"
+#include "Components.hpp"
 
 // Forward declarations
 class Shader;
+class Window;
 
-/**
- * @namespace Systems
- * @brief Contains all ECS systems
- */
-namespace Systems {
-    /**
-     * @brief Updates transform components (model matrices)
-     * @param registry The entity registry
-     */
+
+namespace Systems 
+{
     void updateTransforms(entt::registry& registry);
-
-    /**
-     * @brief Renders all entities with transform and mesh components
-     * @param registry The entity registry
-     * @param camera The camera to use for view and projection matrices
-     */
     void renderSystem(entt::registry& registry, const Camera& camera);
-    
-    /**
-     * @brief Updates collision components based on transform components
-     * @param registry The entity registry
-     */
     void updateColliders(entt::registry& registry);
-    
-    /**
-     * @brief Detects and handles collisions between entities
-     * @param registry The entity registry
-     */
     void collisionSystem(entt::registry& registry);
+    void cameraSystem(
+        entt::registry& registry, 
+        const Window& window, 
+        float deltaTime);
+    void processCameraMouseMovement(
+        entt::registry& registry,
+        float xOffset,
+        float yOffset);
+
+    class FPSCameraSystem {
+    public:
+        FPSCameraSystem(entt::registry& registry, Window& window);
+        void update(float deltaTime);
+        entt::entity getActiveCameraEntity() const;
+        glm::mat4 getViewMatrix() const;
+        glm::mat4 getProjectionMatrix(float aspectRatio) const;
+        glm::vec3 getPosition() const;
+        
+    private:
+        entt::registry& m_registry;
+        Window& m_window;
+        entt::entity m_activeCameraEntity;
+        
+        float m_lastX = 0.0f;
+        float m_lastY = 0.0f;
+        bool m_firstMouse = true;
+        
+        void processMouseMovement(double xpos, double ypos);
+    };
     
-    /**
-     * @brief Creates a cube entity
-     * @param registry The entity registry
-     * @param position Position of the cube
-     * @param size Size of the cube
-     * @param color Color of the cube
-     * @param shader Shader to use for rendering
-     * @return The created entity
-     */
     entt::entity createCubeEntity(
         entt::registry& registry,
         const glm::vec3& position,
@@ -52,19 +52,19 @@ namespace Systems {
         const glm::vec3& color,
         std::shared_ptr<Shader> shader);
     
-    /**
-     * @brief Creates a directional light entity
-     * @param registry The entity registry
-     * @param direction Light direction
-     * @param ambient Ambient color
-     * @param diffuse Diffuse color
-     * @param specular Specular color
-     * @return The created entity
-     */
     entt::entity createDirectionalLight(
         entt::registry& registry,
         const glm::vec3& direction,
         const glm::vec3& ambient,
         const glm::vec3& diffuse,
         const glm::vec3& specular);
-} 
+    
+    entt::entity createCamera(
+        entt::registry& registry,
+        const glm::vec3& position = glm::vec3(0.0f, 0.0f, 3.0f),
+        const glm::vec3& up = glm::vec3(0.0f, 1.0f, 0.0f),
+        float fov = 45.0f,
+        float nearPlane = 0.1f,
+        float farPlane = 100.0f,
+        CameraType type = CameraType::FPS);
+}
