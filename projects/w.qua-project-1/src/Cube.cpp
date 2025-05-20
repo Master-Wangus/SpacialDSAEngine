@@ -3,89 +3,100 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-Cube::Cube(const glm::vec3& position, float size, const glm::vec3& color)
-    : m_position(position),
-      m_size(size),
-      m_color(color),
-      m_material(Material()),
-      m_modelMatrix(glm::mat4(1.0f)),
-      m_shader(nullptr)
+Cube::Cube(const glm::vec3& color, float size)
+    : m_Size(size),
+      m_Color(color)
 {
-    updateModelMatrix();
+    // Initialize with default white material
+    // No need to update model matrix as it's now handled by the TransformComponent
 }
 
 Cube::~Cube() 
 {
-    // Buffer will be cleaned up by its destructor
+    CleanUp();
 }
 
-void Cube::initialize(const std::shared_ptr<Shader>& shader) 
+void Cube::Initialize(const std::shared_ptr<Shader>& shader) 
 {
     m_shader = shader;
     
     // Create vertices and set up buffer
-    std::vector<Vertex> vertices = createVertices();
-    m_buffer.setup(vertices);
+    std::vector<Vertex> vertices = CreateVertices();
+    m_buffer.Setup(vertices);
 }
 
-void Cube::render(const glm::mat4& viewMatrix, const glm::mat4& projMatrix) 
+void Cube::Render(const glm::mat4& modelMatrix, 
+                 const glm::mat4& viewMatrix, 
+                 const glm::mat4& projectionMatrix)
 {
     if (!m_shader) return;
     
-    m_shader->use();
+    m_shader->Use();
     
     // Set transformation matrices
-    m_shader->setMat4("model", m_modelMatrix);
-    m_shader->setMat4("view", viewMatrix);
-    m_shader->setMat4("projection", projMatrix);
+    m_shader->SetMat4("model", modelMatrix);
+    m_shader->SetMat4("view", viewMatrix);
+    m_shader->SetMat4("projection", projectionMatrix);
     
-    // Set material properties
-    m_shader->setVec3("material.ambient", m_material.ambient);
-    m_shader->setVec3("material.diffuse", m_material.diffuse);
-    m_shader->setVec3("material.specular", m_material.specular);
-    m_shader->setFloat("material.shininess", m_material.shininess);
+    // Set camera position for specular lighting
+    glm::vec3 cameraPos = glm::vec3(viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2]);
+    m_shader->SetVec3("viewPos", -cameraPos);
+    
+    // Bind uniform blocks to their respective binding points
+    GLuint materialBlockIndex = glGetUniformBlockIndex(m_shader->GetID(), "Material");
+    GLuint lightBlockIndex = glGetUniformBlockIndex(m_shader->GetID(), "DirectionalLight");
+    
+    if (materialBlockIndex != GL_INVALID_INDEX) {
+        glUniformBlockBinding(m_shader->GetID(), materialBlockIndex, 1); // Binding point 1 for Material
+        
+        // Update material data in UBO
+        static GLuint materialUBO = 0;
+        if (materialUBO == 0) {
+            glGenBuffers(1, &materialUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);
+            glBufferData(GL_UNIFORM_BUFFER, sizeof(Material), nullptr, GL_DYNAMIC_DRAW);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 1, materialUBO); // Bind to binding point 1
+        }
+        
+        glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &m_Material);
+    }
+    
+    if (lightBlockIndex != GL_INVALID_INDEX) {
+        glUniformBlockBinding(m_shader->GetID(), lightBlockIndex, 0); // Binding point 0 for Light
+    }
     
     // Bind VAO and draw
-    m_buffer.bind();
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_buffer.getVertexCount()));
-    m_buffer.unbind();
+    m_buffer.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_buffer.GetVertexCount()));
+    m_buffer.Unbind();
 }
 
-AABB Cube::getAABB() const 
+void Cube::CleanUp()
 {
-    // Half of the cube's size
-    float halfSize = m_size * 0.5f;
-    
-    // Create AABB centered at the cube's position with half-extents
-    return AABB(m_position, glm::vec3(halfSize));
+    // Buffer cleans up with destructor
+    m_shader.reset();
 }
 
-BoundingSphere Cube::getBoundingSphere() const 
+void Cube::SetColor(const glm::vec3& color)
 {
-    // For a cube, the radius of the bounding sphere is half the diagonal length
-    float radius = m_size * 0.5f * std::sqrt(3.0f);
-    
-    // Create bounding sphere centered at the cube's position
-    return BoundingSphere(m_position, radius);
+    m_Color = color;
+    // Regenerate vertices with new color
+    std::vector<Vertex> vertices = CreateVertices();
+    m_buffer.UpdateVertices(vertices);
 }
 
-void Cube::setPosition(const glm::vec3& position) 
+glm::vec3 Cube::GetColor() const
 {
-    m_position = position;
-    updateModelMatrix();
+    return m_Color;
 }
 
-glm::vec3 Cube::getPosition() const 
+float Cube::GetSize() const
 {
-    return m_position;
+    return m_Size;
 }
 
-void Cube::setMaterial(const Material& material) 
-{
-    m_material = material;
-}
-
-std::vector<Vertex> Cube::createVertices() 
+std::vector<Vertex> Cube::CreateVertices() 
 {
     std::vector<Vertex> vertices;
     
@@ -131,31 +142,31 @@ std::vector<Vertex> Cube::createVertices()
         Vertex vertex;
         
         // First triangle (v0, v1, v2)
-        vertex.position = corners[v0];
-        vertex.color = m_color;
-        vertex.normal = normals[normalIndex];
-        vertex.uv = texCoords[0];
+        vertex.m_Position = corners[v0];
+        vertex.m_Color = m_Color;
+        vertex.m_Normal = normals[normalIndex];
+        vertex.m_UV = texCoords[0];
         vertices.push_back(vertex);
         
-        vertex.position = corners[v1];
-        vertex.uv = texCoords[1];
+        vertex.m_Position = corners[v1];
+        vertex.m_UV = texCoords[1];
         vertices.push_back(vertex);
         
-        vertex.position = corners[v2];
-        vertex.uv = texCoords[2];
+        vertex.m_Position = corners[v2];
+        vertex.m_UV = texCoords[2];
         vertices.push_back(vertex);
         
         // Second triangle (v0, v2, v3)
-        vertex.position = corners[v0];
-        vertex.uv = texCoords[0];
+        vertex.m_Position = corners[v0];
+        vertex.m_UV = texCoords[0];
         vertices.push_back(vertex);
         
-        vertex.position = corners[v2];
-        vertex.uv = texCoords[2];
+        vertex.m_Position = corners[v2];
+        vertex.m_UV = texCoords[2];
         vertices.push_back(vertex);
         
-        vertex.position = corners[v3];
-        vertex.uv = texCoords[3];
+        vertex.m_Position = corners[v3];
+        vertex.m_UV = texCoords[3];
         vertices.push_back(vertex);
     };
     
@@ -168,13 +179,4 @@ std::vector<Vertex> Cube::createVertices()
     addFace(3, 2, 6, 7, 5); // top face
     
     return vertices;
-}
-
-void Cube::updateModelMatrix() 
-{
-    // Build model matrix from translation
-    m_modelMatrix = glm::translate(glm::mat4(1.0f), m_position);
-    
-    // Apply scaling based on cube size
-    m_modelMatrix = glm::scale(m_modelMatrix, glm::vec3(m_size));
 } 

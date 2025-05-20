@@ -1,11 +1,11 @@
 #include "../include/Registry.hpp"
 
-Registry::Entity Registry::create() 
+Registry::Entity Registry::Create() 
 {
-    return m_registry.create();
+    return m_Registry.create();
 }
 
-void Registry::destroy(Entity entity) 
+void Registry::Destroy(Entity entity) 
 {
-    m_registry.destroy(entity);
+    m_Registry.destroy(entity);
 } 

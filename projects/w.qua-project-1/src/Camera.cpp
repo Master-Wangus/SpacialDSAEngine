@@ -6,99 +6,99 @@
 
 // Constructor
 Camera::Camera(const glm::vec3& position, const glm::vec3& worldUp)
-    : m_position(position),
-      m_worldUp(worldUp),
-      m_yaw(-90.0f),        // Default yaw is -90 degrees (looking forward)
-      m_pitch(0.0f),        // Default pitch is 0 degrees (looking horizontally)
-      m_movementSpeed(2.5f),
-      m_mouseSensitivity(0.1f),
-      m_fov(45.0f),
-      m_lastX(0.0f),
-      m_lastY(0.0f),
-      m_firstMouse(true)
+    : m_Position(position),
+      m_WorldUp(worldUp),
+      m_Yaw(-90.0f),        // Default yaw is -90 degrees (looking forward)
+      m_Pitch(0.0f),        // Default pitch is 0 degrees (looking horizontally)
+      m_MovementSpeed(2.5f),
+      m_MouseSensitivity(0.1f),
+      m_Fov(45.0f),
+      m_LastX(0.0f),
+      m_LastY(0.0f),
+      m_FirstMouse(true)
 {
     // Initialize camera vectors
-    updateCameraVectors();
+    UpdateCameraVectors();
 }
 
-void Camera::update(const Window& window, float deltaTime) 
+void Camera::Update(const Window& window, float deltaTime) 
 {
     // Handle keyboard input for camera movement
-    float velocity = m_movementSpeed * deltaTime;
+    float velocity = m_MovementSpeed * deltaTime;
     
     // Forward movement (W key)
-    if (window.isKeyPressed(GLFW_KEY_W)) {
-        m_position += m_front * velocity;
+    if (window.IsKeyPressed(GLFW_KEY_W)) {
+        m_Position += m_Front * velocity;
     }
     
     // Backward movement (S key)
-    if (window.isKeyPressed(GLFW_KEY_S)) {
-        m_position -= m_front * velocity;
+    if (window.IsKeyPressed(GLFW_KEY_S)) {
+        m_Position -= m_Front * velocity;
     }
     
     // Left movement (A key)
-    if (window.isKeyPressed(GLFW_KEY_A)) {
-        m_position -= m_right * velocity;
+    if (window.IsKeyPressed(GLFW_KEY_A)) {
+        m_Position -= m_Right * velocity;
     }
     
     // Right movement (D key)
-    if (window.isKeyPressed(GLFW_KEY_D)) {
-        m_position += m_right * velocity;
+    if (window.IsKeyPressed(GLFW_KEY_D)) {
+        m_Position += m_Right * velocity;
     }
 }
 
-glm::mat4 Camera::getViewMatrix() const 
+glm::mat4 Camera::GetViewMatrix() const 
 {
-    return glm::lookAt(m_position, m_position + m_front, m_up);
+    return glm::lookAt(m_Position, m_Position + m_Front, m_Up);
 }
 
-glm::mat4 Camera::getProjectionMatrix(float aspectRatio) const {
-    return glm::perspective(glm::radians(m_fov), aspectRatio, 0.1f, 100.0f);
+glm::mat4 Camera::GetProjectionMatrix(float aspectRatio) const {
+    return glm::perspective(glm::radians(m_Fov), aspectRatio, 0.1f, 100.0f);
 }
 
-glm::vec3 Camera::getPosition() const {
-    return m_position;
+glm::vec3 Camera::GetPosition() const {
+    return m_Position;
 }
 
-glm::vec3 Camera::getForward() const {
-    return m_front;
+glm::vec3 Camera::GetForward() const {
+    return m_Front;
 }
 
-glm::vec3 Camera::getRight() const {
-    return m_right;
+glm::vec3 Camera::GetRight() const {
+    return m_Right;
 }
 
-glm::vec3 Camera::getUp() const {
-    return m_up;
+glm::vec3 Camera::GetUp() const {
+    return m_Up;
 }
 
-void Camera::processMouseMovement(float xOffset, float yOffset) 
+void Camera::ProcessMouseMovement(float xOffset, float yOffset) 
 {
     // Scale the offsets by sensitivity
-    xOffset *= m_mouseSensitivity;
-    yOffset *= m_mouseSensitivity;
+    xOffset *= m_MouseSensitivity;
+    yOffset *= m_MouseSensitivity;
     
     // Update Euler angles
-    m_yaw += xOffset;
-    m_pitch += yOffset;
+    m_Yaw += xOffset;
+    m_Pitch += yOffset;
     
     // Clamp pitch to avoid camera flipping
-    m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
+    m_Pitch = std::clamp(m_Pitch, -89.0f, 89.0f);
     
     // Update camera vectors
-    updateCameraVectors();
+    UpdateCameraVectors();
 }
 
-void Camera::updateCameraVectors() 
+void Camera::UpdateCameraVectors() 
 {
     // Calculate new front vector from Euler angles
     glm::vec3 front;
-    front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
-    front.y = sin(glm::radians(m_pitch));
-    front.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
-    m_front = glm::normalize(front);
+    front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+    front.y = sin(glm::radians(m_Pitch));
+    front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+    m_Front = glm::normalize(front);
     
     // Recalculate right and up vectors
-    m_right = glm::normalize(glm::cross(m_front, m_worldUp));
-    m_up = glm::normalize(glm::cross(m_right, m_front));
+    m_Right = glm::normalize(glm::cross(m_Front, m_WorldUp));
+    m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 } 

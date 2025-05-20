@@ -2,81 +2,70 @@
 
 #include <glm/glm.hpp>
 
-struct DirectionalLight {
-    glm::vec4 direction;    ///< Light direction (world space) - vec4 for alignment
-    glm::vec4 color;        ///< Light color - vec4 for alignment
+struct DirectionalLight 
+{
+    glm::vec4 m_Direction;    ///< Light direction (world space) - vec4 for alignment
+    glm::vec4 m_Color;        ///< Light color - vec4 for alignment
     DirectionalLight()
-        : direction(0.0f, -1.0f, 0.0f, 0.0f),
-          color(1.0f, 1.0f, 1.0f, 1.0f)
+        : m_Direction(0.0f, -1.0f, 0.0f, 0.0f),
+          m_Color(1.0f, 1.0f, 1.0f, 1.0f)
           {}
 
     DirectionalLight(const glm::vec3& dir, const glm::vec4& col)
-        : direction(glm::normalize(dir), 0.0f),
-          color(col) 
+        : m_Direction(glm::normalize(dir), 0.0f),
+          m_Color(col) 
           {}
     
     DirectionalLight(const glm::vec3& dir, const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec)
-        : direction(glm::normalize(dir), 0.0f),
-          color(1.0f) // Default color is white
+        : m_Direction(glm::normalize(dir), 0.0f),
+          m_Color(1.0f) // Default color is white
     {
         // Store ambient, diffuse, specular components separately
-        ambient = amb;
-        diffuse = diff;
-        specular = spec;
+        m_Ambient = amb;
+        m_Diffuse = diff;
+        m_Specular = spec;
     }
     
     // We keep these for backward compatibility with existing code
-    glm::vec3 ambient = glm::vec3(0.2f);  ///< Ambient intensity
-    glm::vec3 diffuse = glm::vec3(0.5f);  ///< Diffuse intensity
-    glm::vec3 specular = glm::vec3(1.0f); ///< Specular intensity
-    
-    void setUniforms(unsigned int shader) const;
+    glm::vec3 m_Ambient = glm::vec3(0.2f);  ///< Ambient intensity
+    glm::vec3 m_Diffuse = glm::vec3(0.5f);  ///< Diffuse intensity
+    glm::vec3 m_Specular = glm::vec3(1.0f); ///< Specular intensity    
 };
 
-struct Material {
-    glm::vec3 ambientColor;       ///< Ambient color
-    float ambientIntensity;       ///< Ambient intensity (for alignment)
+struct Material 
+{
+    glm::vec3 m_AmbientColor;       ///< Ambient color
+    float m_AmbientIntensity;       ///< Ambient intensity (for alignment)
     
-    glm::vec3 diffuseColor;       ///< Diffuse color
-    float diffuseIntensity;       ///< Diffuse intensity (for alignment)
+    glm::vec3 m_DiffuseColor;       ///< Diffuse color
+    float m_DiffuseIntensity;       ///< Diffuse intensity (for alignment)
     
-    glm::vec3 specularColor;      ///< Specular color
-    float specularIntensity;      ///< Specular intensity (for alignment)
+    glm::vec3 m_SpecularColor;      ///< Specular color
+    float m_SpecularIntensity;      ///< Specular intensity (for alignment)
     
-    float shininess;              ///< Shininess factor
-    glm::vec3 padding;            ///< Padding for alignment
+    float m_Shininess;              ///< Shininess factor
+    glm::vec3 m_Padding;            ///< Padding for alignment
     
     Material()
-        : ambientColor(1.0f),
-          ambientIntensity(1.0f),
-          diffuseColor(1.0f),
-          diffuseIntensity(1.0f),
-          specularColor(0.5f),
-          specularIntensity(1.0f),
-          shininess(32.0f),
-          padding(0.0f)
+        : m_AmbientColor(1.0f),
+          m_AmbientIntensity(1.0f),
+          m_DiffuseColor(1.0f),
+          m_DiffuseIntensity(1.0f),
+          m_SpecularColor(0.5f),
+          m_SpecularIntensity(1.0f),
+          m_Shininess(32.0f),
+          m_Padding(0.0f)
     {}
     
     Material(const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec, float shin)
-        : ambientColor(amb),
-          ambientIntensity(1.0f),
-          diffuseColor(diff),
-          diffuseIntensity(1.0f),
-          specularColor(spec),
-          specularIntensity(1.0f),
-          shininess(shin),
-          padding(0.0f)
+        : m_AmbientColor(amb),
+          m_AmbientIntensity(1.0f),
+          m_DiffuseColor(diff),
+          m_DiffuseIntensity(1.0f),
+          m_SpecularColor(spec),
+          m_SpecularIntensity(1.0f),
+          m_Shininess(shin),
+          m_Padding(0.0f)
     {
-        // For backward compatibility
-        ambient = amb;
-        diffuse = diff;
-        specular = spec;
     }
-    
-    // We keep these for backward compatibility with existing code
-    glm::vec3 ambient;  ///< Ambient color
-    glm::vec3 diffuse;  ///< Diffuse color
-    glm::vec3 specular; ///< Specular color
-    
-    void setUniforms(unsigned int shader) const;
-}; 
+    }; 

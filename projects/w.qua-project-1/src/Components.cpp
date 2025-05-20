@@ -1,18 +1,12 @@
 #include "../include/Components.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-void TransformComponent::updateModelMatrix() 
+void TransformComponent::UpdateModelMatrix()
 {
-    // Start with identity matrix
-    model = glm::mat4(1.0f);
-    
-    // Apply transformations in order: scale, rotate, translate
-    model = glm::translate(model, position);
-    
-    // Apply rotations in order: x, y, z
-    model = glm::rotate(model, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-    
-    model = glm::scale(model, scale);
+    m_Model = glm::mat4(1.0f);
+    m_Model = glm::translate(m_Model, m_Position);
+    m_Model = glm::rotate(m_Model, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    m_Model = glm::rotate(m_Model, glm::radians(m_Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    m_Model = glm::rotate(m_Model, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_Model = glm::scale(m_Model, m_Scale);
 } 

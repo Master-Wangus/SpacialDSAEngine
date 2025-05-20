@@ -39,8 +39,8 @@ Window::Window(int width, int height, const std::string& title)
     windowMap[m_window] = this;
 
     // Setup callbacks to route through this class
-    glfwSetKeyCallback(m_window, keyCallbackWrapper);
-    glfwSetCursorPosCallback(m_window, cursorPosCallbackWrapper);
+    glfwSetKeyCallback(m_window, KeyCallbackWrapper);
+    glfwSetCursorPosCallback(m_window, CursorPosCallbackWrapper);
 }
 
 Window::~Window() 
@@ -61,63 +61,68 @@ Window::~Window()
     }
 }
 
-GLFWwindow* Window::getHandle() const 
+GLFWwindow* Window::GetHandle() const 
 {
     return m_window;
 }
 
-bool Window::shouldClose() const 
+bool Window::ShouldClose() const 
 {
     return glfwWindowShouldClose(m_window);
 }
 
-void Window::pollEvents() const 
+void Window::SetShouldClose(bool value) const 
+{
+    glfwSetWindowShouldClose(m_window, value);
+}
+
+void Window::PollEvents() const 
 {
     glfwPollEvents();
 }
 
-void Window::swapBuffers() const 
+void Window::SwapBuffers() const 
 {
     glfwSwapBuffers(m_window);
 }
 
-bool Window::isKeyPressed(int keyCode) const 
+bool Window::IsKeyPressed(int keyCode) const 
 {
     return glfwGetKey(m_window, keyCode) == GLFW_PRESS;
 }
 
-void Window::setInputMode(int mode, int value) const 
+void Window::SetInputMode(int mode, int value) const 
 {
     glfwSetInputMode(m_window, mode, value);
 }
 
-void Window::makeContextCurrent() const 
+void Window::MakeContextCurrent() const 
 {
     glfwMakeContextCurrent(m_window);
 }
 
-int Window::getWidth() const 
+int Window::GetWidth() const 
 {
     return m_width;
 }
 
-int Window::getHeight() const 
+int Window::GetHeight() const 
 {
     return m_height;
 }
 
-void Window::setKeyCallback(std::function<void(int, int, int, int)> callback) 
+void Window::SetKeyCallback(std::function<void(int, int, int, int)> callback) 
 {
     m_keyCallback = callback;
 }
 
-void Window::setCursorPosCallback(std::function<void(double, double)> callback) 
+void Window::SetCursorPosCallback(std::function<void(double, double)> callback) 
 {
     m_cursorPosCallback = callback;
 }
 
 // Static callback wrappers
-void Window::keyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) 
+void Window::KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) 
 {
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_keyCallback) 
@@ -126,7 +131,7 @@ void Window::keyCallbackWrapper(GLFWwindow* window, int key, int scancode, int a
     }
 }
 
-void Window::cursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos) 
+void Window::CursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos) 
 {
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_cursorPosCallback) 

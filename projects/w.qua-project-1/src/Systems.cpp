@@ -1,52 +1,82 @@
-#include "../include/Systems.hpp"
-#include "../include/Components.hpp"
-#include "../include/Shader.hpp"
-#include "../include/Intersection.hpp"
-#include "../include/Window.hpp"
+#include "Systems.hpp"
+#include "Components.hpp"
+#include "Shader.hpp"
+#include "Intersection.hpp"
+#include "Window.hpp"
+#include "Cube.hpp"
+#include "Registry.hpp"
+
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 
+namespace
+{
+    static Registry::Entity CreateCubeEntity(Registry& registry, const glm::vec3& position, float size, const glm::vec3& color, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+
+        auto cubeRenderable = std::make_shared<Cube>(color, size);
+        
+        // Set the material directly on the renderable instead of using MaterialComponent
+        Material material;
+        material.m_AmbientColor = color;
+        material.m_DiffuseColor = color;
+        material.m_SpecularColor = color;
+        material.m_Shininess = 32.0f;
+        cubeRenderable->SetMaterial(material);
+
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(size)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(cubeRenderable));
+        // MaterialComponent no longer needed here
+
+        registry.AddComponent<AABBComponent>(entity, AABBComponent(position, glm::vec3(size * 0.5f)));
+        registry.AddComponent<BoundingSphereComponent>(entity, BoundingSphereComponent(position, size * 0.866025f));
+
+        return entity;
+    }
+}
+
 namespace Systems 
 {
     // Uniform Buffer Objects (UBOs) for the directional light and materials
-    GLuint g_lightUBO = 0;
-    GLuint g_materialUBO = 0;
-    bool g_initialized = false;
+    GLuint g_LightUBO = 0;
+    GLuint g_MaterialUBO = 0;
+    bool g_Initialized = false;
 
-    void updateTransforms(entt::registry& registry) 
+    void UpdateTransforms(entt::registry& registry) 
     {
         auto view = registry.view<TransformComponent>();
         
         for (auto entity : view) 
         {
             auto& transform = view.get<TransformComponent>(entity);
-            transform.updateModelMatrix();
+            transform.UpdateModelMatrix();
         }
     }
     
-    void renderSystem(entt::registry& registry, const Camera& camera) 
+    void RenderSystem(entt::registry& registry, const Camera& camera) 
     {
         // Initialize UBOs if not already done
-        if (!g_initialized) 
+        if (!g_Initialized) 
         {
             // Create and set up UBO for directional light
-            glGenBuffers(1, &g_lightUBO);
-            glBindBuffer(GL_UNIFORM_BUFFER, g_lightUBO);
+            glGenBuffers(1, &g_LightUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, g_LightUBO);
             glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), nullptr, GL_STATIC_DRAW);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_lightUBO); // Bind to binding point 0
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, g_LightUBO); // Bind to binding point 0
             
             // Create and set up UBO for material
-            glGenBuffers(1, &g_materialUBO);
-            glBindBuffer(GL_UNIFORM_BUFFER, g_materialUBO);
+            glGenBuffers(1, &g_MaterialUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, g_MaterialUBO);
             glBufferData(GL_UNIFORM_BUFFER, sizeof(Material), nullptr, GL_STATIC_DRAW);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_materialUBO); // Bind to binding point 1
+            glBindBufferBase(GL_UNIFORM_BUFFER, 1, g_MaterialUBO); // Bind to binding point 1
             
-            g_initialized = true;
+            g_Initialized = true;
         }
 
-        // Get all entities with transform, mesh, and material components
-        auto view = registry.view<TransformComponent, MeshComponent, MaterialComponent>();
+        // Get all entities with transform and mesh components - material is now part of the renderable
+        auto view = registry.view<TransformComponent, MeshComponent>();
         
         // Find directional light
         auto lightView = registry.view<DirectionalLightComponent>();
@@ -54,77 +84,70 @@ namespace Systems
         
         if (!lightView.empty()) 
         {
-            light = lightView.get<DirectionalLightComponent>(*lightView.begin()).light;
+            light = lightView.get<DirectionalLightComponent>(*lightView.begin()).m_Light;
             
             // Upload directional light to UBO (only need to do this once)
-            glBindBuffer(GL_UNIFORM_BUFFER, g_lightUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, g_LightUBO);
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(DirectionalLight), &light);
         }
         
         // Get view matrix once for this frame
-        glm::mat4 viewMatrix = camera.getViewMatrix();
+        glm::mat4 viewMatrix = camera.GetViewMatrix();
         
         // Get camera position for specular lighting calculations
-        glm::vec3 cameraPosition = camera.getPosition();
+        glm::vec3 cameraPosition = camera.GetPosition();
         
         // Get projection matrix for this frame
         float aspectRatio = 1024.0f / 768.0f; // Example aspect ratio
-        glm::mat4 projectionMatrix = camera.getProjectionMatrix(aspectRatio);
+        glm::mat4 projectionMatrix = camera.GetProjectionMatrix(aspectRatio);
         
         // Process each entity
         for (auto entity : view) 
         {
-            auto [transform, mesh, material] = view.get<TransformComponent, MeshComponent, MaterialComponent>(entity);
+            auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
             
             // Skip if no shader is assigned
-            if (!mesh.shader) continue;
+            if (!mesh.m_Shader) continue;
             
             // Use shader
-            mesh.shader->use();
+            mesh.m_Shader->Use();
             
             // Set transformation matrices
-            mesh.shader->setMat4("model", transform.model);
-            mesh.shader->setMat4("view", viewMatrix);
-            mesh.shader->setMat4("projection", projectionMatrix);
+            mesh.m_Shader->SetMat4("model", transform.m_Model);
+            mesh.m_Shader->SetMat4("view", viewMatrix);
+            mesh.m_Shader->SetMat4("projection", projectionMatrix);
             
             // Bind uniform blocks to their respective binding points
-            GLuint lightBlockIndex = glGetUniformBlockIndex(mesh.shader->getID(), "DirectionalLight");
-            GLuint materialBlockIndex = glGetUniformBlockIndex(mesh.shader->getID(), "Material");
+            GLuint lightBlockIndex = glGetUniformBlockIndex(mesh.m_Shader->GetID(), "DirectionalLight");
+            GLuint materialBlockIndex = glGetUniformBlockIndex(mesh.m_Shader->GetID(), "Material");
             
             if (lightBlockIndex != GL_INVALID_INDEX) 
             {
-                glUniformBlockBinding(mesh.shader->getID(), lightBlockIndex, 0);
+                glUniformBlockBinding(mesh.m_Shader->GetID(), lightBlockIndex, 0);
             }
             
             if (materialBlockIndex != GL_INVALID_INDEX)
-             {
-                glUniformBlockBinding(mesh.shader->getID(), materialBlockIndex, 1);
+            {
+                glUniformBlockBinding(mesh.m_Shader->GetID(), materialBlockIndex, 1);
             }
             
-            // Upload material properties for this specific object
-            Material mat;
-            mat.ambientColor = material.material.ambient;
-            mat.ambientIntensity = 1.0f;
-            mat.diffuseColor = material.material.diffuse;
-            mat.diffuseIntensity = 1.0f;
-            mat.specularColor = material.material.specular;
-            mat.specularIntensity = 1.0f;
-            mat.shininess = material.material.shininess;
+            // Create a default material since we don't have a MaterialComponent anymore
+            Material material;
             
-            glBindBuffer(GL_UNIFORM_BUFFER, g_materialUBO);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &mat);
+            glBindBuffer(GL_UNIFORM_BUFFER, g_MaterialUBO);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &material);
             
             // Set camera position for specular lighting
-            mesh.shader->setVec3("viewPos", cameraPosition);
+            mesh.m_Shader->SetVec3("viewPos", cameraPosition);
             
             // Bind mesh and draw
-            mesh.buffer.bind();
-            glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mesh.buffer.getVertexCount()));
-            mesh.buffer.unbind();
+            mesh.m_Buffer.Bind();
+            glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mesh.m_Buffer.GetVertexCount()));
+            mesh.m_Buffer.Unbind();
         }
     }
     
-    void updateColliders(entt::registry& registry) 
+    void UpdateColliders(entt::registry& registry) 
     {
         // Update AABB colliders
         auto aabbView = registry.view<TransformComponent, AABBComponent>();
@@ -134,10 +157,10 @@ namespace Systems
             auto [transform, aabb] = aabbView.get<TransformComponent, AABBComponent>(entity);
             
             // Update AABB center based on entity position
-            aabb.aabb.mCenter = transform.position;
+            aabb.m_AABB.m_Center = transform.m_Position;
             
             // Update half-extents based on entity scale
-            aabb.aabb.mHalfExtents = glm::vec3(0.5f) * transform.scale;
+            aabb.m_AABB.m_HalfExtents = glm::vec3(0.5f) * transform.m_Scale;
         }
         
         // Update sphere colliders
@@ -148,15 +171,15 @@ namespace Systems
             auto [transform, sphere] = sphereView.get<TransformComponent, BoundingSphereComponent>(entity);
             
             // Update sphere center based on entity position
-            sphere.sphere.center = transform.position;
+            sphere.m_Sphere.m_Center = transform.m_Position;
             
             // Update sphere radius based on entity scale (use max component for uniform scaling)
-            float maxScale = std::max(std::max(transform.scale.x, transform.scale.y), transform.scale.z);
-            sphere.sphere.radius = 0.866025f * maxScale; // √3/2 * scale
+            float maxScale = std::max(std::max(transform.m_Scale.x, transform.m_Scale.y), transform.m_Scale.z);
+            sphere.m_Sphere.m_Radius = 0.866025f * maxScale; // √3/2 * scale
         }
     }
     
-    void collisionSystem(entt::registry& registry) 
+    void CollisionSystem(entt::registry& registry) 
     {
         // Get views for all entities with colliders
         auto aabbView = registry.view<AABBComponent>();
@@ -173,7 +196,7 @@ namespace Systems
                 auto& aabb2 = aabbView.get<AABBComponent>(*e2);
                 
                 // Perform collision test
-                bool collision = Intersection::aabbVsAABB(aabb1.aabb, aabb2.aabb);
+                bool collision = Intersection::AabbVsAABB(aabb1.m_AABB, aabb2.m_AABB);
                 
                 if (collision) 
                 {
@@ -194,7 +217,7 @@ namespace Systems
                 auto& sphere = sphereView.get<BoundingSphereComponent>(e2);
                 
                 // Perform collision test
-                bool collision = Intersection::aabbVsSphere(aabb1.aabb, sphere.sphere);
+                bool collision = Intersection::AabbVsSphere(aabb1.m_AABB, sphere.m_Sphere);
                 
                 if (collision) 
                 {
@@ -208,7 +231,7 @@ namespace Systems
         
         // Test collisions between spheres
         for (auto e1 = sphereView.begin(); e1 != sphereView.end(); ++e1)
-         {
+        {
             auto& sphere1 = sphereView.get<BoundingSphereComponent>(*e1);
             
             // Test against other spheres
@@ -217,7 +240,7 @@ namespace Systems
                 auto& sphere2 = sphereView.get<BoundingSphereComponent>(*e2);
                 
                 // Perform collision test
-                bool collision = Intersection::sphereVsSphere(sphere1.sphere, sphere2.sphere);
+                bool collision = Intersection::SphereVsSphere(sphere1.m_Sphere, sphere2.m_Sphere);
                 
                 if (collision) 
                 {
@@ -231,7 +254,7 @@ namespace Systems
     }
     
     // New Camera System functions
-    void cameraSystem(entt::registry& registry, const Window& window, float deltaTime) 
+    void CameraSystem(entt::registry& registry, const Window& window, float deltaTime) 
     {
         auto view = registry.view<CameraComponent>();
         if (view.empty()) return;
@@ -241,37 +264,37 @@ namespace Systems
         auto& cameraComp = view.get<CameraComponent>(entity);
         
         // Only handle input for FPS cameras
-        if (cameraComp.activeCameraType != CameraType::FPS) return;
+        if (cameraComp.m_ActiveCameraType != CameraType::FPS) return;
         
-        auto& camera = cameraComp.fps;
+        auto& camera = cameraComp.m_FPS;
         
         // Calculate acceleration based on input
         glm::vec3 acceleration(0.0f);
         
-        if (window.isKeyPressed(GLFW_KEY_W))
-            acceleration += camera.cameraFront;
-        if (window.isKeyPressed(GLFW_KEY_S))
-            acceleration -= camera.cameraFront;
-        if (window.isKeyPressed(GLFW_KEY_A))
-            acceleration -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUpDirection));
-        if (window.isKeyPressed(GLFW_KEY_D))
-            acceleration += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUpDirection));
+        if (window.IsKeyPressed(GLFW_KEY_W))
+            acceleration += camera.m_CameraFront;
+        if (window.IsKeyPressed(GLFW_KEY_S))
+            acceleration -= camera.m_CameraFront;
+        if (window.IsKeyPressed(GLFW_KEY_A))
+            acceleration -= glm::normalize(glm::cross(camera.m_CameraFront, camera.m_CameraUpDirection));
+        if (window.IsKeyPressed(GLFW_KEY_D))
+            acceleration += glm::normalize(glm::cross(camera.m_CameraFront, camera.m_CameraUpDirection));
         
         // Normalize acceleration if not zero
         if (glm::length(acceleration) > 0.001f)
-            acceleration = glm::normalize(acceleration) * camera.movementAcceleration;
+            acceleration = glm::normalize(acceleration) * camera.m_MovementAcceleration;
         
         // Apply drag force
-        glm::vec3 drag = -camera.currentVelocity * camera.dragFriction;
+        glm::vec3 drag = -camera.m_CurrentVelocity * camera.m_DragFriction;
         
         // Update velocity using acceleration and drag
-        camera.currentVelocity += (acceleration + drag) * deltaTime;
+        camera.m_CurrentVelocity += (acceleration + drag) * deltaTime;
         
         // Update position using velocity
-        camera.cameraPosition += camera.currentVelocity * deltaTime;
+        camera.m_CameraPosition += camera.m_CurrentVelocity * deltaTime;
     }
     
-    void processCameraMouseMovement(entt::registry& registry, float xOffset, float yOffset) 
+    void ProcessCameraMouseMovement(entt::registry& registry, float xOffset, float yOffset) 
     {
         auto view = registry.view<CameraComponent>();
         if (view.empty()) return;
@@ -281,199 +304,135 @@ namespace Systems
         auto& cameraComp = view.get<CameraComponent>(entity);
         
         // Only handle mouse movement for FPS cameras
-        if (cameraComp.activeCameraType != CameraType::FPS) return;
+        if (cameraComp.m_ActiveCameraType != CameraType::FPS) return;
         
-        auto& camera = cameraComp.fps;
+        auto& camera = cameraComp.m_FPS;
         
         // Apply sensitivity
-        xOffset *= camera.mouseSensitivity;
-        yOffset *= camera.mouseSensitivity;
+        xOffset *= camera.m_MouseSensitivity;
+        yOffset *= camera.m_MouseSensitivity;
         
         // Update angles
-        camera.yawAngle += xOffset;
-        camera.pitchAngle += yOffset;
+        camera.m_YawAngle += xOffset;
+        camera.m_PitchAngle += yOffset;
         
         // Clamp pitch to avoid flipping
-        camera.pitchAngle = std::clamp(camera.pitchAngle, -89.0f, 89.0f);
+        camera.m_PitchAngle = std::clamp(camera.m_PitchAngle, -89.0f, 89.0f);
         
         // Update camera vectors
-        camera.updateVectors();
+        camera.UpdateVectors();
     }
     
     // FPSCameraSystem implementation
     FPSCameraSystem::FPSCameraSystem(entt::registry& registry, Window& window)
-        : Camera() // Call the base class constructor
-        , m_registry(registry)
-        , m_window(window)
-        , m_lastX(window.getWidth() / 2.0f)
-        , m_lastY(window.getHeight() / 2.0f)
-        , m_firstMouse(true)
+        : Camera(glm::vec3(0.0f, 0.0f, 3.0f)), // Initialize base class
+          m_Registry(registry),
+          m_Window(window),
+          m_ActiveCameraEntity(entt::null)
     {
-        // Find or create a camera entity
-        auto view = registry.view<CameraComponent>();
-        if (view.empty()) 
-        {
-            m_activeCameraEntity = createCamera(registry);
-        } else {
-            m_activeCameraEntity = *view.begin();
-        }
-        
         // Set up mouse callback
-        window.setCursorPosCallback([this](double xpos, double ypos) 
+        window.SetCursorPosCallback([this](double xpos, double ypos) 
         {
-            this->processMouseMovement(xpos, ypos);
+            ProcessMouseMovement(xpos, ypos);
         });
     }
     
-    void FPSCameraSystem::update(float deltaTime) 
+    void FPSCameraSystem::Update(float deltaTime) 
     {
-        if (!m_registry.valid(m_activeCameraEntity)) 
+        // Get camera component
+        auto& cameraComp = m_Registry.get<CameraComponent>(m_ActiveCameraEntity);
+        
+        // Update camera position based on input
+        float velocity = GetMovementSpeed() * deltaTime;
+        
+        if (m_Window.IsKeyPressed(GLFW_KEY_W)) 
         {
-            return;
+            SetPosition(GetPosition() + GetForward() * velocity);
         }
-        
-        auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        auto& camera = cameraComp.fps;
-        
-        // Calculate acceleration based on input
-        glm::vec3 acceleration(0.0f);
-        
-        if (m_window.isKeyPressed(GLFW_KEY_W))
-            acceleration += camera.cameraFront;
-        if (m_window.isKeyPressed(GLFW_KEY_S))
-            acceleration -= camera.cameraFront;
-        if (m_window.isKeyPressed(GLFW_KEY_A))
-            acceleration -= glm::normalize(glm::cross(camera.cameraFront, camera.cameraUpDirection));
-        if (m_window.isKeyPressed(GLFW_KEY_D))
-            acceleration += glm::normalize(glm::cross(camera.cameraFront, camera.cameraUpDirection));
-        
-        // Normalize acceleration if not zero
-        if (glm::length(acceleration) > 0.001f)
-            acceleration = glm::normalize(acceleration) * camera.movementAcceleration;
-        
-        // Apply drag force
-        glm::vec3 drag = -camera.currentVelocity * camera.dragFriction;
-        
-        // Update velocity using acceleration and drag
-        camera.currentVelocity += (acceleration + drag) * deltaTime;
-        
-        // Update position using velocity
-        camera.cameraPosition += camera.currentVelocity * deltaTime;
-    }
-    
-    entt::entity FPSCameraSystem::getActiveCameraEntity() const 
-    {
-        return m_activeCameraEntity;
-    }
-    
-    glm::mat4 FPSCameraSystem::getViewMatrix() const 
-    {
-        if (!m_registry.valid(m_activeCameraEntity)) 
+        if (m_Window.IsKeyPressed(GLFW_KEY_S)) 
         {
-            return glm::mat4(1.0f);
+            SetPosition(GetPosition() - GetForward() * velocity);
         }
-        
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        return cameraComp.getViewMatrix();
-    }
-    
-    glm::mat4 FPSCameraSystem::getProjectionMatrix(float aspectRatio) const 
-    {
-        if (!m_registry.valid(m_activeCameraEntity)) 
+        if (m_Window.IsKeyPressed(GLFW_KEY_A)) 
         {
-            return glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
+            SetPosition(GetPosition() - GetRight() * velocity);
         }
-        
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        return cameraComp.getProjectionMatrix(aspectRatio);
-    }
-    
-    glm::vec3 FPSCameraSystem::getPosition() const 
-    {
-        if (!m_registry.valid(m_activeCameraEntity)) 
+        if (m_Window.IsKeyPressed(GLFW_KEY_D)) 
         {
-            return glm::vec3(0.0f, 0.0f, 5.0f);
+            SetPosition(GetPosition() + GetRight() * velocity);
         }
         
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        return cameraComp.getPosition();
+        // Update camera component
+        cameraComp.m_FPS.m_CameraPosition = GetPosition();
+        cameraComp.m_FPS.m_CameraFront = GetForward();
+        cameraComp.m_FPS.m_CameraUpDirection = GetUp();
     }
-
-    glm::vec3 FPSCameraSystem::getForward() const
+    
+    glm::mat4 FPSCameraSystem::GetViewMatrix() const 
     {
-        if (!m_registry.valid(m_activeCameraEntity)) 
+        return glm::lookAt(GetPosition(), GetPosition() + GetForward(), GetUp());
+    }
+    
+    glm::mat4 FPSCameraSystem::GetProjectionMatrix(float aspectRatio) const 
+    {
+        return glm::perspective(glm::radians(GetFov()), aspectRatio, 0.1f, 100.0f);
+    }
+    
+    glm::vec3 FPSCameraSystem::GetPosition() const 
+    {
+        return Camera::GetPosition();
+    }
+    
+    glm::vec3 FPSCameraSystem::GetForward() const 
+    {
+        return Camera::GetForward();
+    }
+    
+    glm::vec3 FPSCameraSystem::GetRight() const 
+    {
+        return Camera::GetRight();
+    }
+    
+    glm::vec3 FPSCameraSystem::GetUp() const 
+    {
+        return Camera::GetUp();
+    }
+    
+    entt::entity FPSCameraSystem::GetActiveCameraEntity() const 
+    {
+        return m_ActiveCameraEntity;
+    }
+    
+    void FPSCameraSystem::ProcessMouseMovement(double xpos, double ypos) 
+    {
+        if (m_FirstMouse) 
         {
-            return glm::vec3(0.0f, 0.0f, -1.0f);
+            m_LastX = static_cast<float>(xpos);
+            m_LastY = static_cast<float>(ypos);
+            m_FirstMouse = false;
         }
         
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        return cameraComp.fps.cameraFront;
+        float xOffset = static_cast<float>(xpos) - m_LastX;
+        float yOffset = m_LastY - static_cast<float>(ypos); // Reversed since y-coordinates go from bottom to top
+        
+        m_LastX = static_cast<float>(xpos);
+        m_LastY = static_cast<float>(ypos);
+        
+        xOffset *= GetMouseSensitivity();
+        yOffset *= GetMouseSensitivity();
+        
+        SetYaw(GetYaw() + xOffset);
+        SetPitch(GetPitch() + yOffset);
+        
+        // Constrain pitch
+        if (GetPitch() > 89.0f) SetPitch(89.0f);
+        if (GetPitch() < -89.0f) SetPitch(-89.0f);
+        
+        // Update front, right and up vectors
+        UpdateCameraVectors();
     }
     
-    glm::vec3 FPSCameraSystem::getRight() const
-    {
-        if (!m_registry.valid(m_activeCameraEntity)) 
-        {
-            return glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-        
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        auto front = cameraComp.fps.cameraFront;
-        auto up = cameraComp.fps.cameraUpDirection;
-        return glm::normalize(glm::cross(front, up));
-    }
-    
-    glm::vec3 FPSCameraSystem::getUp() const
-    {
-        if (!m_registry.valid(m_activeCameraEntity)) 
-        {
-            return glm::vec3(0.0f, 1.0f, 0.0f);
-        }
-        
-        const auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-        auto front = cameraComp.fps.cameraFront;
-        auto right = this->getRight();
-        return glm::normalize(glm::cross(right, front));
-    }
-    
-    void FPSCameraSystem::processMouseMovement(double xpos, double ypos) 
-    {
-        if (m_firstMouse) {
-            m_lastX = static_cast<float>(xpos);
-            m_lastY = static_cast<float>(ypos);
-            m_firstMouse = false;
-            return;
-        }
-        
-        float xOffset = static_cast<float>(xpos) - m_lastX;
-        float yOffset = m_lastY - static_cast<float>(ypos); // Reversed since y-coordinates go from bottom to top
-        
-        m_lastX = static_cast<float>(xpos);
-        m_lastY = static_cast<float>(ypos);
-        
-        // Make sure the sensitivity is applied correctly
-        xOffset *= 0.1f;  // Apply consistent mouse sensitivity
-        yOffset *= 0.1f;
-        
-        // Apply the mouse movement directly to the camera component
-        if (m_registry.valid(m_activeCameraEntity)) {
-            auto& cameraComp = m_registry.get<CameraComponent>(m_activeCameraEntity);
-            auto& fps = cameraComp.fps;
-            
-            // Update yaw and pitch angles
-            fps.yawAngle += xOffset;
-            fps.pitchAngle += yOffset;
-            
-            // Clamp the pitch angle to prevent gimbal lock
-            fps.pitchAngle = std::clamp(fps.pitchAngle, -89.0f, 89.0f);
-            
-            // Update the camera vectors based on new angles
-            fps.updateVectors();
-        }
-    }
-    
-    // Helper function to create cube vertices
-    static std::vector<Vertex> createCubeVertices(const glm::vec3& color) 
+    static std::vector<Vertex> CreateCubeVertices(const glm::vec3& color) 
     {
         std::vector<Vertex> vertices;
         
@@ -519,31 +478,31 @@ namespace Systems
             Vertex vertex;
             
             // First triangle (v0, v1, v2)
-            vertex.position = corners[v0];
-            vertex.color = color;
-            vertex.normal = normals[normalIndex];
-            vertex.uv = texCoords[0];
+            vertex.m_Position = corners[v0];
+            vertex.m_Color = color;
+            vertex.m_Normal = normals[normalIndex];
+            vertex.m_UV = texCoords[0];
             vertices.push_back(vertex);
             
-            vertex.position = corners[v1];
-            vertex.uv = texCoords[1];
+            vertex.m_Position = corners[v1];
+            vertex.m_UV = texCoords[1];
             vertices.push_back(vertex);
             
-            vertex.position = corners[v2];
-            vertex.uv = texCoords[2];
+            vertex.m_Position = corners[v2];
+            vertex.m_UV = texCoords[2];
             vertices.push_back(vertex);
             
             // Second triangle (v0, v2, v3)
-            vertex.position = corners[v0];
-            vertex.uv = texCoords[0];
+            vertex.m_Position = corners[v0];
+            vertex.m_UV = texCoords[0];
             vertices.push_back(vertex);
             
-            vertex.position = corners[v2];
-            vertex.uv = texCoords[2];
+            vertex.m_Position = corners[v2];
+            vertex.m_UV = texCoords[2];
             vertices.push_back(vertex);
             
-            vertex.position = corners[v3];
-            vertex.uv = texCoords[3];
+            vertex.m_Position = corners[v3];
+            vertex.m_UV = texCoords[3];
             vertices.push_back(vertex);
         };
         
@@ -558,84 +517,322 @@ namespace Systems
         return vertices;
     }
     
-    entt::entity createCubeEntity(
-        entt::registry& registry,
-        const glm::vec3& position,
-        float size,
-        const glm::vec3& color,
-        std::shared_ptr<Shader> shader)
+    // Scene Management Functions
+    void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
-        // Create entity
-        auto entity = registry.create();
+        // Set up the scene entities and components
+        SetupScene(registry, window, shader);
         
-        // Create transform component
-        auto& transform = registry.emplace<TransformComponent>(
-            entity,
-            position,          // position
-            glm::vec3(0.0f),   // rotation
-            glm::vec3(size)    // scale
-        );
-        
-        // Create mesh component with cube vertices
-        auto vertices = createCubeVertices(color);
-        registry.emplace<MeshComponent>(entity, vertices, shader);
-        
-        // Create material component
-        registry.emplace<MaterialComponent>(
-            entity,
-            Material(color, color, glm::vec3(0.5f), 32.0f)
-        );
-        
-        // Create collision components
-        registry.emplace<AABBComponent>(entity, position, glm::vec3(size * 0.5f));
-        registry.emplace<BoundingSphereComponent>(entity, position, size * 0.866025f); // √3/2 * size
-        
-        // Add tag
-        registry.emplace<CubeTag>(entity);
-        
-        return entity;
+        // Initialize all renderable objects
+        for (auto entity : registry.View<RenderComponent>()) 
+        {
+            registry.GetComponent<RenderComponent>(entity).m_Renderable->Initialize(shader);
+        }
     }
     
-    entt::entity createDirectionalLight(
-        entt::registry& registry,
-        const glm::vec3& direction,
-        const glm::vec3& ambient,
-        const glm::vec3& diffuse,
-        const glm::vec3& specular)
+    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
-        // Create entity
-        auto entity = registry.create();
+        // Create camera
+        SetupCamera(registry, window);
         
-        // Create directional light component
-        registry.emplace<DirectionalLightComponent>(
-            entity,
-            DirectionalLight(direction, ambient, diffuse, specular)
-        );
+        // Create lighting
+        SetupLighting(registry);
         
-        return entity;
+        // Create cubes
+        CreateCubes(registry, shader);
     }
     
-    entt::entity createCamera(
-        entt::registry& registry,
-        const glm::vec3& position,
-        const glm::vec3& up,
-        float fov,
-        float nearPlane,
-        float farPlane,
-        CameraType type)
+    void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
     {
-        // Create entity
-        auto entity = registry.create();
+        // Update camera based on keyboard input
+        auto cameraView = registry.View<CameraComponent>();
+        if (!cameraView.empty())
+        {
+            auto cameraEntity = *cameraView.begin();
+            auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
+            
+            // Get keys state
+            bool keyW = window.IsKeyPressed(GLFW_KEY_W);
+            bool keyS = window.IsKeyPressed(GLFW_KEY_S);
+            bool keyA = window.IsKeyPressed(GLFW_KEY_A);
+            bool keyD = window.IsKeyPressed(GLFW_KEY_D);
+            
+            // Calculate camera speed
+            float cameraSpeed = camera.m_FPS.m_MovementSpeed * deltaTime;
+            
+            // Update camera position
+            if (keyW)
+                camera.m_FPS.m_CameraPosition += camera.m_FPS.m_CameraFront * cameraSpeed;
+            if (keyS)
+                camera.m_FPS.m_CameraPosition -= camera.m_FPS.m_CameraFront * cameraSpeed;
+            if (keyA)
+                camera.m_FPS.m_CameraPosition -= glm::normalize(glm::cross(camera.m_FPS.m_CameraFront, camera.m_FPS.m_CameraUpDirection)) * cameraSpeed;
+            if (keyD)
+                camera.m_FPS.m_CameraPosition += glm::normalize(glm::cross(camera.m_FPS.m_CameraFront, camera.m_FPS.m_CameraUpDirection)) * cameraSpeed;
+        }
         
-        // Create FPS camera component
-        FPSCameraComponent fpsCamera(position, glm::vec3(0.0f, 0.0f, -1.0f), up);
+        // Get the internal entt::registry
+        auto& enttRegistry = registry.GetRegistry();
         
-        // Create projection component
-        ProjectionComponent projection(fov, nearPlane, farPlane);
+        // Update transforms for all entities with transform components
+        UpdateTransforms(enttRegistry);
         
-        // Create camera component with the appropriate type
-        registry.emplace<CameraComponent>(entity, projection, fpsCamera, type);
+        // Update colliders
+        UpdateColliders(registry);
         
-        return entity;
+        // Check for collisions
+        DetectCollisions(registry);
+    }
+    
+    void RenderSystems(Registry& registry, Window& window) 
+    {
+        // Find the camera to use for rendering
+        auto cameraView = registry.View<CameraComponent>();
+        if (cameraView.empty()) return;
+        
+        auto cameraEntity = *cameraView.begin();
+        auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
+        
+        // Get camera matrices
+        float aspectRatio = static_cast<float>(window.GetWidth()) / static_cast<float>(window.GetHeight());
+        glm::mat4 viewMatrix = camera.GetViewMatrix();
+        glm::mat4 projectionMatrix = camera.GetProjectionMatrix(aspectRatio);
+        
+        // Get camera position for specular lighting calculations
+        glm::vec3 cameraPosition = camera.GetPosition();
+        
+        // Get directional light
+        auto lightView = registry.View<DirectionalLightComponent>();
+        DirectionalLight light;
+        if (!lightView.empty())
+        {
+            light = registry.GetComponent<DirectionalLightComponent>(*lightView.begin()).m_Light;
+            
+            // Update light UBO
+            static GLuint lightUBO = 0;
+            if (lightUBO == 0) {
+                glGenBuffers(1, &lightUBO);
+                glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
+                glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), nullptr, GL_DYNAMIC_DRAW);
+                glBindBufferBase(GL_UNIFORM_BUFFER, 0, lightUBO); // Bind to binding point 0
+            }
+            
+            glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(DirectionalLight), &light);
+        }
+        
+        // Render each entity with transform and render components
+        auto renderView = registry.View<TransformComponent, RenderComponent>();
+        for (auto entity : renderView)
+        {
+            auto& transform = registry.GetComponent<TransformComponent>(entity);
+            auto& renderComp = registry.GetComponent<RenderComponent>(entity);
+            
+            // Material is now handled inside the renderable
+            // No need to check for MaterialComponent
+            
+            // Render the object
+            renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+        }
+    }
+    
+    void ShutdownSystems(Registry& registry) 
+    {
+        // Clean up all renderable objects
+        for (auto entity : registry.View<RenderComponent>()) 
+        {
+            registry.GetComponent<RenderComponent>(entity).m_Renderable->CleanUp();
+        }
+    }
+    
+    void SetupCamera(Registry& registry, Window& window)
+    {
+        // Create the camera entity
+        auto cameraEntity = registry.Create();
+        
+        // Add FPS camera component
+        FPSCameraComponent fpsCamera(
+            glm::vec3(0.0f, 0.0f, 3.0f),  // position
+            glm::vec3(0.0f, 0.0f, -1.0f), // front
+            glm::vec3(0.0f, 1.0f, 0.0f)   // up
+        );
+        
+        // Add projection component
+        ProjectionComponent projection(
+            45.0f,  // fov
+            0.1f,   // near plane
+            100.0f  // far plane
+        );
+        
+        // Create the camera component
+        CameraComponent camera;
+        camera.m_FPS = fpsCamera;
+        camera.m_Projection = projection;
+        camera.m_ActiveCameraType = CameraType::FPS;
+        
+        // Add component to entity
+        registry.AddComponent<CameraComponent>(cameraEntity, camera);
+
+        // Calculate initial values for static variables
+        float initialX = window.GetWidth() / 2.0f;
+        float initialY = window.GetHeight() / 2.0f;
+        
+        // Set up mouse callback for camera rotation
+        window.SetCursorPosCallback([&registry, cameraEntity, initialX, initialY](double xpos, double ypos) {
+            static bool firstMouse = true;
+            static float lastX = initialX;
+            static float lastY = initialY;
+            
+            if (firstMouse) {
+                lastX = static_cast<float>(xpos);
+                lastY = static_cast<float>(ypos);
+                firstMouse = false;
+            }
+            
+            float xOffset = static_cast<float>(xpos) - lastX;
+            float yOffset = lastY - static_cast<float>(ypos);
+            
+            lastX = static_cast<float>(xpos);
+            lastY = static_cast<float>(ypos);
+            
+            // Update camera
+            auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
+            
+            const float sensitivity = 0.1f;
+            xOffset *= sensitivity;
+            yOffset *= sensitivity;
+            
+            camera.m_FPS.m_YawAngle += xOffset;
+            camera.m_FPS.m_PitchAngle += yOffset;
+            
+            // Constrain pitch
+            if (camera.m_FPS.m_PitchAngle > 89.0f) camera.m_FPS.m_PitchAngle = 89.0f;
+            if (camera.m_FPS.m_PitchAngle < -89.0f) camera.m_FPS.m_PitchAngle = -89.0f;
+            
+            camera.m_FPS.UpdateVectors();
+        });
+    }
+    
+    void SetupLighting(Registry& registry)
+    {
+        // Create directional light entity
+        auto lightEntity = registry.Create();
+        
+        // Create directional light that matches the UBO layout in the shader
+        DirectionalLight light;
+        
+        // Direction (world space) - with a clear downward component
+        light.m_Direction = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
+        
+        // Light color - bright white
+        light.m_Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        
+        // For backwards compatibility - not used directly with UBO
+        light.m_Ambient = glm::vec3(0.2f);  // Ambient intensity
+        light.m_Diffuse = glm::vec3(0.5f);  // Diffuse intensity
+        light.m_Specular = glm::vec3(1.0f); // Specular intensity
+        
+        // Add the light component to the entity
+        registry.AddComponent<DirectionalLightComponent>(lightEntity, DirectionalLightComponent(light));
+        
+        // If the UBO for the light doesn't exist yet, create it
+        static GLuint lightUBO = 0;
+        if (lightUBO == 0) {
+            glGenBuffers(1, &lightUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
+            glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), &light, GL_STATIC_DRAW);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, lightUBO); // Bind to binding point 0
+        } else {
+            // Update the data
+            glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(DirectionalLight), &light);
+        }
+    }
+    
+    void CreateCubes(Registry& registry, const std::shared_ptr<Shader>& shader)
+    {
+        // Create center cube
+        CreateCubeEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.5f, 0.31f), shader);
+        
+        // Create surrounding cubes
+        CreateCubeEntity(registry, glm::vec3(2.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.31f, 0.5f, 1.0f), shader);
+        CreateCubeEntity(registry, glm::vec3(-2.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.5f, 1.0f, 0.31f), shader);
+        CreateCubeEntity(registry, glm::vec3(0.0f, 2.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.31f, 0.5f), shader);
+        CreateCubeEntity(registry, glm::vec3(0.0f, -2.0f, 0.0f), 1.0f, glm::vec3(0.31f, 1.0f, 0.5f), shader);
+    }
+
+    
+    void UpdateColliders(Registry& registry)
+    {
+        // Update AABB colliders
+        auto aabbView = registry.View<TransformComponent, AABBComponent>();
+        for (auto entity : aabbView)
+        {
+            auto& transform = registry.GetComponent<TransformComponent>(entity);
+            auto& aabb = registry.GetComponent<AABBComponent>(entity);
+            
+            // Update AABB center based on entity position
+            aabb.m_AABB.m_Center = transform.m_Position;
+            
+            // Update half-extents based on entity scale
+            aabb.m_AABB.m_HalfExtents = glm::vec3(0.5f) * transform.m_Scale;
+        }
+        
+        // Update sphere colliders
+        auto sphereView = registry.View<TransformComponent, BoundingSphereComponent>();
+        for (auto entity : sphereView)
+        {
+            auto& transform = registry.GetComponent<TransformComponent>(entity);
+            auto& sphere = registry.GetComponent<BoundingSphereComponent>(entity);
+            
+            // Update sphere center based on entity position
+            sphere.m_Sphere.m_Center = transform.m_Position;
+            
+            // Update sphere radius based on entity scale (use max component for uniform scaling)
+            float maxScale = std::max(std::max(transform.m_Scale.x, transform.m_Scale.y), transform.m_Scale.z);
+            sphere.m_Sphere.m_Radius = 0.866025f * maxScale; // √3/2 * scale
+        }
+    }
+    
+    void DetectCollisions(Registry& registry)
+    {
+        // Get views for all entities with colliders
+        auto aabbView = registry.View<AABBComponent>();
+        
+        // Test collisions between AABBs
+        for (auto it1 = aabbView.begin(); it1 != aabbView.end(); ++it1)
+        {
+            auto entity1 = *it1;
+            auto& aabb1 = registry.GetComponent<AABBComponent>(entity1);
+            
+            // Test against other AABBs
+            for (auto it2 = std::next(it1); it2 != aabbView.end(); ++it2)
+            {
+                auto entity2 = *it2;
+                auto& aabb2 = registry.GetComponent<AABBComponent>(entity2);
+                
+                // Perform AABB vs AABB collision test
+                bool collision = false;
+                
+                // Check if the boxes intersect on all three axes
+                if (!(aabb1.m_AABB.m_Center.x + aabb1.m_AABB.m_HalfExtents.x < aabb2.m_AABB.m_Center.x - aabb2.m_AABB.m_HalfExtents.x ||
+                      aabb1.m_AABB.m_Center.x - aabb1.m_AABB.m_HalfExtents.x > aabb2.m_AABB.m_Center.x + aabb2.m_AABB.m_HalfExtents.x ||
+                      aabb1.m_AABB.m_Center.y + aabb1.m_AABB.m_HalfExtents.y < aabb2.m_AABB.m_Center.y - aabb2.m_AABB.m_HalfExtents.y ||
+                      aabb1.m_AABB.m_Center.y - aabb1.m_AABB.m_HalfExtents.y > aabb2.m_AABB.m_Center.y + aabb2.m_AABB.m_HalfExtents.y ||
+                      aabb1.m_AABB.m_Center.z + aabb1.m_AABB.m_HalfExtents.z < aabb2.m_AABB.m_Center.z - aabb2.m_AABB.m_HalfExtents.z ||
+                      aabb1.m_AABB.m_Center.z - aabb1.m_AABB.m_HalfExtents.z > aabb2.m_AABB.m_Center.z + aabb2.m_AABB.m_HalfExtents.z))
+                {
+                    collision = true;
+                }
+                
+                if (collision)
+                {
+                    // Collision detected
+                    std::cout << "AABB-AABB collision detected between entities " 
+                              << static_cast<uint32_t>(entity1) << " and " 
+                              << static_cast<uint32_t>(entity2) << std::endl;
+                }
+            }
+        }
     }
 }

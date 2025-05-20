@@ -57,19 +57,25 @@ void main()
 // Calculates the color contribution from a directional light source
 vec3 CalcDirLight(vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = normalize(-vec3(light.direction));
+    // Make sure we use the vec3 from direction correctly, ignoring the w component
+    vec3 lightDir = normalize(-light.direction.xyz);
+    
+    // Debug: if lightDir is (0,0,0), use a default direction
+    if(length(lightDir) < 0.001) {
+        lightDir = normalize(vec3(0.0, -1.0, 0.0));
+    }
     
     // Ambient component
-    vec3 ambient = vec3(light.color) * material.ambientColor * material.ambientIntensity * Color;
+    vec3 ambient = light.color.rgb * material.ambientColor * material.ambientIntensity * Color;
     
     // Diffuse component
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = vec3(light.color) * diff * material.diffuseColor * material.diffuseIntensity * Color;
+    vec3 diffuse = light.color.rgb * diff * material.diffuseColor * material.diffuseIntensity * Color;
     
     // Specular component (Blinn-Phong)
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-    vec3 specular = vec3(light.color) * spec * material.specularColor * material.specularIntensity;
+    vec3 specular = light.color.rgb * spec * material.specularColor * material.specularIntensity;
     
     return (ambient + diffuse + specular);
 } 

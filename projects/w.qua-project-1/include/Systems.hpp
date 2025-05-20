@@ -3,75 +3,70 @@
 #include <entt/entt.hpp>
 #include "Camera.hpp"
 #include "Components.hpp"
+#include <memory>
 
 // Forward declarations
 class Shader;
 class Window;
-
+class Registry;
 
 namespace Systems 
 {
-    void updateTransforms(entt::registry& registry);
-    void renderSystem(entt::registry& registry, const Camera& camera);
-    void updateColliders(entt::registry& registry);
-    void collisionSystem(entt::registry& registry);
-    void cameraSystem(
+    // Scene management functions
+    void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader);
+    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader);
+    void UpdateSystems(Registry& registry, Window& window, float deltaTime);
+    void RenderSystems(Registry& registry, Window& window);
+    void ShutdownSystems(Registry& registry);
+
+    // Existing system functions
+    void UpdateTransforms(entt::registry& registry);
+    void RenderSystem(entt::registry& registry, const Camera& camera);
+    void UpdateColliders(entt::registry& registry);
+    void CollisionSystem(entt::registry& registry);
+    void CameraSystem(
         entt::registry& registry, 
         const Window& window, 
         float deltaTime);
-    void processCameraMouseMovement(
+    void ProcessCameraMouseMovement(
         entt::registry& registry,
         float xOffset,
         float yOffset);
+
+    // Scene setup helpers
+    void SetupCamera(Registry& registry, Window& window);
+    void SetupLighting(Registry& registry);
+    void CreateCubes(Registry& registry, const std::shared_ptr<Shader>& shader);
+    void UpdateColliders(Registry& registry);
+    void DetectCollisions(Registry& registry);
 
     class FPSCameraSystem : public Camera {
     public:
         FPSCameraSystem(entt::registry& registry, Window& window);
         
         // Override Camera methods
-        void update(float deltaTime);
-        glm::mat4 getViewMatrix() const override;
-        glm::mat4 getProjectionMatrix(float aspectRatio) const override;
-        glm::vec3 getPosition() const override;
-        glm::vec3 getForward() const override;
-        glm::vec3 getRight() const override;
-        glm::vec3 getUp() const override;
+        void Update(float deltaTime);
+        glm::mat4 GetViewMatrix() const override;
+        glm::mat4 GetProjectionMatrix(float aspectRatio) const override;
+        glm::vec3 GetPosition() const override;
+        glm::vec3 GetForward() const override;
+        glm::vec3 GetRight() const override;
+        glm::vec3 GetUp() const override;
         
         // Additional FPSCameraSystem methods
-        entt::entity getActiveCameraEntity() const;
+        entt::entity GetActiveCameraEntity() const;
+        void SetActiveCameraEntity(entt::entity entity) { m_ActiveCameraEntity = entity; }
         
     private:
-        entt::registry& m_registry;
-        Window& m_window;
-        entt::entity m_activeCameraEntity;
+        entt::registry& m_Registry;
+        Window& m_Window;
+        entt::entity m_ActiveCameraEntity;
         
-        float m_lastX = 0.0f;
-        float m_lastY = 0.0f;
-        bool m_firstMouse = true;
+        float m_LastX = 0.0f;
+        float m_LastY = 0.0f;
+        bool m_FirstMouse = true;
         
-        void processMouseMovement(double xpos, double ypos);
+        void ProcessMouseMovement(double xpos, double ypos);
     };
-    
-    entt::entity createCubeEntity(
-        entt::registry& registry,
-        const glm::vec3& position,
-        float size,
-        const glm::vec3& color,
-        std::shared_ptr<Shader> shader);
-    
-    entt::entity createDirectionalLight(
-        entt::registry& registry,
-        const glm::vec3& direction,
-        const glm::vec3& ambient,
-        const glm::vec3& diffuse,
-        const glm::vec3& specular);
-    
-    entt::entity createCamera(
-        entt::registry& registry,
-        const glm::vec3& position = glm::vec3(0.0f, 0.0f, 3.0f),
-        const glm::vec3& up = glm::vec3(0.0f, 1.0f, 0.0f),
-        float fov = 45.0f,
-        float nearPlane = 0.1f,
-        float farPlane = 100.0f,
-        CameraType type = CameraType::FPS);
+   
 }

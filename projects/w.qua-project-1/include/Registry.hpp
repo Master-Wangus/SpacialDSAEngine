@@ -4,53 +4,55 @@
 #include <memory>
 
 class Registry
- {
+{
 public:
     using Entity = entt::entity;
+    
     Registry() = default;
-    Entity create();
-    void destroy(Entity entity);
+    
+    Entity Create();
+    void Destroy(Entity entity);
     
     template<typename T, typename... Args>
-    T& addComponent(Entity entity, Args&&... args) 
+    T& AddComponent(Entity entity, Args&&... args) 
     {
-        return m_registry.emplace<T>(entity, std::forward<Args>(args)...);
+        return m_Registry.emplace<T>(entity, std::forward<Args>(args)...);
     }
     
     template<typename T>
-    T& getComponent(Entity entity) 
+    T& GetComponent(Entity entity) 
     {
-        return m_registry.get<T>(entity);
+        return m_Registry.get<T>(entity);
     }
     
     template<typename T>
-    bool hasComponent(Entity entity) const 
+    bool HasComponent(Entity entity) const 
     {
-        return m_registry.all_of<T>(entity);
+        return m_Registry.all_of<T>(entity);
     }
     
     template<typename T>
-    void removeComponent(Entity entity) 
+    void RemoveComponent(Entity entity) 
     {
-        m_registry.remove<T>(entity);
+        m_Registry.remove<T>(entity);
     }
     
     template<typename... Components>
-    auto view() 
+    auto View() 
     {
-        return m_registry.view<Components...>();
+        return m_Registry.view<Components...>();
     }
     
-    entt::registry& getRegistry() 
+    entt::registry& GetRegistry() 
     {
-        return m_registry;
+        return m_Registry;
     }
     
-    const entt::registry& getRegistry() const 
+    const entt::registry& GetRegistry() const 
     {
-        return m_registry;
+        return m_Registry;
     }
 
 private:
-    entt::registry m_registry;
+    entt::registry m_Registry;
 }; 

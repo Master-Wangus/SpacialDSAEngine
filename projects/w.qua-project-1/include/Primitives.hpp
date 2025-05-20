@@ -6,110 +6,105 @@
 
 struct Point3D 
 {
-    glm::vec3 mData;  ///< Position data (x, y, z)
+    glm::vec3 m_Data;  ///< Position data (x, y, z)
 
-    Point3D() : mData(0.0f) {}
-    Point3D(float x, float y, float z) : mData(x, y, z) {}
-    explicit Point3D(const glm::vec3& data) : mData(data) {}
+    Point3D() : m_Data(0.0f) {}
+    Point3D(float x, float y, float z) : m_Data(x, y, z) {}
+    explicit Point3D(const glm::vec3& data) : m_Data(data) {}
 };
 
 
 struct Plane 
 {
-    glm::vec4 mData;  ///< Plane equation coefficients (nx, ny, nz, d)
+    glm::vec4 m_Data;  ///< Plane equation coefficients (nx, ny, nz, d)
 
-    Plane() : mData(0.0f, 0.0f, 0.0f, 0.0f) {}
-    Plane(float nx, float ny, float nz, float d) : mData(nx, ny, nz, d) {}
-    explicit Plane(const glm::vec4& data) : mData(data) {}
+    Plane() : m_Data(0.0f, 0.0f, 0.0f, 0.0f) {}
+    Plane(float nx, float ny, float nz, float d) : m_Data(nx, ny, nz, d) {}
+    explicit Plane(const glm::vec4& data) : m_Data(data) {}
     
-    static Plane fromNormalAndPoint(const glm::vec3& normal, const glm::vec3& point) 
+    static Plane FromNormalAndPoint(const glm::vec3& normal, const glm::vec3& point) 
     {
         glm::vec3 normalizedNormal = glm::normalize(normal);
         float d = -glm::dot(normalizedNormal, point);
         return Plane(normalizedNormal.x, normalizedNormal.y, normalizedNormal.z, d);
     }
     
-    static Plane fromPoints(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) 
+    static Plane FromPoints(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) 
     {
         glm::vec3 normal = glm::normalize(glm::cross(b - a, c - a));
-        return fromNormalAndPoint(normal, a);
+        return FromNormalAndPoint(normal, a);
     }
     
-    glm::vec3 getNormal() const 
+    glm::vec3 GetNormal() const 
     {
-        return glm::vec3(mData.x, mData.y, mData.z);
+        return glm::vec3(m_Data.x, m_Data.y, m_Data.z);
     }
 };
 
 struct Triangle {
-    Point3D vertices[3];  ///< The three vertices of the triangle
+    Point3D m_Vertices[3];  ///< The three vertices of the triangle
     
     Triangle() {}
     Triangle(const Point3D& a, const Point3D& b, const Point3D& c) 
     {
-        vertices[0] = a;
-        vertices[1] = b;
-        vertices[2] = c;
+        m_Vertices[0] = a;
+        m_Vertices[1] = b;
+        m_Vertices[2] = c;
     }
     
-    glm::vec3 computeNormal() const 
+    glm::vec3 ComputeNormal() const 
     {
-        glm::vec3 edge1 = vertices[1].mData - vertices[0].mData;
-        glm::vec3 edge2 = vertices[2].mData - vertices[0].mData;
+        glm::vec3 edge1 = m_Vertices[1].m_Data - m_Vertices[0].m_Data;
+        glm::vec3 edge2 = m_Vertices[2].m_Data - m_Vertices[0].m_Data;
         return glm::normalize(glm::cross(edge1, edge2));
     }
 };
 
 struct Ray 
 {
-    glm::vec3 origin;     ///< Origin point of the ray
-    glm::vec3 direction;  ///< Direction vector of the ray (normalized)
+    glm::vec3 m_Origin;     ///< Origin point of the ray
+    glm::vec3 m_Direction;  ///< Direction vector of the ray (normalized)
     
-    Ray() : origin(0.0f), direction(0.0f, 0.0f, 1.0f) {}
+    Ray() : m_Origin(0.0f), m_Direction(0.0f, 0.0f, 1.0f) {}
     Ray(const glm::vec3& o, const glm::vec3& d)
-        : origin(o), direction(glm::normalize(d)) {}
+        : m_Origin(o), m_Direction(glm::normalize(d)) {}
     
-    glm::vec3 getPoint(float t) const {
-        return origin + direction * t;
+    glm::vec3 GetPoint(float t) const {
+        return m_Origin + m_Direction * t;
     }
 };
 
 struct BoundingSphere 
 {
-    glm::vec3 center;  ///< Center of the sphere
-    float radius;      ///< Radius of the sphere
+    glm::vec3 m_Center;  ///< Center of the sphere
+    float m_Radius;      ///< Radius of the sphere
     
-    BoundingSphere() : center(0.0f), radius(0.0f) {}
-    BoundingSphere(const glm::vec3& c, float r) : center(c), radius(r) {}
+    BoundingSphere() : m_Center(0.0f), m_Radius(0.0f) {}
+    BoundingSphere(const glm::vec3& c, float r) : m_Center(c), m_Radius(r) {}
     
-    static BoundingSphere fromPoints(const std::vector<glm::vec3>& points);
+    static BoundingSphere FromPoints(const std::vector<glm::vec3>& points);
 };
 
 struct AABB 
 {
-    glm::vec3 mCenter;       ///< Center of the box
-    glm::vec3 mHalfExtents;  ///< Half-extents of the box along each axis
+    glm::vec3 m_Center;       ///< Center of the box
+    glm::vec3 m_HalfExtents;  ///< Half-extents of the box along each axis
     
-    AABB() : mCenter(0.0f), mHalfExtents(0.0f) {}
+    AABB() : m_Center(0.0f), m_HalfExtents(0.0f) {}
     AABB(const glm::vec3& center, const glm::vec3& halfExtents)
-        : mCenter(center), mHalfExtents(halfExtents) {}
+        : m_Center(center), m_HalfExtents(halfExtents) {}
     
-    static AABB fromMinMax(const glm::vec3& min, const glm::vec3& max) 
+    static AABB FromMinMax(const glm::vec3& min, const glm::vec3& max);
+    
+    static AABB FromPoints(const std::vector<glm::vec3>& points);
+    
+    glm::vec3 GetMin() const 
     {
-        glm::vec3 center = (min + max) * 0.5f;
-        glm::vec3 halfExtents = (max - min) * 0.5f;
-        return AABB(center, halfExtents);
+        return m_Center - m_HalfExtents;
     }
     
-    static AABB fromPoints(const std::vector<glm::vec3>& points);
-    
-    glm::vec3 getMin() const 
+    glm::vec3 GetMax() const 
     {
-        return mCenter - mHalfExtents;
-    }
-    
-    glm::vec3 getMax() const 
-    {
-        return mCenter + mHalfExtents;
+        return m_Center + m_HalfExtents;
     }
 }; 

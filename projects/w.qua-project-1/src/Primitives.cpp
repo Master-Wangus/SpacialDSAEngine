@@ -1,55 +1,51 @@
 #include "../include/Primitives.hpp"
-#include <limits>
 #include <algorithm>
+#include <glm/gtx/norm.hpp>
 
-BoundingSphere BoundingSphere::fromPoints(const std::vector<glm::vec3>& points) 
+BoundingSphere BoundingSphere::FromPoints(const std::vector<glm::vec3>& points)
 {
-    if (points.empty()) 
-    {
+    if (points.empty())
         return BoundingSphere();
-    }
-    
-    // First compute the center as the average of all points
+
+    // Find the center of the points
     glm::vec3 center(0.0f);
-    for (const auto& point : points) 
-    {
+    for (const auto& point : points)
         center += point;
-    }
     center /= static_cast<float>(points.size());
-    
-    // Then find the point farthest from the center
-    float maxDistSq = 0.0f;
-    for (const auto& point : points) 
+
+    // Find the radius (maximum distance from center to any point)
+    float maxRadiusSquared = 0.0f;
+    for (const auto& point : points)
     {
-        // Calculate squared distance manually
-        glm::vec3 diff = point - center;
-        float distSq = glm::dot(diff, diff);
-        maxDistSq = std::max(maxDistSq, distSq);
+        float distSquared = glm::distance2(point, center);
+        maxRadiusSquared = std::max(maxRadiusSquared, distSquared);
     }
-    
-    // Radius is the square root of the maximum squared distance
-    float radius = std::sqrt(maxDistSq);
-    
-    return BoundingSphere(center, radius);
+
+    return BoundingSphere(center, std::sqrt(maxRadiusSquared));
 }
 
-AABB AABB::fromPoints(const std::vector<glm::vec3>& points) {
-    if (points.empty()) 
-    {
+AABB AABB::FromPoints(const std::vector<glm::vec3>& points)
+{
+    if (points.empty())
         return AABB();
-    }
-    
-    // Initialize min and max with extreme values
-    glm::vec3 minCorner(std::numeric_limits<float>::max());
-    glm::vec3 maxCorner(std::numeric_limits<float>::lowest());
-    
-    // Find min and max corners
-    for (const auto& point : points) 
+
+    // Find min and max points
+    glm::vec3 minPoint = points[0];
+    glm::vec3 maxPoint = points[0];
+
+    for (const auto& point : points)
     {
-        minCorner = glm::min(minCorner, point);
-        maxCorner = glm::max(maxCorner, point);
+        minPoint = glm::min(minPoint, point);
+        maxPoint = glm::max(maxPoint, point);
     }
-    
-    // Create AABB from min and max corners
-    return fromMinMax(minCorner, maxCorner);
-} 
+
+    return FromMinMax(minPoint, maxPoint);
+}
+
+AABB AABB::FromMinMax(const glm::vec3& minPoint, const glm::vec3& maxPoint)
+{
+    glm::vec3 center = (minPoint + maxPoint) * 0.5f;
+    glm::vec3 halfExtents = (maxPoint - minPoint) * 0.5f;
+    return AABB(center, halfExtents);
+}
+

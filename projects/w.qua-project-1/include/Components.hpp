@@ -12,83 +12,76 @@ class Shader;
 
 // ==================== Transform Components ====================
 
-struct TransformComponent {
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
-    glm::mat4 model;
+struct TransformComponent 
+{
+    glm::vec3 m_Position;
+    glm::vec3 m_Rotation;
+    glm::vec3 m_Scale;
+    glm::mat4 m_Model;
     
     TransformComponent(
         const glm::vec3& pos = glm::vec3(0.0f),
         const glm::vec3& rot = glm::vec3(0.0f),
         const glm::vec3& scl = glm::vec3(1.0f))
-        : position(pos), rotation(rot), scale(scl), model(1.0f)
+        : m_Position(pos), m_Rotation(rot), m_Scale(scl), m_Model(1.0f)
     {
-        updateModelMatrix();
+        UpdateModelMatrix();
     }
     
-    void updateModelMatrix();
+    void UpdateModelMatrix();
 };
 
 // ==================== Rendering Components ====================
 
 struct RenderComponent 
 {
-    std::shared_ptr<IRenderable> renderable;
+    std::shared_ptr<IRenderable> m_Renderable;
     
     RenderComponent() = default;
-    explicit RenderComponent(std::shared_ptr<IRenderable> r) : renderable(std::move(r)) {}
+    explicit RenderComponent(std::shared_ptr<IRenderable> r) : m_Renderable(std::move(r)) {}
 };
-
 
 struct MeshComponent 
 {
-    Buffer buffer;
-    std::shared_ptr<Shader> shader;
+    Buffer m_Buffer;
+    std::shared_ptr<Shader> m_Shader;
     
     MeshComponent() = default;
     MeshComponent(const std::vector<Vertex>& vertices, std::shared_ptr<Shader> shdr)
-        : shader(std::move(shdr))
+        : m_Shader(std::move(shdr))
     {
-        buffer.setup(vertices);
+        m_Buffer.Setup(vertices);
     }
-};
-
-struct MaterialComponent 
-{
-    Material material;
-    
-    MaterialComponent() = default;
-    MaterialComponent(const Material& mat) : material(mat) {}
 };
 
 // ==================== Physics Components ====================
 
 struct BoundingSphereComponent 
 {
-    BoundingSphere sphere;
+    BoundingSphere m_Sphere;
     
     BoundingSphereComponent() = default;
-    BoundingSphereComponent(const glm::vec3& center, float radius) : sphere(center, radius) {}
+    explicit BoundingSphereComponent(const BoundingSphere& sphere) : m_Sphere(sphere) {}
+    BoundingSphereComponent(const glm::vec3& center, float radius) : m_Sphere(center, radius) {}
 };
 
 struct AABBComponent 
 {
-    AABB aabb;
+    AABB m_AABB;
     
     AABBComponent() = default;
-    AABBComponent(const glm::vec3& center, const glm::vec3& halfExtents) : aabb(center, halfExtents) {}
+    explicit AABBComponent(const AABB& aabb) : m_AABB(aabb) {}
+    AABBComponent(const glm::vec3& center, const glm::vec3& halfExtents) : m_AABB(center, halfExtents) {}
 };
 
 // ==================== Lighting Components ====================
 
-
 struct DirectionalLightComponent 
 {
-    DirectionalLight light;
+    DirectionalLight m_Light;
     
     DirectionalLightComponent() = default;
-    DirectionalLightComponent(const DirectionalLight& l) : light(l) {}
+    DirectionalLightComponent(const DirectionalLight& l) : m_Light(l) {}
 };
 
 // ==================== Camera Components ====================
@@ -99,107 +92,105 @@ enum class CameraType
     // More incoming!
 };
 
-
 struct ProjectionComponent 
 {
-    float fov = 45.0f;
-    float nearPlane = 0.1f;
-    float farPlane = 100.0f;
+    float m_Fov = 45.0f;
+    float m_NearPlane = 0.1f;
+    float m_FarPlane = 100.0f;
     
     ProjectionComponent() = default;
     ProjectionComponent(float fov, float nearPlane, float farPlane)
-        : fov(fov), nearPlane(nearPlane), farPlane(farPlane) {}
+        : m_Fov(fov), m_NearPlane(nearPlane), m_FarPlane(farPlane) {}
         
-    glm::mat4 getProjectionMatrix(float aspectRatio) const {
-        return glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const {
+        return glm::perspective(glm::radians(m_Fov), aspectRatio, m_NearPlane, m_FarPlane);
     }
 };
 
-
 struct FPSCameraComponent 
 {
-    glm::vec3 cameraPosition;
-    glm::vec3 cameraFront;
-    glm::vec3 cameraUpDirection;
-    float yawAngle;
-    float pitchAngle;
-    float movementSpeed;
-    float movementAcceleration;
-    float dragFriction;
-    glm::vec3 currentVelocity;
-    float mouseSensitivity;
+    glm::vec3 m_CameraPosition;
+    glm::vec3 m_CameraFront;
+    glm::vec3 m_CameraUpDirection;
+    float m_YawAngle;
+    float m_PitchAngle;
+    float m_MovementSpeed;
+    float m_MovementAcceleration;
+    float m_DragFriction;
+    glm::vec3 m_CurrentVelocity;
+    float m_MouseSensitivity;
 
     FPSCameraComponent(
         const glm::vec3& position = glm::vec3(0.0f, 0.0f, 3.0f),
         const glm::vec3& front = glm::vec3(0.0f, 0.0f, -1.0f),
         const glm::vec3& up = glm::vec3(0.0f, 1.0f, 0.0f))
-        : cameraPosition(position),
-          cameraFront(front),
-          cameraUpDirection(up),
-          yawAngle(-90.0f),  // Default looking forward
-          pitchAngle(0.0f),
-          movementSpeed(2.5f),
-          movementAcceleration(10.0f),
-          dragFriction(5.0f),
-          currentVelocity(0.0f),
-          mouseSensitivity(0.1f)
+        : m_CameraPosition(position),
+          m_CameraFront(front),
+          m_CameraUpDirection(up),
+          m_YawAngle(-90.0f),  // Default looking forward
+          m_PitchAngle(0.0f),
+          m_MovementSpeed(2.5f),
+          m_MovementAcceleration(10.0f),
+          m_DragFriction(5.0f),
+          m_CurrentVelocity(0.0f),
+          m_MouseSensitivity(0.1f)
     {
-        updateVectors();
+        UpdateVectors();
     }
 
-    void updateVectors() 
+    void UpdateVectors() 
     {
         // Calculate front vector from yaw and pitch
         glm::vec3 front;
-        front.x = cos(glm::radians(yawAngle)) * cos(glm::radians(pitchAngle));
-        front.y = sin(glm::radians(pitchAngle));
-        front.z = sin(glm::radians(yawAngle)) * cos(glm::radians(pitchAngle));
-        cameraFront = glm::normalize(front);
+        front.x = cos(glm::radians(m_YawAngle)) * cos(glm::radians(m_PitchAngle));
+        front.y = sin(glm::radians(m_PitchAngle));
+        front.z = sin(glm::radians(m_YawAngle)) * cos(glm::radians(m_PitchAngle));
+        m_CameraFront = glm::normalize(front);
     }
 
-    glm::mat4 getViewMatrix() const 
+    glm::mat4 GetViewMatrix() const 
     {
-        return glm::lookAt(cameraPosition, cameraPosition + cameraFront, cameraUpDirection);
+        return glm::lookAt(m_CameraPosition, m_CameraPosition + m_CameraFront, m_CameraUpDirection);
     }
 };
 
 struct CameraComponent 
 {
-    ProjectionComponent projection;
-    FPSCameraComponent fps;
-    CameraType activeCameraType = CameraType::FPS;
+    ProjectionComponent m_Projection;
+    FPSCameraComponent m_FPS;
+    CameraType m_ActiveCameraType = CameraType::FPS;
     
     CameraComponent() = default;
     CameraComponent(
         const ProjectionComponent& proj,
         const FPSCameraComponent& fpsCamera,
         CameraType type = CameraType::FPS)
-        : projection(proj), fps(fpsCamera), activeCameraType(type) {}
+        : m_Projection(proj), m_FPS(fpsCamera), m_ActiveCameraType(type) {}
     
-    glm::mat4 getViewMatrix() const 
+    glm::mat4 GetViewMatrix() const 
     {
-        switch (activeCameraType) 
+        switch (m_ActiveCameraType) 
         {
             case CameraType::FPS:
-                return fps.getViewMatrix();
+                return m_FPS.GetViewMatrix();
             default:
-                return fps.getViewMatrix(); // Default to FPS camera
+                return m_FPS.GetViewMatrix(); // Default to FPS camera
         }
     }
     
-    glm::mat4 getProjectionMatrix(float aspectRatio) const 
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const 
     {
-        return projection.getProjectionMatrix(aspectRatio);
+        return m_Projection.GetProjectionMatrix(aspectRatio);
     }
     
-    glm::vec3 getPosition() const 
+    glm::vec3 GetPosition() const 
     {
-        switch (activeCameraType) 
+        switch (m_ActiveCameraType) 
         {
             case CameraType::FPS:
-                return fps.cameraPosition;
+                return m_FPS.m_CameraPosition;
             default:
-                return fps.cameraPosition; // Default to FPS camera
+                return m_FPS.m_CameraPosition; // Default to FPS camera
         }
     }
 };

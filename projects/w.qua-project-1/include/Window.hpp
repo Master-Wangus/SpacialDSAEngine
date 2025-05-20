@@ -12,17 +12,18 @@ class Window
 public:
     Window(int width, int height, const std::string& title);
     ~Window();
-    GLFWwindow* getHandle() const;
-    bool shouldClose() const;
-    void pollEvents() const;
-    void swapBuffers() const;
-    bool isKeyPressed(int keyCode) const;
-    void setInputMode(int mode, int value) const;
-    void makeContextCurrent() const;
-    int getWidth() const;
-    int getHeight() const;
-    void setKeyCallback(std::function<void(int, int, int, int)> callback);
-    void setCursorPosCallback(std::function<void(double, double)> callback);
+    GLFWwindow* GetHandle() const;
+    bool ShouldClose() const;
+    void SetShouldClose(bool value) const;
+    void PollEvents() const;
+    void SwapBuffers() const;
+    bool IsKeyPressed(int keyCode) const;
+    void SetInputMode(int mode, int value) const;
+    void MakeContextCurrent() const;
+    int GetWidth() const;
+    int GetHeight() const;
+    void SetKeyCallback(std::function<void(int, int, int, int)> callback);
+    void SetCursorPosCallback(std::function<void(double, double)> callback);
 
 private:
     GLFWwindow* m_window;         ///< The GLFW window handle
@@ -35,6 +36,6 @@ private:
     std::function<void(double, double)> m_cursorPosCallback;
     
     // Static callback wrappers for GLFW (needed to map to member functions)
-    static void keyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void cursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos);
+    static void KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void CursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos);
 }; 
