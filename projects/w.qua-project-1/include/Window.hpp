@@ -26,14 +26,14 @@ public:
     void SetCursorPosCallback(std::function<void(double, double)> callback);
 
 private:
-    GLFWwindow* m_window;         ///< The GLFW window handle
-    int m_width;                  ///< Window width
-    int m_height;                 ///< Window height
-    std::string m_title;          ///< Window title
+    GLFWwindow* m_Window;         ///< The GLFW window handle
+    int m_Width;                 
+    int m_Height;                 
+    std::string m_Title;          
 
     // Callback storage
-    std::function<void(int, int, int, int)> m_keyCallback;
-    std::function<void(double, double)> m_cursorPosCallback;
+    std::function<void(int, int, int, int)> m_KeyCallback;
+    std::function<void(double, double)> m_CursorPosCallback;
     
     // Static callback wrappers for GLFW (needed to map to member functions)
     static void KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods);

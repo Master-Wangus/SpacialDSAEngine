@@ -19,16 +19,13 @@ uniform mat4 projection;
 
 void main()
 {
-    // Calculate fragment position in world space
     FragPos = vec3(model * vec4(aPos, 1.0));
     
     // Calculate normal in world space (excluding translation)
     Normal = mat3(transpose(inverse(model))) * aNormal;
     
-    // Pass color and texture coordinates to fragment shader
     Color = aColor;
     TexCoord = aTexCoord;
     
-    // Calculate clip-space position
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 } 

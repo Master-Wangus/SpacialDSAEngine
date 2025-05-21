@@ -18,32 +18,26 @@ int main()
 {
     try 
     {
-        // Create window
         Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
         window.MakeContextCurrent();
         window.SetInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         
-        // Initialize GLEW
         glewExperimental = GL_TRUE;
         if (glewInit() != GLEW_OK) 
         {
             throw std::runtime_error("Failed to initialize GLEW");
         }
         
-        // Configure OpenGL
+        // Depth test
         glEnable(GL_DEPTH_TEST);
         glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
         
-        // Create shader
         auto shader = std::make_shared<Shader>(
             "../projects/w.qua-project-1/shaders/my-project-1.vert",
             "../projects/w.qua-project-1/shaders/my-project-1.frag"
         );
         
-        // Create registry
         Registry registry;
-        
-        // Initialize systems and set up the scene
         Systems::InitializeSystems(registry, window, shader);
         
         // Timing variables
@@ -58,11 +52,11 @@ int main()
             lastFrame = currentFrame;
             
             // Check for escape key to close the application
-            if (window.IsKeyPressed(GLFW_KEY_ESCAPE)) {
+            if (window.IsKeyPressed(GLFW_KEY_ESCAPE)) 
+            {
                 window.SetShouldClose(true);
             }
             
-            // Update all systems
             Systems::UpdateSystems(registry, window, deltaTime);
             
             // Clear buffers

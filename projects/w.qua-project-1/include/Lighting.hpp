@@ -4,8 +4,8 @@
 
 struct DirectionalLight 
 {
-    glm::vec4 m_Direction;    ///< Light direction (world space) - vec4 for alignment
-    glm::vec4 m_Color;        ///< Light color - vec4 for alignment
+    glm::vec4 m_Direction;    ///< Light direction (world space)
+    glm::vec4 m_Color;        
     DirectionalLight()
         : m_Direction(0.0f, -1.0f, 0.0f, 0.0f),
           m_Color(1.0f, 1.0f, 1.0f, 1.0f)
@@ -26,17 +26,17 @@ struct DirectionalLight
 
 struct Material 
 {
-    glm::vec3 m_AmbientColor;       ///< Ambient color
-    float m_AmbientIntensity;       ///< Ambient intensity (for alignment)
+    glm::vec3 m_AmbientColor;       
+    float m_AmbientIntensity;       
     
-    glm::vec3 m_DiffuseColor;       ///< Diffuse color
-    float m_DiffuseIntensity;       ///< Diffuse intensity (for alignment)
+    glm::vec3 m_DiffuseColor;      
+    float m_DiffuseIntensity;       
     
-    glm::vec3 m_SpecularColor;      ///< Specular color
-    float m_SpecularIntensity;      ///< Specular intensity (for alignment)
-    
-    float m_Shininess;              ///< Shininess factor
-    glm::vec3 m_Padding;            ///< Padding for alignment
+    glm::vec3 m_SpecularColor;     
+    float m_SpecularIntensity;     
+
+    float m_Shininess;            
+    glm::vec3 m_Padding;            
     
     Material()
         : m_AmbientColor(1.0f),
