@@ -23,7 +23,7 @@ Window::Window(int width, int height, const std::string& title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required for macOS
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); 
 
     m_Window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
     if (!m_Window) 
@@ -104,6 +104,11 @@ int Window::GetWidth() const
 int Window::GetHeight() const 
 {
     return m_Height;
+}
+
+float Window::GetTime() const
+{
+    return static_cast<float>(glfwGetTime());
 }
 
 void Window::SetKeyCallback(std::function<void(int, int, int, int)> callback) 

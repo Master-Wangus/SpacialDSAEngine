@@ -7,8 +7,7 @@ Cube::Cube(const glm::vec3& color, float size)
     : m_Size(size),
       m_Color(color)
 {
-    // Initialize with default white material
-    // No need to update model matrix as it's now handled by the TransformComponent
+
 }
 
 Cube::~Cube() 
@@ -46,20 +45,18 @@ void Cube::Render(const glm::mat4& modelMatrix,
     GLuint materialBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "Material");
     GLuint lightBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "DirectionalLight");
     
-    if (materialBlockIndex != GL_INVALID_INDEX) {
+    if (materialBlockIndex != GL_INVALID_INDEX)
+    {
         glUniformBlockBinding(m_Shader->GetID(), materialBlockIndex, 1); // Binding point 1 for Material
         
-        // Update material data in UBO
+        // Update material UBO using Buffer class methods
         static GLuint materialUBO = 0;
-        if (materialUBO == 0) {
-            glGenBuffers(1, &materialUBO);
-            glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);
-            glBufferData(GL_UNIFORM_BUFFER, sizeof(Material), nullptr, GL_DYNAMIC_DRAW);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 1, materialUBO); // Bind to binding point 1
+        if (materialUBO == 0) 
+        {
+            materialUBO = Buffer::CreateUniformBuffer(sizeof(Material), 1);
         }
         
-        glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &m_Material);
+        Buffer::UpdateUniformBuffer(materialUBO, &m_Material, sizeof(Material));
     }
     
     if (lightBlockIndex != GL_INVALID_INDEX) {

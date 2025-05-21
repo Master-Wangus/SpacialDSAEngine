@@ -67,14 +67,14 @@ glm::mat4 FPSCameraSystem::GetViewMatrix(const CameraComponent& camera)
 void FPSCameraSystem::ProcessMouseButton(int button, int action, int mods)
 {
     // Set dragging flag based on left mouse button state
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS) {
+    if (button == Window::MOUSE_BUTTON_LEFT) {
+        if (action == Window::PRESS) {
             m_MouseDragging = true;
             
             // Reset first mouse flag so we don't get a jump when starting to drag
             m_FirstMouse = true;
         } 
-        else if (action == GLFW_RELEASE) {
+        else if (action == Window::RELEASE) {
             m_MouseDragging = false;
         }
     }
@@ -121,10 +121,10 @@ void FPSCameraSystem::ProcessKeyboardInput(float deltaTime)
     auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
     
     // Get keys state
-    bool keyW = m_Window.IsKeyPressed(GLFW_KEY_W);
-    bool keyS = m_Window.IsKeyPressed(GLFW_KEY_S);
-    bool keyA = m_Window.IsKeyPressed(GLFW_KEY_A);
-    bool keyD = m_Window.IsKeyPressed(GLFW_KEY_D);
+    bool keyW = m_Window.IsKeyPressed(Window::KEY_W);
+    bool keyS = m_Window.IsKeyPressed(Window::KEY_S);
+    bool keyA = m_Window.IsKeyPressed(Window::KEY_A);
+    bool keyD = m_Window.IsKeyPressed(Window::KEY_D);
     
     float cameraSpeed = camera.m_FPS.m_MovementSpeed * deltaTime;
     

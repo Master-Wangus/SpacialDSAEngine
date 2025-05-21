@@ -1,5 +1,4 @@
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 #include <chrono>
@@ -20,7 +19,7 @@ int main()
     {
         Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
         window.MakeContextCurrent();
-        window.SetInputMode(GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        window.SetInputMode(Window::CURSOR, Window::CURSOR_DISABLED);
         
         glewExperimental = GL_TRUE;
         if (glewInit() != GLEW_OK) 
@@ -45,11 +44,11 @@ int main()
         // MAIN LOOP
         while (!window.ShouldClose()) 
         {
-            auto currentFrame = static_cast<float>(glfwGetTime());
+            auto currentFrame = window.GetTime();
             float deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
             
-            if (window.IsKeyPressed(GLFW_KEY_ESCAPE)) 
+            if (window.IsKeyPressed(Window::KEY_ESCAPE)) 
             {
                 window.SetShouldClose(true);
             }

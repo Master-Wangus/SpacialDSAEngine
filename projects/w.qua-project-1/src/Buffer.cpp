@@ -39,6 +39,36 @@ void Buffer::UpdateVertices(const std::vector<Vertex>& vertices)
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 }
 
+GLuint Buffer::CreateUniformBuffer(size_t size, GLuint bindingPoint)
+{
+    GLuint ubo;
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo);
+    return ubo;
+}
+
+void Buffer::UpdateUniformBuffer(GLuint ubo, const void* data, size_t size, size_t offset)
+{
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    if (data != nullptr) {
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
+    }
+}
+
+void Buffer::BindUniformBuffer(GLuint ubo, GLuint bindingPoint)
+{
+    glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo);
+}
+
+void Buffer::DeleteUniformBuffer(GLuint ubo)
+{
+    if (ubo != 0) {
+        glDeleteBuffers(1, &ubo);
+    }
+}
+
 void Buffer::CreateBuffers(const std::vector<Vertex>& vertices) 
 {
     m_vertexCount = vertices.size();
@@ -76,7 +106,6 @@ void Buffer::CreateBuffers(const std::vector<Vertex>& vertices)
 
 void Buffer::CleanUp() 
 {
-    // Delete buffer objects if they exist
     if (m_vbo != 0) {
         glDeleteBuffers(1, &m_vbo);
         m_vbo = 0;
@@ -86,6 +115,13 @@ void Buffer::CleanUp()
         glDeleteVertexArrays(1, &m_vao);
         m_vao = 0;
     }
+    
+    // Delete UBOs
+    for (const auto& pair : m_uniformBuffers) 
+    {
+        glDeleteBuffers(1, &pair.first);
+    }
+    m_uniformBuffers.clear();
     
     m_vertexCount = 0;
 } 

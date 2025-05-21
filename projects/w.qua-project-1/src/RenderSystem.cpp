@@ -76,19 +76,16 @@ void RenderSystem::SetupLighting()
         light = m_Registry.GetComponent<DirectionalLightComponent>(*lightView.begin()).m_Light;
     }
     
-    // Set up UBO for the light
+    // Set up UBO for the light using Buffer class methods
     static GLuint lightUBO = 0;
     if (lightUBO == 0) 
     {
-        glGenBuffers(1, &lightUBO);
-        glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(DirectionalLight), &light, GL_STATIC_DRAW);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, lightUBO); // Bind to binding point 0
+        lightUBO = Buffer::CreateUniformBufferStatic(sizeof(DirectionalLight), 0);
+        Buffer::UpdateUniformBufferStatic(lightUBO, &light, sizeof(DirectionalLight));
     } 
     else 
     {
         // Update the data
-        glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(DirectionalLight), &light);
+        Buffer::UpdateUniformBufferStatic(lightUBO, &light, sizeof(DirectionalLight));
     }
 } 
