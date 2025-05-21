@@ -1,8 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
-
+#include "pch.h"
 
 struct Point3D 
 {

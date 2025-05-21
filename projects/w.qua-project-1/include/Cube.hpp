@@ -1,11 +1,10 @@
 #pragma once
 
+#include "pch.h"
 #include "Buffer.hpp"
 #include "Lighting.hpp"
 #include "Primitives.hpp"
 #include "IRenderable.hpp"
-#include <vector>
-#include <memory>
 
 class Shader;
 

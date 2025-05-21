@@ -1,4 +1,4 @@
-#include "../include/Buffer.hpp"
+#include "Buffer.hpp"
 #include <iostream>
 
 Buffer::Buffer() : m_vao(0), m_vbo(0), m_vertexCount(0) 

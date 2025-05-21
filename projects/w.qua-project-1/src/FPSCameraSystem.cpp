@@ -1,9 +1,8 @@
+#include "pch.h"
 #include "FPSCameraSystem.hpp"
 #include "Window.hpp"
 #include "InputSystem.hpp"
 #include "Systems.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 FPSCameraSystem::FPSCameraSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)

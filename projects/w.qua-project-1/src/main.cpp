@@ -1,13 +1,10 @@
-#include <GL/glew.h>
-#include <iostream>
-#include <memory>
-#include <chrono>
-
+#include "pch.h"
 #include "Window.hpp"
 #include "Shader.hpp"
 #include "Registry.hpp"
 #include "Systems.hpp"
 #include "InputSystem.hpp"
+#include "ImGuiManager.hpp"
 
 // Constants
 const int WINDOW_WIDTH = 1024;
@@ -42,6 +39,10 @@ int main()
         Registry registry;
         Systems::InitializeSystems(registry, window, shader);
         
+        // Initialize ImGui
+        ImGuiManager imguiManager(window);
+        imguiManager.Init();
+        
         // Subscribe to escape key to close the application
         Systems::g_InputSystem->SubscribeToKey(Window::KEY_ESCAPE, 
             [&window](int key, int scancode, int action, int mods) {
@@ -57,7 +58,7 @@ int main()
         while (!window.ShouldClose()) 
         {
             // Time calculations
-            auto currentFrame = window.GetTime();
+            auto currentFrame = (float)window.GetTime();
             float deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
             
@@ -71,12 +72,18 @@ int main()
             // Render the scene
             Systems::RenderSystems(registry, window);
             
+            // ImGui New Frame
+            imguiManager.NewFrame();
+            imguiManager.RenderMainWindow(registry);
+            imguiManager.Render();
+            
             // Swap buffers and poll events
             window.SwapBuffers();
             window.PollEvents();
         }
         
         // Cleanup resources
+        imguiManager.Shutdown();
         Systems::ShutdownSystems(registry);
         
         return 0;

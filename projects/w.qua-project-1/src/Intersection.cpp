@@ -1,4 +1,4 @@
-#include "../include/Intersection.hpp"
+#include "Intersection.hpp"
 #include <glm/gtx/norm.hpp>
 #include <algorithm>
 #include <cmath>

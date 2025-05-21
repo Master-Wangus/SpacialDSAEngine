@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <map>
-#include <vector>
-#include <memory>
-#include <glm/glm.hpp>
+#include "pch.h"
 #include "Registry.hpp"
 
 class Window;

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <memory>
+#include "pch.h"
 #include "Primitives.hpp"
 #include "Lighting.hpp"
 #include "Buffer.hpp"

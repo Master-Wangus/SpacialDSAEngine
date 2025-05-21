@@ -1,9 +1,10 @@
 #pragma once
 
-#include <functional>
-#include <string>
-#include <stdexcept>
+#include "pch.h"
 
+#include <GLFW/glfw3.h> // As per task 1 requirements
+
+// Forward declarations
 struct GLFWwindow;
 class InputSystem;
 
@@ -13,6 +14,13 @@ class InputSystem;
 class Window 
 {
 public:
+    // Callback types
+    using FramebufferSizeCallback = std::function<void(int width, int height)>;
+    using KeyCallback = std::function<void(int key, int scancode, int action, int mods)>;
+    using MouseButtonCallback = std::function<void(int button, int action, int mods)>;
+    using CursorPosCallback = std::function<void(double xpos, double ypos)>;
+    using ScrollCallback = std::function<void(double xoffset, double yoffset)>;
+    
     // Input modes
     static const int CURSOR = 0x00033001;
     static const int CURSOR_NORMAL = 0x00034001;
@@ -50,7 +58,8 @@ public:
     void MakeContextCurrent() const;
     int GetWidth() const;
     int GetHeight() const;
-    float GetTime() const; 
+    bool IsKeyPressed(int key) const;
+    double GetTime() const;
     
     // Window operation
     void PollEvents() const;
@@ -58,17 +67,19 @@ public:
     void SetTitle(const std::string& title);
     
     // Input handling
-    bool IsKeyPressed(int keyCode) const;
     bool IsMouseButtonPressed(int button) const;
     void GetCursorPos(double* xpos, double* ypos) const;
     void SetInputMode(int mode, int value) const;
     
     // Callback registration
-    void SetKeyCallback(std::function<void(int, int, int, int)> callback);
-    void SetCursorPosCallback(std::function<void(double, double)> callback);
-    void SetMouseButtonCallback(std::function<void(int, int, int)> callback);
-    void SetScrollCallback(std::function<void(double, double)> callback);
-    void SetFramebufferSizeCallback(std::function<void(int, int)> callback);
+    void SetKeyCallback(KeyCallback callback);
+    void SetCursorPosCallback(CursorPosCallback callback);
+    void SetMouseButtonCallback(MouseButtonCallback callback);
+    void SetScrollCallback(ScrollCallback callback);
+    void SetFramebufferSizeCallback(FramebufferSizeCallback callback);
+    
+    // Get the native GLFW window handle
+    void* GetNativeWindow() const;
     
     // Make InputSystem a friend so it can access our private members
     friend class InputSystem;
@@ -80,11 +91,11 @@ private:
     std::string m_Title;          
 
     // Callback storage
-    std::function<void(int, int, int, int)> m_KeyCallback;
-    std::function<void(double, double)> m_CursorPosCallback;
-    std::function<void(int, int, int)> m_MouseButtonCallback;
-    std::function<void(double, double)> m_ScrollCallback;
-    std::function<void(int, int)> m_FramebufferSizeCallback;
+    FramebufferSizeCallback m_FramebufferSizeCallback;
+    KeyCallback m_KeyCallback;
+    MouseButtonCallback m_MouseButtonCallback;
+    CursorPosCallback m_CursorPosCallback;
+    ScrollCallback m_ScrollCallback;
     
     // Static callback wrappers for GLFW (needed to map to member functions)
     static void KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods);

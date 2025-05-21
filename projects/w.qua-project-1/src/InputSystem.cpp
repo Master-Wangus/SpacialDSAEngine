@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "InputSystem.hpp"
 #include "Window.hpp"
-#include <iostream>
 
 InputSystem::InputSystem(Registry& registry, Window& window)
     : m_Registry(registry), 
@@ -102,8 +102,11 @@ void InputSystem::SubscribeToMouseScroll(MouseScrollCallback callback)
 
 void InputSystem::StartDragging()
 {
-    m_MouseDragging = true;
-    m_Window.SetInputMode(Window::CURSOR, Window::CURSOR_DISABLED);
+    // Only start dragging if ImGui isn't capturing the mouse
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        m_MouseDragging = true;
+        m_Window.SetInputMode(Window::CURSOR, Window::CURSOR_DISABLED);
+    }
 }
 
 void InputSystem::StopDragging()
@@ -114,6 +117,11 @@ void InputSystem::StopDragging()
 
 void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods)
 {
+    // Skip keyboard input if ImGui is capturing keyboard
+    if (ImGui::GetIO().WantCaptureKeyboard) {
+        return;
+    }
+    
     // Update key state
     if (action == Window::PRESS) {
         m_KeysPressed[key] = true;
@@ -130,6 +138,11 @@ void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods
 
 void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
 {
+    // Skip mouse input if ImGui is capturing mouse
+    if (ImGui::GetIO().WantCaptureMouse) {
+        return;
+    }
+    
     // Update mouse button state
     if (action == Window::PRESS) {
         m_MouseButtonsPressed[button] = true;
@@ -159,22 +172,29 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     // Update mouse position
     m_CurrentMousePos = glm::vec2(static_cast<float>(xpos), static_cast<float>(ypos));
     
-    // Calculate delta only when dragging
-    if (m_MouseDragging) {
+    // Calculate delta only when dragging and not captured by ImGui
+    if (m_MouseDragging && !ImGui::GetIO().WantCaptureMouse) {
         m_MouseDelta.x = m_CurrentMousePos.x - m_LastMousePos.x;
         m_MouseDelta.y = m_LastMousePos.y - m_CurrentMousePos.y; // Inverted Y for camera control
     }
     
     m_LastMousePos = m_CurrentMousePos;
     
-    // Notify subscribers
-    for (const auto& callback : m_MouseMoveCallbacks) {
-        callback(xpos, ypos);
+    // Notify subscribers if not captured by ImGui
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        for (const auto& callback : m_MouseMoveCallbacks) {
+            callback(xpos, ypos);
+        }
     }
 }
 
 void InputSystem::ProcessScrollCallback(double xoffset, double yoffset)
 {
+    // Skip scroll input if ImGui is capturing mouse
+    if (ImGui::GetIO().WantCaptureMouse) {
+        return;
+    }
+    
     // Notify subscribers
     for (const auto& callback : m_MouseScrollCallbacks) {
         callback(xoffset, yoffset);

@@ -1,10 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <unordered_map>
-
+#include "pch.h"
 
 struct Vertex 
 {

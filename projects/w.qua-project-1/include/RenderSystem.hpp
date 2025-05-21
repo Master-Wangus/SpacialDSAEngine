@@ -1,10 +1,10 @@
 #pragma once
 
+#include "pch.h"
 #include "Components.hpp"
 #include "Registry.hpp"
 #include "Window.hpp"
 #include "FPSCameraSystem.hpp"
-#include <memory>
 
 class Shader;
 

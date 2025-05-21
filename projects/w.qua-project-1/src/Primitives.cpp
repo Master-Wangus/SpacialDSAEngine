@@ -1,4 +1,4 @@
-#include "../include/Primitives.hpp"
+#include "Primitives.hpp"
 #include <algorithm>
 #include <glm/gtx/norm.hpp>
 

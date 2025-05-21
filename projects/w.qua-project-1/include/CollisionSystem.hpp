@@ -1,15 +1,19 @@
 #pragma once
 
-#include "Components.hpp"
+#include "pch.h"
 #include "Registry.hpp"
-#include <vector>
+#include "Components.hpp"
+#include "Primitives.hpp"
+#include "Intersection.hpp"
 
-struct CollisionPair {
+struct CollisionPair 
+{
     Registry::Entity entity1;
     Registry::Entity entity2;
 };
 
-class CollisionSystem {
+class CollisionSystem 
+{
 public:
     CollisionSystem(Registry& registry);
     

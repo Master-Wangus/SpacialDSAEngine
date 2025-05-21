@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pch.h"
 #include "Components.hpp"
 #include "Registry.hpp"
 #include <glm/glm.hpp>

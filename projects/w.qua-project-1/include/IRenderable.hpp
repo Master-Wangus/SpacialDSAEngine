@@ -1,10 +1,8 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <GL/glew.h>
+#include "pch.h"
 #include "Buffer.hpp"
 #include "Lighting.hpp"
-#include <memory>
 
 class Shader;
 

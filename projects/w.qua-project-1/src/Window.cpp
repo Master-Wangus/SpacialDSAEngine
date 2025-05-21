@@ -124,9 +124,9 @@ int Window::GetHeight() const
     return m_Height;
 }
 
-float Window::GetTime() const
+double Window::GetTime() const
 {
-    return static_cast<float>(glfwGetTime());
+    return glfwGetTime();
 }
 
 void Window::SetKeyCallback(std::function<void(int, int, int, int)> callback) 
@@ -152,6 +152,11 @@ void Window::SetScrollCallback(std::function<void(double, double)> callback)
 void Window::SetFramebufferSizeCallback(std::function<void(int, int)> callback)
 {
     m_FramebufferSizeCallback = callback;
+}
+
+void* Window::GetNativeWindow() const
+{
+    return m_Window;
 }
 
 // Static callback wrappers
