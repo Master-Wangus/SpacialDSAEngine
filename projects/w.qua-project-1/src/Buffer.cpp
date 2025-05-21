@@ -11,10 +11,7 @@ Buffer::~Buffer()
 
 void Buffer::Setup(const std::vector<Vertex>& vertices) 
 {
-    // Clean up any existing buffers
     CleanUp();
-    
-    // Create new buffers with the provided vertices
     CreateBuffers(vertices);
 }
 

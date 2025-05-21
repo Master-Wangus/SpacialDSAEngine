@@ -23,8 +23,8 @@ public:
     virtual Material GetMaterial() const { return m_Material; }
 
 protected:
-    Buffer m_buffer;
-    std::shared_ptr<Shader> m_shader;
+    Buffer m_Buffer;
+    std::shared_ptr<Shader> m_Shader;
     glm::mat4 m_ModelMatrix;
     Material m_Material; // Default material (white)
 }; 

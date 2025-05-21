@@ -1,7 +1,6 @@
 #pragma once
 
 #include <entt/entt.hpp>
-#include "Camera.hpp"
 #include "Components.hpp"
 #include <memory>
 
@@ -9,9 +8,17 @@
 class Shader;
 class Window;
 class Registry;
+class FPSCameraSystem;
+class CollisionSystem;
+class RenderSystem;
 
-namespace Systems 
+namespace Systems
 {
+    // System instances
+    extern std::unique_ptr<FPSCameraSystem> g_CameraSystem;
+    extern std::unique_ptr<CollisionSystem> g_CollisionSystem;
+    extern std::unique_ptr<RenderSystem> g_RenderSystem;
+
     // Scene management functions
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader);
     void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader);
@@ -20,10 +27,6 @@ namespace Systems
     void ShutdownSystems(Registry& registry);
 
     // Scene setup helpers
-    void SetupCamera(Registry& registry, Window& window);
-    void SetupLighting(Registry& registry);
     void CreateCubes(Registry& registry, const std::shared_ptr<Shader>& shader);
     void UpdateTransforms(Registry& registry);
-    void UpdateColliders(Registry& registry);
-    void DetectCollisions(Registry& registry);
 }

@@ -1,4 +1,4 @@
-#include "../include/Window.hpp"
+#include "Window.hpp"
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <stdexcept>
@@ -38,6 +38,7 @@ Window::Window(int width, int height, const std::string& title)
     // Setup callbacks to route through this class
     glfwSetKeyCallback(m_Window, KeyCallbackWrapper);
     glfwSetCursorPosCallback(m_Window, CursorPosCallbackWrapper);
+    glfwSetMouseButtonCallback(m_Window, MouseButtonCallbackWrapper);
 }
 
 Window::~Window() 
@@ -115,6 +116,11 @@ void Window::SetCursorPosCallback(std::function<void(double, double)> callback)
     m_CursorPosCallback = callback;
 }
 
+void Window::SetMouseButtonCallback(std::function<void(int, int, int)> callback)
+{
+    m_MouseButtonCallback = callback;
+}
+
 // Static callback wrappers
 void Window::KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) 
 {
@@ -131,5 +137,14 @@ void Window::CursorPosCallbackWrapper(GLFWwindow* window, double xpos, double yp
     if (it != windowMap.end() && it->second->m_CursorPosCallback) 
     {
         it->second->m_CursorPosCallback(xpos, ypos);
+    }
+}
+
+void Window::MouseButtonCallbackWrapper(GLFWwindow* window, int button, int action, int mods)
+{
+    auto it = windowMap.find(window);
+    if (it != windowMap.end() && it->second->m_MouseButtonCallback)
+    {
+        it->second->m_MouseButtonCallback(button, action, mods);
     }
 } 

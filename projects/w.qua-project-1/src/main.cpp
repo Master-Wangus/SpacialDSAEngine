@@ -40,18 +40,15 @@ int main()
         Registry registry;
         Systems::InitializeSystems(registry, window, shader);
         
-        // Timing variables
         float lastFrame = 0.0f;
         
-        // Main loop
+        // MAIN LOOP
         while (!window.ShouldClose()) 
         {
-            // Calculate delta time
             auto currentFrame = static_cast<float>(glfwGetTime());
             float deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
             
-            // Check for escape key to close the application
             if (window.IsKeyPressed(GLFW_KEY_ESCAPE)) 
             {
                 window.SetShouldClose(true);
@@ -59,14 +56,11 @@ int main()
             
             Systems::UpdateSystems(registry, window, deltaTime);
             
-            // Clear buffers
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
-            // Render all systems
             Systems::RenderSystems(registry, window);
             
-            // Swap buffers and poll events
             window.SwapBuffers();
             window.PollEvents();
         }

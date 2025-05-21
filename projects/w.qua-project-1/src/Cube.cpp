@@ -18,36 +18,36 @@ Cube::~Cube()
 
 void Cube::Initialize(const std::shared_ptr<Shader>& shader) 
 {
-    m_shader = shader;
+    m_Shader = shader;
     
     // Create vertices and set up buffer
     std::vector<Vertex> vertices = CreateVertices();
-    m_buffer.Setup(vertices);
+    m_Buffer.Setup(vertices);
 }
 
 void Cube::Render(const glm::mat4& modelMatrix, 
                  const glm::mat4& viewMatrix, 
                  const glm::mat4& projectionMatrix)
 {
-    if (!m_shader) return;
+    if (!m_Shader) return;
     
-    m_shader->Use();
+    m_Shader->Use();
     
     // Set transformation matrices
-    m_shader->SetMat4("model", modelMatrix);
-    m_shader->SetMat4("view", viewMatrix);
-    m_shader->SetMat4("projection", projectionMatrix);
+    m_Shader->SetMat4("model", modelMatrix);
+    m_Shader->SetMat4("view", viewMatrix);
+    m_Shader->SetMat4("projection", projectionMatrix);
     
     // Set camera position for specular lighting
     glm::vec3 cameraPos = glm::vec3(viewMatrix[3][0], viewMatrix[3][1], viewMatrix[3][2]);
-    m_shader->SetVec3("viewPos", -cameraPos);
+    m_Shader->SetVec3("viewPos", -cameraPos);
     
     // Bind uniform blocks to their respective binding points
-    GLuint materialBlockIndex = glGetUniformBlockIndex(m_shader->GetID(), "Material");
-    GLuint lightBlockIndex = glGetUniformBlockIndex(m_shader->GetID(), "DirectionalLight");
+    GLuint materialBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "Material");
+    GLuint lightBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "DirectionalLight");
     
     if (materialBlockIndex != GL_INVALID_INDEX) {
-        glUniformBlockBinding(m_shader->GetID(), materialBlockIndex, 1); // Binding point 1 for Material
+        glUniformBlockBinding(m_Shader->GetID(), materialBlockIndex, 1); // Binding point 1 for Material
         
         // Update material data in UBO
         static GLuint materialUBO = 0;
@@ -63,19 +63,19 @@ void Cube::Render(const glm::mat4& modelMatrix,
     }
     
     if (lightBlockIndex != GL_INVALID_INDEX) {
-        glUniformBlockBinding(m_shader->GetID(), lightBlockIndex, 0); // Binding point 0 for Light
+        glUniformBlockBinding(m_Shader->GetID(), lightBlockIndex, 0); // Binding point 0 for Light
     }
     
     // Bind VAO and draw
-    m_buffer.Bind();
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_buffer.GetVertexCount()));
-    m_buffer.Unbind();
+    m_Buffer.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
+    m_Buffer.Unbind();
 }
 
 void Cube::CleanUp()
 {
     // Buffer cleans up with destructor
-    m_shader.reset();
+    m_Shader.reset();
 }
 
 void Cube::SetColor(const glm::vec3& color)
@@ -83,7 +83,7 @@ void Cube::SetColor(const glm::vec3& color)
     m_Color = color;
     // Regenerate vertices with new color
     std::vector<Vertex> vertices = CreateVertices();
-    m_buffer.UpdateVertices(vertices);
+    m_Buffer.UpdateVertices(vertices);
 }
 
 glm::vec3 Cube::GetColor() const
