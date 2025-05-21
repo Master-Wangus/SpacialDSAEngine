@@ -4,13 +4,13 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 
-class Shader {
+class Shader 
+{
 public:
     Shader(const std::string& vertexPath, const std::string& fragmentPath);
     ~Shader();
     
     void Use() const;
-    unsigned int GetId() const;
     unsigned int GetID() const;
     
     // Uniform setter methods

@@ -23,6 +23,7 @@ namespace Systems
     void SetupCamera(Registry& registry, Window& window);
     void SetupLighting(Registry& registry);
     void CreateCubes(Registry& registry, const std::shared_ptr<Shader>& shader);
+    void UpdateTransforms(Registry& registry);
     void UpdateColliders(Registry& registry);
     void DetectCollisions(Registry& registry);
 }

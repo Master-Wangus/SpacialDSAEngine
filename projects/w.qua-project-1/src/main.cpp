@@ -4,10 +4,10 @@
 #include <memory>
 #include <chrono>
 
-#include "../include/Window.hpp"
-#include "../include/Shader.hpp"
-#include "../include/Registry.hpp"
-#include "../include/Systems.hpp"
+#include "Window.hpp"
+#include "Shader.hpp"
+#include "Registry.hpp"
+#include "Systems.hpp"
 
 // Constants
 const int WINDOW_WIDTH = 1024;
