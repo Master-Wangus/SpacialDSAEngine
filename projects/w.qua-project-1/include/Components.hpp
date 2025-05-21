@@ -41,19 +41,6 @@ struct RenderComponent
     explicit RenderComponent(std::shared_ptr<IRenderable> r) : m_Renderable(std::move(r)) {}
 };
 
-struct MeshComponent 
-{
-    Buffer m_Buffer;
-    std::shared_ptr<Shader> m_Shader;
-    
-    MeshComponent() = default;
-    MeshComponent(const std::vector<Vertex>& vertices, std::shared_ptr<Shader> shdr)
-        : m_Shader(std::move(shdr))
-    {
-        m_Buffer.Setup(vertices);
-    }
-};
-
 // ==================== Physics Components ====================
 
 struct BoundingSphereComponent 
@@ -194,8 +181,3 @@ struct CameraComponent
         }
     }
 };
-
-// ==================== Tag Components ====================
-
-struct CubeTag {};
-struct SphereTag {}; 

@@ -75,8 +75,8 @@ namespace Systems
             g_Initialized = true;
         }
 
-        // Get all entities with transform and mesh components - material is now part of the renderable
-        auto view = registry.view<TransformComponent, MeshComponent>();
+        // Get all entities with transform and render components
+        auto view = registry.view<TransformComponent, RenderComponent>();
         
         // Find directional light
         auto lightView = registry.view<DirectionalLightComponent>();
@@ -104,46 +104,13 @@ namespace Systems
         // Process each entity
         for (auto entity : view) 
         {
-            auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+            auto [transform, renderComp] = view.get<TransformComponent, RenderComponent>(entity);
             
-            // Skip if no shader is assigned
-            if (!mesh.m_Shader) continue;
+            // Skip if no renderable is assigned
+            if (!renderComp.m_Renderable) continue;
             
-            // Use shader
-            mesh.m_Shader->Use();
-            
-            // Set transformation matrices
-            mesh.m_Shader->SetMat4("model", transform.m_Model);
-            mesh.m_Shader->SetMat4("view", viewMatrix);
-            mesh.m_Shader->SetMat4("projection", projectionMatrix);
-            
-            // Bind uniform blocks to their respective binding points
-            GLuint lightBlockIndex = glGetUniformBlockIndex(mesh.m_Shader->GetID(), "DirectionalLight");
-            GLuint materialBlockIndex = glGetUniformBlockIndex(mesh.m_Shader->GetID(), "Material");
-            
-            if (lightBlockIndex != GL_INVALID_INDEX) 
-            {
-                glUniformBlockBinding(mesh.m_Shader->GetID(), lightBlockIndex, 0);
-            }
-            
-            if (materialBlockIndex != GL_INVALID_INDEX)
-            {
-                glUniformBlockBinding(mesh.m_Shader->GetID(), materialBlockIndex, 1);
-            }
-            
-            // Create a default material since we don't have a MaterialComponent anymore
-            Material material;
-            
-            glBindBuffer(GL_UNIFORM_BUFFER, g_MaterialUBO);
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Material), &material);
-            
-            // Set camera position for specular lighting
-            mesh.m_Shader->SetVec3("viewPos", cameraPosition);
-            
-            // Bind mesh and draw
-            mesh.m_Buffer.Bind();
-            glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(mesh.m_Buffer.GetVertexCount()));
-            mesh.m_Buffer.Unbind();
+            // Render the entity
+            renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
         }
     }
     
@@ -628,10 +595,6 @@ namespace Systems
             auto& transform = registry.GetComponent<TransformComponent>(entity);
             auto& renderComp = registry.GetComponent<RenderComponent>(entity);
             
-            // Material is now handled inside the renderable
-            // No need to check for MaterialComponent
-            
-            // Render the object
             renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
         }
     }
@@ -726,11 +689,6 @@ namespace Systems
         
         // Light color - bright white
         light.m_Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        
-        // For backwards compatibility - not used directly with UBO
-        light.m_Ambient = glm::vec3(0.2f);  // Ambient intensity
-        light.m_Diffuse = glm::vec3(0.5f);  // Diffuse intensity
-        light.m_Specular = glm::vec3(1.0f); // Specular intensity
         
         // Add the light component to the entity
         registry.AddComponent<DirectionalLightComponent>(lightEntity, DirectionalLightComponent(light));

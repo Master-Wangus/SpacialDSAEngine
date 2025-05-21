@@ -20,16 +20,8 @@ struct DirectionalLight
         : m_Direction(glm::normalize(dir), 0.0f),
           m_Color(1.0f) // Default color is white
     {
-        // Store ambient, diffuse, specular components separately
-        m_Ambient = amb;
-        m_Diffuse = diff;
-        m_Specular = spec;
+
     }
-    
-    // We keep these for backward compatibility with existing code
-    glm::vec3 m_Ambient = glm::vec3(0.2f);  ///< Ambient intensity
-    glm::vec3 m_Diffuse = glm::vec3(0.5f);  ///< Diffuse intensity
-    glm::vec3 m_Specular = glm::vec3(1.0f); ///< Specular intensity    
 };
 
 struct Material 
