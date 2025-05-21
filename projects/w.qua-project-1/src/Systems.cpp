@@ -8,6 +8,7 @@
 #include "FPSCameraSystem.hpp"
 #include "CollisionSystem.hpp"
 #include "RenderSystem.hpp"
+#include "InputSystem.hpp"
 
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
@@ -40,6 +41,7 @@ namespace
 // Define the global system instances
 namespace Systems
 {
+    std::unique_ptr<InputSystem> g_InputSystem = nullptr;
     std::unique_ptr<FPSCameraSystem> g_CameraSystem = nullptr;
     std::unique_ptr<CollisionSystem> g_CollisionSystem = nullptr;
     std::unique_ptr<RenderSystem> g_RenderSystem = nullptr;
@@ -50,6 +52,9 @@ namespace Systems
 
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
+        // Initialize InputSystem first as other systems will use it
+        g_InputSystem = std::make_unique<InputSystem>(registry, window);
+        
         g_CameraSystem = std::make_unique<FPSCameraSystem>(registry, window);
         g_CollisionSystem = std::make_unique<CollisionSystem>(registry);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
@@ -65,6 +70,9 @@ namespace Systems
     
     void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
     {
+        // Update input system first
+        g_InputSystem->Update(deltaTime);
+        
         g_CameraSystem->OnRun(deltaTime);
         
         UpdateTransforms(registry);
@@ -85,6 +93,7 @@ namespace Systems
         g_RenderSystem.reset();
         g_CollisionSystem.reset();
         g_CameraSystem.reset();
+        g_InputSystem.reset();
     }
     
     

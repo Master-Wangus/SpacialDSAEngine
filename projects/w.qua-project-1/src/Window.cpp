@@ -39,6 +39,8 @@ Window::Window(int width, int height, const std::string& title)
     glfwSetKeyCallback(m_Window, KeyCallbackWrapper);
     glfwSetCursorPosCallback(m_Window, CursorPosCallbackWrapper);
     glfwSetMouseButtonCallback(m_Window, MouseButtonCallbackWrapper);
+    glfwSetScrollCallback(m_Window, ScrollCallbackWrapper);
+    glfwSetFramebufferSizeCallback(m_Window, FramebufferSizeCallbackWrapper);
 }
 
 Window::~Window() 
@@ -81,9 +83,25 @@ void Window::SwapBuffers() const
     glfwSwapBuffers(m_Window);
 }
 
+void Window::SetTitle(const std::string& title)
+{
+    m_Title = title;
+    glfwSetWindowTitle(m_Window, title.c_str());
+}
+
 bool Window::IsKeyPressed(int keyCode) const 
 {
     return glfwGetKey(m_Window, keyCode) == GLFW_PRESS;
+}
+
+bool Window::IsMouseButtonPressed(int button) const
+{
+    return glfwGetMouseButton(m_Window, button) == GLFW_PRESS;
+}
+
+void Window::GetCursorPos(double* xpos, double* ypos) const
+{
+    glfwGetCursorPos(m_Window, xpos, ypos);
 }
 
 void Window::SetInputMode(int mode, int value) const 
@@ -126,6 +144,16 @@ void Window::SetMouseButtonCallback(std::function<void(int, int, int)> callback)
     m_MouseButtonCallback = callback;
 }
 
+void Window::SetScrollCallback(std::function<void(double, double)> callback)
+{
+    m_ScrollCallback = callback;
+}
+
+void Window::SetFramebufferSizeCallback(std::function<void(int, int)> callback)
+{
+    m_FramebufferSizeCallback = callback;
+}
+
 // Static callback wrappers
 void Window::KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) 
 {
@@ -151,5 +179,31 @@ void Window::MouseButtonCallbackWrapper(GLFWwindow* window, int button, int acti
     if (it != windowMap.end() && it->second->m_MouseButtonCallback)
     {
         it->second->m_MouseButtonCallback(button, action, mods);
+    }
+}
+
+void Window::ScrollCallbackWrapper(GLFWwindow* window, double xoffset, double yoffset)
+{
+    auto it = windowMap.find(window);
+    if (it != windowMap.end() && it->second->m_ScrollCallback)
+    {
+        it->second->m_ScrollCallback(xoffset, yoffset);
+    }
+}
+
+void Window::FramebufferSizeCallbackWrapper(GLFWwindow* window, int width, int height)
+{
+    auto it = windowMap.find(window);
+    if (it != windowMap.end())
+    {
+        // Update the stored dimensions
+        it->second->m_Width = width;
+        it->second->m_Height = height;
+        
+        // Call the user callback if registered
+        if (it->second->m_FramebufferSizeCallback)
+        {
+            it->second->m_FramebufferSizeCallback(width, height);
+        }
     }
 } 

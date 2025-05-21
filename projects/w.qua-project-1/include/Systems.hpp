@@ -11,10 +11,12 @@ class Registry;
 class FPSCameraSystem;
 class CollisionSystem;
 class RenderSystem;
+class InputSystem;
 
 namespace Systems
 {
     // System instances
+    extern std::unique_ptr<InputSystem> g_InputSystem;
     extern std::unique_ptr<FPSCameraSystem> g_CameraSystem;
     extern std::unique_ptr<CollisionSystem> g_CollisionSystem;
     extern std::unique_ptr<RenderSystem> g_RenderSystem;

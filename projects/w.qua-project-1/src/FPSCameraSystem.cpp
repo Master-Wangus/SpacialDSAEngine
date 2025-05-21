@@ -1,5 +1,7 @@
 #include "FPSCameraSystem.hpp"
 #include "Window.hpp"
+#include "InputSystem.hpp"
+#include "Systems.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -37,16 +39,18 @@ FPSCameraSystem::FPSCameraSystem(Registry& registry, Window& window)
         registry.AddComponent<CameraComponent>(m_CameraEntity, camera);
     }
     
-    // Set initial mouse position for both cases
-    m_LastX = static_cast<float>(window.GetWidth() / 2.0f);
-    m_LastY = static_cast<float>(window.GetHeight() / 2.0f);
-    
-    window.SetCursorPosCallback([this](double xpos, double ypos) {
-        this->ProcessMouseMovement(xpos, ypos);
-    });
-    
-    window.SetMouseButtonCallback([this](int button, int action, int mods) {
-        this->ProcessMouseButton(button, action, mods);
+    // Set up input callbacks for this system
+    SetupInputCallbacks();
+}
+
+void FPSCameraSystem::SetupInputCallbacks()
+{
+    // Subscribe to mouse movement
+    Systems::g_InputSystem->SubscribeToMouseMove([this](double xpos, double ypos) {
+        if (Systems::g_InputSystem->IsMouseDragging()) 
+        {
+            this->ProcessMouseMovement(xpos, ypos);
+        }
     });
 }
 
@@ -64,40 +68,24 @@ glm::mat4 FPSCameraSystem::GetViewMatrix(const CameraComponent& camera)
     return camera.GetViewMatrix();
 }
 
-void FPSCameraSystem::ProcessMouseButton(int button, int action, int mods)
-{
-    // Set dragging flag based on left mouse button state
-    if (button == Window::MOUSE_BUTTON_LEFT) {
-        if (action == Window::PRESS) {
-            m_MouseDragging = true;
-            
-            // Reset first mouse flag so we don't get a jump when starting to drag
-            m_FirstMouse = true;
-        } 
-        else if (action == Window::RELEASE) {
-            m_MouseDragging = false;
-        }
-    }
-}
-
 void FPSCameraSystem::ProcessMouseMovement(double xpos, double ypos)
 {
-    // Only process mouse movement if we're dragging
-    if (!m_MouseDragging)
-        return;
-        
-    if (m_FirstMouse) {
-        m_LastX = static_cast<float>(xpos);
-        m_LastY = static_cast<float>(ypos);
-        m_FirstMouse = false;
+    static bool firstMouse = true;
+    static float lastX = 0.0f;
+    static float lastY = 0.0f;
+    
+    if (firstMouse) 
+    {
+        lastX = static_cast<float>(xpos);
+        lastY = static_cast<float>(ypos);
+        firstMouse = false;
         return; // Skip the first frame to avoid jumps
     }
     
-    float xOffset = static_cast<float>(xpos) - m_LastX;
-    float yOffset = m_LastY - static_cast<float>(ypos);
-    
-    m_LastX = static_cast<float>(xpos);
-    m_LastY = static_cast<float>(ypos);
+    // Get mouse delta from input system
+    glm::vec2 mouseDelta = Systems::g_InputSystem->GetMouseDelta();
+    float xOffset = mouseDelta.x;
+    float yOffset = mouseDelta.y;
     
     // Update camera
     auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
@@ -120,11 +108,11 @@ void FPSCameraSystem::ProcessKeyboardInput(float deltaTime)
 {
     auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
     
-    // Get keys state
-    bool keyW = m_Window.IsKeyPressed(Window::KEY_W);
-    bool keyS = m_Window.IsKeyPressed(Window::KEY_S);
-    bool keyA = m_Window.IsKeyPressed(Window::KEY_A);
-    bool keyD = m_Window.IsKeyPressed(Window::KEY_D);
+    // Get keys state from input system
+    bool keyW = Systems::g_InputSystem->IsKeyPressed(Window::KEY_W);
+    bool keyS = Systems::g_InputSystem->IsKeyPressed(Window::KEY_S);
+    bool keyA = Systems::g_InputSystem->IsKeyPressed(Window::KEY_A);
+    bool keyD = Systems::g_InputSystem->IsKeyPressed(Window::KEY_D);
     
     float cameraSpeed = camera.m_FPS.m_MovementSpeed * deltaTime;
     

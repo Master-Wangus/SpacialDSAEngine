@@ -6,10 +6,18 @@
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader)
 {
+    // Set up framebuffer resize callback
+    window.SetFramebufferSizeCallback([](int width, int height) {
+        // Update viewport when window is resized
+        glViewport(0, 0, width, height);
+    });
 }
 
 void RenderSystem::Initialize()
 {
+    // Set initial viewport size
+    glViewport(0, 0, m_Window.GetWidth(), m_Window.GetHeight());
+    
     // Initialize all renderable objects
     for (auto entity : m_Registry.View<RenderComponent>()) 
     {
@@ -80,12 +88,12 @@ void RenderSystem::SetupLighting()
     static GLuint lightUBO = 0;
     if (lightUBO == 0) 
     {
-        lightUBO = Buffer::CreateUniformBufferStatic(sizeof(DirectionalLight), 0);
-        Buffer::UpdateUniformBufferStatic(lightUBO, &light, sizeof(DirectionalLight));
+        lightUBO = Buffer::CreateUniformBuffer(sizeof(DirectionalLight), 0);
+        Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
     } 
     else 
     {
         // Update the data
-        Buffer::UpdateUniformBufferStatic(lightUBO, &light, sizeof(DirectionalLight));
+        Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
     }
 } 

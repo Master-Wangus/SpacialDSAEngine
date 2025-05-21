@@ -32,6 +32,6 @@ public:
 private:
     float m_Size;
     glm::vec3 m_Color;
-    
+
     std::vector<Vertex> CreateVertices();
 };

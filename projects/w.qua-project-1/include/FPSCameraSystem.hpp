@@ -5,8 +5,10 @@
 #include <glm/glm.hpp>
 
 class Window;
+class InputSystem;
 
-class FPSCameraSystem {
+class FPSCameraSystem
+ {
 public:
     FPSCameraSystem(Registry& registry, Window& window);
     void OnRun(float deltaTime);
@@ -14,7 +16,6 @@ public:
 
 private:
     void ProcessMouseMovement(double xpos, double ypos);
-    void ProcessMouseButton(int button, int action, int mods);
     void ProcessKeyboardInput(float deltaTime);
 
     Registry& m_Registry;
@@ -28,4 +29,7 @@ private:
     
     // Camera entity
     Registry::Entity m_CameraEntity;
+    
+    // Input handling
+    void SetupInputCallbacks();
 }; 
