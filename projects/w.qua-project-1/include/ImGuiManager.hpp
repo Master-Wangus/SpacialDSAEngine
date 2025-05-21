@@ -1,6 +1,5 @@
 #pragma once
 
-#include "pch.h"
 #include "Window.hpp"
 
 // Forward declarations
@@ -20,9 +19,6 @@ public:
 
     // Rendering various ImGui windows
     void RenderMainWindow(Registry& registry);
-    void RenderCollisionInfo(Registry& registry);
-    void RenderEntityList(Registry& registry);
-    void RenderCameraSettings(Registry& registry);
     void RenderStats();
 
 private:

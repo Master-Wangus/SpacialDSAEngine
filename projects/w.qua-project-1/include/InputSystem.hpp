@@ -1,12 +1,12 @@
 #pragma once
 
-#include "pch.h"
 #include "Registry.hpp"
 
 class Window;
 
 // Input event types
-enum class InputEventType {
+enum class InputEventType 
+{
     KeyPressed,
     KeyReleased,
     MouseButtonPressed,

@@ -15,11 +15,9 @@ int main()
 {
     try 
     {
-        // Create window
         Window window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
         window.MakeContextCurrent();
         
-        // Initialize GLEW
         glewExperimental = GL_TRUE;
         if (glewInit() != GLEW_OK) 
         {
@@ -29,13 +27,11 @@ int main()
         // Enable depth testing
         glEnable(GL_DEPTH_TEST);
         
-        // Create shader program
         auto shader = std::make_shared<Shader>(
             "../projects/w.qua-project-1/shaders/my-project-1.vert",
             "../projects/w.qua-project-1/shaders/my-project-1.frag"
         );
         
-        // Initialize systems
         Registry registry;
         Systems::InitializeSystems(registry, window, shader);
         
@@ -43,7 +39,6 @@ int main()
         ImGuiManager imguiManager(window);
         imguiManager.Init();
         
-        // Subscribe to escape key to close the application
         Systems::g_InputSystem->SubscribeToKey(Window::KEY_ESCAPE, 
             [&window](int key, int scancode, int action, int mods) {
                 if (action == Window::PRESS) {
@@ -57,19 +52,15 @@ int main()
         // MAIN LOOP
         while (!window.ShouldClose()) 
         {
-            // Time calculations
             auto currentFrame = (float)window.GetTime();
             float deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
             
-            // Update systems with delta time
             Systems::UpdateSystems(registry, window, deltaTime);
             
-            // Clear the screen
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
-            // Render the scene
             Systems::RenderSystems(registry, window);
             
             // ImGui New Frame
@@ -77,12 +68,10 @@ int main()
             imguiManager.RenderMainWindow(registry);
             imguiManager.Render();
             
-            // Swap buffers and poll events
             window.SwapBuffers();
             window.PollEvents();
         }
         
-        // Cleanup resources
         imguiManager.Shutdown();
         Systems::ShutdownSystems(registry);
         
