@@ -70,6 +70,7 @@ struct Ray
     glm::vec3 GetPoint(float t) const {
         return m_Origin + m_Direction * t;
     }
+    
 };
 
 struct BoundingSphere 

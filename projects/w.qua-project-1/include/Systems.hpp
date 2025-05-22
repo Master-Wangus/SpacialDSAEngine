@@ -18,8 +18,7 @@ enum class DemoSceneType
 {
     Default,
     SphereVsSphere,
-    AABBVsSphere,
-    SphereVsAABB,
+    SphereVsAABB,  // Kept this one as the canonical version
     AABBVsAABB,
     PointVsSphere,
     PointVsAABB,

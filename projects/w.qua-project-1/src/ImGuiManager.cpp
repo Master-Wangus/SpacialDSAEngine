@@ -122,8 +122,7 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
     // Map the enum to descriptive strings
     static const char* sceneNames[] = {
         "Sphere vs Sphere",
-        "AABB vs Sphere",
-        "Sphere vs AABB",
+        "Sphere vs AABB",  // Kept only the canonical version
         "AABB vs AABB",
         "Point vs Sphere",
         "Point vs AABB",
@@ -145,12 +144,6 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
         if (ImGui::Selectable("Sphere vs Sphere", selectedScene == static_cast<int>(DemoSceneType::SphereVsSphere)))
         {
             selectedScene = static_cast<int>(DemoSceneType::SphereVsSphere);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("AABB vs Sphere", selectedScene == static_cast<int>(DemoSceneType::AABBVsSphere)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::AABBVsSphere);
             SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
         }
         

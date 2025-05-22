@@ -6,6 +6,7 @@
 #include "SphereRenderer.hpp"
 #include "PlaneRenderer.hpp"
 #include "TriangleRenderer.hpp"
+#include "RayRenderer.hpp"
 #include "Intersection.hpp"
 
 ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& window)
@@ -99,7 +100,7 @@ Registry::Entity ObjectManipulationSystem::PickObject(const glm::vec2& screenPos
             case CollisionShapeType::Sphere:
             {
                 BoundingSphere sphere(collisionComp.m_Sphere.m_Center, collisionComp.m_Sphere.m_Radius);
-                hit = Intersection::RayVsSphere(ray, sphere, t);
+                hit = Intersection::SphereVsRay(sphere, ray, t);
                 break;
             }
             case CollisionShapeType::AABB:
@@ -175,6 +176,11 @@ void ObjectManipulationSystem::StartDragging(Registry::Entity entity)
         {
             m_OriginalColors[entity] = planeRenderer->GetColor();
             planeRenderer->SetColor(SELECTED_COLOR);
+        }
+        else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+        {
+            m_OriginalColors[entity] = rayRenderer->GetColor();
+            rayRenderer->SetColor(SELECTED_COLOR);
         }
     }
     
@@ -291,6 +297,14 @@ void ObjectManipulationSystem::UpdateCollisionColors()
             }
             planeRenderer->SetColor(NON_COLLISION_COLOR);
         }
+        else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+        {
+            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
+            {
+                m_OriginalColors[entity] = rayRenderer->GetColor();
+            }
+            rayRenderer->SetColor(NON_COLLISION_COLOR);
+        }
     }
     
     // Get collision pairs
@@ -324,6 +338,10 @@ void ObjectManipulationSystem::UpdateCollisionColors()
             {
                 planeRenderer->SetColor(COLLISION_COLOR);
             }
+            else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+            {
+                rayRenderer->SetColor(COLLISION_COLOR);
+            }
         }
         
         // Set color of entity2 if it has a render component
@@ -347,6 +365,10 @@ void ObjectManipulationSystem::UpdateCollisionColors()
             else if (auto planeRenderer = std::dynamic_pointer_cast<PlaneRenderer>(renderable))
             {
                 planeRenderer->SetColor(COLLISION_COLOR);
+            }
+            else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+            {
+                rayRenderer->SetColor(COLLISION_COLOR);
             }
         }
     }
@@ -420,6 +442,10 @@ void ObjectManipulationSystem::ResetEntityColors(Registry::Entity entity)
             else if (auto planeRenderer = std::dynamic_pointer_cast<PlaneRenderer>(renderable))
             {
                 planeRenderer->SetColor(colorIt->second);
+            }
+            else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+            {
+                rayRenderer->SetColor(colorIt->second);
             }
         }
     }

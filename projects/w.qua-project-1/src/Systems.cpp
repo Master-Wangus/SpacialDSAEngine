@@ -105,15 +105,14 @@ namespace
         return entity;
     }
     
-    static Registry::Entity CreatePointEntity(Registry& registry, const glm::vec3& position, const glm::vec3& color, float pointSize, std::shared_ptr<Shader> shader)
+    static Registry::Entity CreatePointEntity(Registry& registry, const glm::vec3& position, const glm::vec3& color, std::shared_ptr<Shader> shader)
     {
         auto entity = registry.Create();
         
-        // Represent a point using a small sphere
-        auto sphereRenderable = std::make_shared<SphereRenderer>(position, pointSize, color);
+        auto sphereRenderable = std::make_shared<SphereRenderer>(position, 1.0f, color);
         sphereRenderable->Initialize(shader);
         
-        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(pointSize)));
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(0.01f)));
         registry.AddComponent<RenderComponent>(entity, RenderComponent(sphereRenderable));
         
         // Add a collision component
@@ -160,7 +159,6 @@ namespace Systems
                 SetupSphereVsSphereDemo(registry, shader);
                 break;
                 
-            case DemoSceneType::AABBVsSphere:
             case DemoSceneType::SphereVsAABB:
                 SetupAABBVsSphereDemo(registry, shader);
                 break;
@@ -247,6 +245,7 @@ namespace Systems
     
     void SetupAABBVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
     {
+        // Used for SphereVsAABB demo (the canonical version - AABBVsSphere was removed)
         // Create a box and a sphere for collision testing
         CreateAABBEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
         CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
@@ -261,8 +260,8 @@ namespace Systems
     
     void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
     {
-        // Create a point for all demos
-        auto pointEntity = CreatePointEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), 0.1f, shader);
+        // Create a point for all demos with fixed unit size
+        auto pointEntity = CreatePointEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), shader);
         
         switch (sceneType)
         {

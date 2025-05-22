@@ -194,7 +194,29 @@ struct CollisionComponent
                 m_Ray.m_Origin = position;
                 break;
                 
-            // Plane and triangle require more complex transformations, not handled here
+            case CollisionShapeType::Plane:
+            {
+                // For a plane, we update the distance value to maintain the plane's position relative to the new position
+                // Note: This assumes the normal hasn't changed direction
+                float signedDist = glm::dot(m_Plane.m_Normal, position);
+                m_Plane.m_Distance = -signedDist; // Plane equation: dot(normal, point) + distance = 0
+                break;
+            }
+                
+            case CollisionShapeType::Triangle:
+            {
+                // For a triangle, we need to translate all vertices by the difference in position
+                // Calculate translation from original center to new position
+                glm::vec3 center = (m_Triangle.m_Vertices[0] + m_Triangle.m_Vertices[1] + m_Triangle.m_Vertices[2]) / 3.0f;
+                glm::vec3 translation = position - center;
+                
+                // Apply translation to each vertex
+                m_Triangle.m_Vertices[0] += translation;
+                m_Triangle.m_Vertices[1] += translation;
+                m_Triangle.m_Vertices[2] += translation;
+                break;
+            }
+                
             default:
                 break;
         }
