@@ -19,16 +19,13 @@ bool Intersection::SphereVsSphere(const BoundingSphere& a, const BoundingSphere&
 // AABB vs AABB intersection test
 bool Intersection::AabbVsAABB(const AABB& a, const AABB& b) 
 {
-    // Get min and max corners
-    glm::vec3 aMin = a.GetMin();
-    glm::vec3 aMax = a.GetMax();
-    glm::vec3 bMin = b.GetMin();
-    glm::vec3 bMax = b.GetMax();
+    // Early rejection test - check for separation on any axis
+    if (a.GetMin().x > b.GetMax().x || b.GetMin().x > a.GetMax().x) return false;
+    if (a.GetMin().y > b.GetMax().y || b.GetMin().y > a.GetMax().y) return false;
+    if (a.GetMin().z > b.GetMax().z || b.GetMin().z > a.GetMax().z) return false;
     
-    // Check for overlap along all axes
-    return (aMin.x <= bMax.x && aMax.x >= bMin.x) &&
-           (aMin.y <= bMax.y && aMax.y >= bMin.y) &&
-           (aMin.z <= bMax.z && aMax.z >= bMin.z);
+    // If we get here, there's overlap on all axes
+    return true;
 }
 
 // Sphere vs AABB intersection test

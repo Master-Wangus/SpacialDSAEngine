@@ -27,6 +27,8 @@ layout(std140) uniform DirectionalLight
 {
     vec4 direction;
     vec4 color;
+    float enabled;
+    vec3 padding;
 } light;
 
 
@@ -41,8 +43,16 @@ void main()
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     
-    // Directional lighting
-    vec3 result = CalcDirLight(norm, viewDir);
+    // Check if directional lighting is enabled
+    vec3 result;
+    if (light.enabled > 0.5) {
+        // Directional lighting
+        result = CalcDirLight(norm, viewDir);
+    } else {
+        // When light is disabled, use only ambient term for basic visibility
+        // Ensure we have sufficient ambient lighting to see objects
+        result = material.ambientColor * material.ambientIntensity * Color;
+    }
     
     // Final color
     FragColor = vec4(result, 1.0);

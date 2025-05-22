@@ -4,21 +4,30 @@
 
 struct DirectionalLight 
 {
-    glm::vec4 m_Direction;    ///< Light direction (world space)
-    glm::vec4 m_Color;        
+    glm::vec4 m_Direction;     ///< Light direction (world space)
+    glm::vec4 m_Color;         ///< Light color and intensity
+    float m_Enabled;           ///< Whether light is enabled (1.0f = enabled, 0.0f = disabled)
+    glm::vec3 m_Padding;       ///< Padding for std140 layout
+    
     DirectionalLight()
         : m_Direction(0.0f, -1.0f, 0.0f, 0.0f),
-          m_Color(1.0f, 1.0f, 1.0f, 1.0f)
+          m_Color(1.0f, 1.0f, 1.0f, 1.0f),
+          m_Enabled(1.0f),
+          m_Padding(0.0f)
           {}
 
     DirectionalLight(const glm::vec3& dir, const glm::vec4& col)
         : m_Direction(glm::normalize(dir), 0.0f),
-          m_Color(col) 
+          m_Color(col),
+          m_Enabled(1.0f),
+          m_Padding(0.0f)
           {}
     
     DirectionalLight(const glm::vec3& dir, const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec)
         : m_Direction(glm::normalize(dir), 0.0f),
-          m_Color(1.0f) // Default color is white
+          m_Color(1.0f), // Default color is white
+          m_Enabled(1.0f),
+          m_Padding(0.0f)
     {
 
     }
@@ -60,4 +69,4 @@ struct Material
           m_Padding(0.0f)
     {
     }
-    }; 
+}; 

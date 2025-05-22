@@ -27,10 +27,12 @@ public:
     const std::vector<CollisionPair>& GetCollisions() const;
 
 private:
-    // Specific collision tests
-    bool TestAABBvsAABB(const AABB& a, const AABB& b);
-    bool TestSphereVsSphere(const BoundingSphere& a, const BoundingSphere& b);
-    
     Registry& m_Registry;
     std::vector<CollisionPair> m_Collisions;
+    
+    // Helper method to check if a collision already exists
+    bool CollisionExists(Registry::Entity entity1, Registry::Entity entity2) const;
+    
+    // Helper method for collision detection between different shape types
+    bool CheckCollision(const CollisionComponent& a, const CollisionComponent& b);
 }; 

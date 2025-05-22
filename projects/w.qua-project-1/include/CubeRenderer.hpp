@@ -3,17 +3,18 @@
 #include "pch.h"
 #include "Buffer.hpp"
 #include "Lighting.hpp"
-#include "Primitives.hpp"
 #include "IRenderable.hpp"
 
 class Shader;
 
-class Cube : public IRenderable
+class CubeRenderer : public IRenderable
 {
 public:
-    Cube(const glm::vec3& color = glm::vec3(1.0f), float size = 1.0f);
+    CubeRenderer(const glm::vec3& center = glm::vec3(0.0f),
+                const glm::vec3& size = glm::vec3(1.0f),
+                const glm::vec3& color = glm::vec3(1.0f));
     
-    ~Cube();
+    ~CubeRenderer();
     
     void Initialize(const std::shared_ptr<Shader>& shader) override;
     
@@ -23,14 +24,18 @@ public:
     
     void CleanUp() override;
     
-    // Mesh-specific functionality
+    // Cube-specific functionality
+    void SetCenter(const glm::vec3& center);
+    glm::vec3 GetCenter() const;
+    void SetSize(const glm::vec3& size);
+    glm::vec3 GetSize() const;
     void SetColor(const glm::vec3& color);
     glm::vec3 GetColor() const;
-    float GetSize() const;
     
 private:
-    float m_Size;
+    glm::vec3 m_Center;
+    glm::vec3 m_Size;
     glm::vec3 m_Color;
 
     std::vector<Vertex> CreateVertices();
-};
+}; 

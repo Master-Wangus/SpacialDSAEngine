@@ -3,37 +3,122 @@
 #include "Shader.hpp"
 #include "Intersection.hpp"
 #include "Window.hpp"
-#include "Cube.hpp"
 #include "Registry.hpp"
 #include "FPSCameraSystem.hpp"
 #include "CollisionSystem.hpp"
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
+#include "ObjectManipulationSystem.hpp"
+#include "SphereRenderer.hpp"
+#include "CubeRenderer.hpp"
+#include "TriangleRenderer.hpp"
+#include "PlaneRenderer.hpp"
+#include "RayRenderer.hpp"
 
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace
 {
-    static Registry::Entity CreateCubeEntity(Registry& registry, const glm::vec3& position, float size, const glm::vec3& color, std::shared_ptr<Shader> shader)
+    
+    static Registry::Entity CreateSphereEntity(Registry& registry, const glm::vec3& center, float radius, const glm::vec3& color, std::shared_ptr<Shader> shader)
     {
         auto entity = registry.Create();
-
-        auto cubeRenderable = std::make_shared<Cube>(color, size);
         
-        Material material;
-        material.m_AmbientColor = color;
-        material.m_DiffuseColor = color;
-        material.m_SpecularColor = color;
-        material.m_Shininess = 32.0f;
-        cubeRenderable->SetMaterial(material);
-
-        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(size)));
+        auto sphereRenderable = std::make_shared<SphereRenderer>(center, radius, color);
+        sphereRenderable->Initialize(shader);
+        
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(center, glm::vec3(0.0f), glm::vec3(radius)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(sphereRenderable));
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreateSphere(center, radius));
+        
+        return entity;
+    }
+    
+    static Registry::Entity CreateAABBEntity(Registry& registry, const glm::vec3& center, const glm::vec3& halfExtents, const glm::vec3& color, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+        
+        auto cubeRenderable = std::make_shared<CubeRenderer>(center, halfExtents * 2.0f, color);
+        cubeRenderable->Initialize(shader);
+        
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(center, glm::vec3(0.0f), halfExtents * 2.0f));
         registry.AddComponent<RenderComponent>(entity, RenderComponent(cubeRenderable));
-
-        registry.AddComponent<AABBComponent>(entity, AABBComponent(position, glm::vec3(size * 0.5f)));
-        registry.AddComponent<BoundingSphereComponent>(entity, BoundingSphereComponent(position, size * 0.866025f));
-
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreateAABB(center, halfExtents));
+        
+        return entity;
+    }
+    
+    static Registry::Entity CreateTriangleEntity(Registry& registry, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& color, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+        
+        auto triangleRenderable = std::make_shared<TriangleRenderer>(v0, v1, v2, color);
+        triangleRenderable->Initialize(shader);
+        
+        // Calculate center position for transform
+        glm::vec3 center = (v0 + v1 + v2) / 3.0f;
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(center, glm::vec3(0.0f), glm::vec3(1.0f)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(triangleRenderable));
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreateTriangle(v0, v1, v2));
+        
+        return entity;
+    }
+    
+    static Registry::Entity CreatePlaneEntity(Registry& registry, const glm::vec3& normal, float distance, const glm::vec3& color, float size, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+        
+        auto planeRenderable = std::make_shared<PlaneRenderer>(normal, distance, color, size);
+        planeRenderable->Initialize(shader);
+        
+        // Calculate a position on the plane for transform
+        glm::vec3 position = normal * distance;
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(size)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(planeRenderable));
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreatePlane(normal, distance));
+        
+        return entity;
+    }
+    
+    static Registry::Entity CreateRayEntity(Registry& registry, const glm::vec3& origin, const glm::vec3& direction, float length, const glm::vec3& color, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+        
+        auto rayRenderable = std::make_shared<RayRenderer>(origin, direction, color, length);
+        rayRenderable->Initialize(shader);
+        
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(origin, glm::vec3(0.0f), glm::vec3(1.0f)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(rayRenderable));
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreateRay(origin, direction, length));
+        
+        return entity;
+    }
+    
+    static Registry::Entity CreatePointEntity(Registry& registry, const glm::vec3& position, const glm::vec3& color, float pointSize, std::shared_ptr<Shader> shader)
+    {
+        auto entity = registry.Create();
+        
+        // Represent a point using a small sphere
+        auto sphereRenderable = std::make_shared<SphereRenderer>(position, pointSize, color);
+        sphereRenderable->Initialize(shader);
+        
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(pointSize)));
+        registry.AddComponent<RenderComponent>(entity, RenderComponent(sphereRenderable));
+        
+        // Add a collision component
+        registry.AddComponent<CollisionComponent>(entity, CollisionComponent::CreatePoint(position));
+        
         return entity;
     }
 }
@@ -45,6 +130,8 @@ namespace Systems
     std::unique_ptr<FPSCameraSystem> g_CameraSystem = nullptr;
     std::unique_ptr<CollisionSystem> g_CollisionSystem = nullptr;
     std::unique_ptr<RenderSystem> g_RenderSystem = nullptr;
+    std::unique_ptr<ObjectManipulationSystem> g_ObjectManipulationSystem = nullptr;
+    DemoSceneType g_CurrentDemoScene = DemoSceneType::SphereVsSphere;
 }
 
 namespace Systems 
@@ -58,6 +145,7 @@ namespace Systems
         g_CameraSystem = std::make_unique<FPSCameraSystem>(registry, window);
         g_CollisionSystem = std::make_unique<CollisionSystem>(registry);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
+        g_ObjectManipulationSystem = std::make_unique<ObjectManipulationSystem>(registry, window);
         
         SetupScene(registry, window, shader);
         g_RenderSystem->Initialize();
@@ -65,7 +153,41 @@ namespace Systems
     
     void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
-        CreateCubes(registry, shader);
+        switch (g_CurrentDemoScene)
+        {
+                
+            case DemoSceneType::SphereVsSphere:
+                SetupSphereVsSphereDemo(registry, shader);
+                break;
+                
+            case DemoSceneType::AABBVsSphere:
+            case DemoSceneType::SphereVsAABB:
+                SetupAABBVsSphereDemo(registry, shader);
+                break;
+                
+            case DemoSceneType::AABBVsAABB:
+                SetupAABBVsAABBDemo(registry, shader);
+                break;
+                
+            case DemoSceneType::PointVsSphere:
+            case DemoSceneType::PointVsAABB:
+            case DemoSceneType::PointVsTriangle:
+            case DemoSceneType::PointVsPlane:
+                SetupPointBasedDemos(registry, shader, g_CurrentDemoScene);
+                break;
+                
+            case DemoSceneType::RayVsPlane:
+            case DemoSceneType::RayVsAABB:
+            case DemoSceneType::RayVsSphere:
+            case DemoSceneType::RayVsTriangle:
+                SetupRayBasedDemos(registry, shader, g_CurrentDemoScene);
+                break;
+                
+            case DemoSceneType::PlaneVsAABB:
+            case DemoSceneType::PlaneVsSphere:
+                SetupPlaneBasedDemos(registry, shader, g_CurrentDemoScene);
+                break;
+        }
     }
     
     void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
@@ -74,6 +196,9 @@ namespace Systems
         g_InputSystem->Update(deltaTime);
         
         g_CameraSystem->OnRun(deltaTime);
+        
+        // Update object manipulation system
+        g_ObjectManipulationSystem->Update(deltaTime);
         
         UpdateTransforms(registry);
         
@@ -90,23 +215,132 @@ namespace Systems
     {
         g_RenderSystem->Shutdown();
         
+        g_ObjectManipulationSystem.reset();
         g_RenderSystem.reset();
         g_CollisionSystem.reset();
         g_CameraSystem.reset();
         g_InputSystem.reset();
     }
     
-    
-    void CreateCubes(Registry& registry, const std::shared_ptr<Shader>& shader)
+    void ClearScene(Registry& registry)
     {
-        // Create center cube
-        CreateCubeEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.5f, 0.31f), shader);
+        auto view = registry.GetRegistry().view<RenderComponent>();
+        for (auto entity : view)
+        {
+            registry.Destroy(entity);
+        }
+    }
+    
+    void SwitchScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
+    {
+        ClearScene(registry);
+        g_CurrentDemoScene = sceneType;
+        SetupScene(registry, window, shader);
+    }
+
+    void SetupSphereVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
+    {
+        // Create two spheres for collision testing
+        CreateSphereEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.2f, 0.2f), shader);
+        CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
+    }
+    
+    void SetupAABBVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
+    {
+        // Create a box and a sphere for collision testing
+        CreateAABBEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
+        CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
+    }
+    
+    void SetupAABBVsAABBDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
+    {
+        // Create two boxes for collision testing
+        CreateAABBEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.8f, 0.2f, 0.2f), shader);
+        CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.2f, 0.8f), shader);
+    }
+    
+    void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
+    {
+        // Create a point for all demos
+        auto pointEntity = CreatePointEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), 0.1f, shader);
         
-        // Create surrounding cubes
-        CreateCubeEntity(registry, glm::vec3(2.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.31f, 0.5f, 1.0f), shader);
-        CreateCubeEntity(registry, glm::vec3(-2.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.5f, 1.0f, 0.31f), shader);
-        CreateCubeEntity(registry, glm::vec3(0.0f, 2.0f, 0.0f), 1.0f, glm::vec3(1.0f, 0.31f, 0.5f), shader);
-        CreateCubeEntity(registry, glm::vec3(0.0f, -2.0f, 0.0f), 1.0f, glm::vec3(0.31f, 1.0f, 0.5f), shader);
+        switch (sceneType)
+        {
+            case DemoSceneType::PointVsSphere:
+                CreateSphereEntity(registry, glm::vec3(1.5f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
+                break;
+                
+            case DemoSceneType::PointVsAABB:
+                CreateAABBEntity(registry, glm::vec3(1.5f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
+                break;
+                
+            case DemoSceneType::PointVsTriangle:
+                CreateTriangleEntity(registry, 
+                    glm::vec3(0.0f, 0.0f, 0.0f), 
+                    glm::vec3(2.0f, 0.0f, 0.0f), 
+                    glm::vec3(1.0f, 2.0f, 0.0f), 
+                    glm::vec3(0.8f, 0.2f, 0.8f), shader);
+                break;
+                
+            case DemoSceneType::PointVsPlane:
+                CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 1.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+                break;
+                
+            default:
+                break;
+        }
+    }
+    
+    void SetupRayBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
+    {
+        // Create a ray for all demos
+        auto rayEntity = CreateRayEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 10.0f, glm::vec3(1.0f, 1.0f, 0.0f), shader);
+        
+        switch (sceneType)
+        {
+            case DemoSceneType::RayVsPlane:
+                CreatePlaneEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 3.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+                break;
+                
+            case DemoSceneType::RayVsAABB:
+                CreateAABBEntity(registry, glm::vec3(3.0f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
+                break;
+                
+            case DemoSceneType::RayVsSphere:
+                CreateSphereEntity(registry, glm::vec3(3.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
+                break;
+                
+            case DemoSceneType::RayVsTriangle:
+                CreateTriangleEntity(registry, 
+                    glm::vec3(2.0f, -1.0f, -1.0f), 
+                    glm::vec3(2.0f, 1.0f, -1.0f), 
+                    glm::vec3(2.0f, 0.0f, 1.0f), 
+                    glm::vec3(0.8f, 0.2f, 0.8f), shader);
+                break;
+                
+            default:
+                break;
+        }
+    }
+    
+    void SetupPlaneBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
+    {
+        // Create a plane for all demos
+        auto planeEntity = CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.5f, 0.5f, 0.5f), 10.0f, shader);
+        
+        switch (sceneType)
+        {
+            case DemoSceneType::PlaneVsAABB:
+                CreateAABBEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
+                break;
+                
+            case DemoSceneType::PlaneVsSphere:
+                CreateSphereEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
+                break;
+                
+            default:
+                break;
+        }
     }
 
     void UpdateTransforms(Registry& registry)

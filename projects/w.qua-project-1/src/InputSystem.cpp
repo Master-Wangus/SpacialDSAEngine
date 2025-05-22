@@ -146,25 +146,18 @@ void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
     // Update mouse button state
     if (action == Window::PRESS) {
         m_MouseButtonsPressed[button] = true;
-        
-        // Left mouse button handling for camera control
-        if (button == Window::MOUSE_BUTTON_LEFT) {
-            StartDragging();
-        }
     } else if (action == Window::RELEASE) {
         m_MouseButtonsPressed[button] = false;
-        
-        // Left mouse button handling for camera control
-        if (button == Window::MOUSE_BUTTON_LEFT) {
-            StopDragging();
-        }
     }
     
-    // Notify subscribers
+    // Notify subscribers first (object manipulation system will handle object selection)
     auto range = m_MouseButtonCallbacks.equal_range(button);
     for (auto it = range.first; it != range.second; ++it) {
         it->second(button, action, mods);
     }
+    
+    // If no subscribers handled it, and it's left mouse button, handle camera control
+    // This is now handled by the FPSCameraSystem
 }
 
 void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
@@ -176,6 +169,8 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     if (m_MouseDragging && !ImGui::GetIO().WantCaptureMouse) {
         m_MouseDelta.x = m_CurrentMousePos.x - m_LastMousePos.x;
         m_MouseDelta.y = m_LastMousePos.y - m_CurrentMousePos.y; // Inverted Y for camera control
+    } else {
+        m_MouseDelta = glm::vec2(0.0f);
     }
     
     m_LastMousePos = m_CurrentMousePos;

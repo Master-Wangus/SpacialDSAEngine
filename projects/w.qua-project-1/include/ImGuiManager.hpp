@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Window.hpp"
+#include "Systems.hpp"
 
 // Forward declarations
 class Registry;
@@ -19,7 +20,13 @@ public:
 
     // Rendering various ImGui windows
     void RenderMainWindow(Registry& registry);
+    void RenderSceneSelector(Registry& registry);
+    void RenderLightingControls(Registry& registry);
     void RenderStats();
+    
+    // Helper functions
+    void HelpMarker(const char* desc);
+    void SwitchScene(Registry& registry, DemoSceneType sceneType);
 
 private:
     Window& m_Window;

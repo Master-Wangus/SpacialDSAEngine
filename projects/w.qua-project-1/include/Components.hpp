@@ -41,22 +41,164 @@ struct RenderComponent
 
 // ==================== Physics Components ====================
 
-struct BoundingSphereComponent 
+// Collision shape types supported by the CollisionComponent
+enum class CollisionShapeType 
 {
-    BoundingSphere m_Sphere;
-    
-    BoundingSphereComponent() = default;
-    explicit BoundingSphereComponent(const BoundingSphere& sphere) : m_Sphere(sphere) {}
-    BoundingSphereComponent(const glm::vec3& center, float radius) : m_Sphere(center, radius) {}
+    None,
+    Sphere,
+    AABB,
+    Plane,
+    Triangle,
+    Ray,
+    Point
 };
 
-struct AABBComponent 
+struct CollisionComponent 
 {
-    AABB m_AABB;
+    CollisionShapeType m_ShapeType = CollisionShapeType::None;
     
-    AABBComponent() = default;
-    explicit AABBComponent(const AABB& aabb) : m_AABB(aabb) {}
-    AABBComponent(const glm::vec3& center, const glm::vec3& halfExtents) : m_AABB(center, halfExtents) {}
+    // Shape data
+    union 
+    {
+        struct 
+        {
+            glm::vec3 m_Center;
+            float m_Radius; 
+        } m_Sphere;
+        
+        struct 
+        {
+            glm::vec3 m_Center;
+            glm::vec3 m_HalfExtents;
+        } m_AABB;
+        
+        struct 
+        {
+            glm::vec3 m_Normal;
+            float m_Distance;
+        } m_Plane;
+        
+        struct 
+        {
+            glm::vec3 m_Vertices[3];
+        } m_Triangle;
+        
+        struct 
+        {
+            glm::vec3 m_Origin;
+            glm::vec3 m_Direction;
+            float m_Length;
+        } m_Ray;
+        
+        struct 
+        {
+            glm::vec3 m_Position;
+        } m_Point;
+    };
+    
+    // Default constructor
+    CollisionComponent() = default;
+    
+    // Sphere constructor
+    static CollisionComponent CreateSphere(const glm::vec3& center, float radius) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::Sphere;
+        comp.m_Sphere.m_Center = center;
+        comp.m_Sphere.m_Radius = radius;
+        return comp;
+    }
+    
+    // AABB constructor
+    static CollisionComponent CreateAABB(const glm::vec3& center, const glm::vec3& halfExtents) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::AABB;
+        comp.m_AABB.m_Center = center;
+        comp.m_AABB.m_HalfExtents = halfExtents;
+        return comp;
+    }
+    
+    // Plane constructor
+    static CollisionComponent CreatePlane(const glm::vec3& normal, float distance) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::Plane;
+        comp.m_Plane.m_Normal = glm::normalize(normal);
+        comp.m_Plane.m_Distance = distance;
+        return comp;
+    }
+    
+    // Triangle constructor
+    static CollisionComponent CreateTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::Triangle;
+        comp.m_Triangle.m_Vertices[0] = v0;
+        comp.m_Triangle.m_Vertices[1] = v1;
+        comp.m_Triangle.m_Vertices[2] = v2;
+        return comp;
+    }
+    
+    // Ray constructor
+    static CollisionComponent CreateRay(const glm::vec3& origin, const glm::vec3& direction, float length = 100.0f) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::Ray;
+        comp.m_Ray.m_Origin = origin;
+        comp.m_Ray.m_Direction = glm::normalize(direction);
+        comp.m_Ray.m_Length = length;
+        return comp;
+    }
+    
+    // Point constructor
+    static CollisionComponent CreatePoint(const glm::vec3& position) 
+    {
+        CollisionComponent comp;
+        comp.m_ShapeType = CollisionShapeType::Point;
+        comp.m_Point.m_Position = position;
+        return comp;
+    }
+    
+    // Conversion from primitive objects
+    static CollisionComponent FromBoundingSphere(const BoundingSphere& sphere) 
+    {
+        return CreateSphere(sphere.m_Center, sphere.m_Radius);
+    }
+    
+    static CollisionComponent FromAABB(const AABB& aabb) 
+    {
+        return CreateAABB(aabb.m_Center, aabb.m_HalfExtents);
+    }
+    
+    // Update the transform of the collision shape
+    void UpdateTransform(const glm::vec3& position, const glm::vec3& scale) 
+    {
+        switch (m_ShapeType) 
+        {
+            case CollisionShapeType::Sphere:
+                m_Sphere.m_Center = position;
+                m_Sphere.m_Radius = glm::max(glm::max(scale.x, scale.y), scale.z);
+                break;
+                
+            case CollisionShapeType::AABB:
+                m_AABB.m_Center = position;
+                m_AABB.m_HalfExtents = scale * 0.5f;
+                break;
+                
+            case CollisionShapeType::Point:
+                m_Point.m_Position = position;
+                break;
+                
+            case CollisionShapeType::Ray:
+                m_Ray.m_Origin = position;
+                break;
+                
+            // Plane and triangle require more complex transformations, not handled here
+            default:
+                break;
+        }
+    }
 };
 
 // ==================== Lighting Components ====================

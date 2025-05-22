@@ -3,6 +3,7 @@
 #include "Window.hpp"
 #include "InputSystem.hpp"
 #include "Systems.hpp"
+#include "ObjectManipulationSystem.hpp"
 
 FPSCameraSystem::FPSCameraSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
@@ -48,9 +49,30 @@ void FPSCameraSystem::SetupInputCallbacks()
     Systems::g_InputSystem->SubscribeToMouseMove([this](double xpos, double ypos) {
         if (Systems::g_InputSystem->IsMouseDragging()) 
         {
-            this->ProcessMouseMovement(xpos, ypos);
+            this->ProcessMouseMovement();
         }
     });
+    
+    // Subscribe to mouse button for camera control
+    Systems::g_InputSystem->SubscribeToMouseButton(Window::MOUSE_BUTTON_RIGHT, 
+        [this](int button, int action, int mods) {
+            // Only handle right mouse button for camera control
+            if (button == Window::MOUSE_BUTTON_RIGHT)
+            {
+                if (action == Window::PRESS)
+                {
+                    // Only start camera control if we're not dragging an object
+                    if (!Systems::g_ObjectManipulationSystem->IsDragging())
+                    {
+                        Systems::g_InputSystem->StartDragging();
+                    }
+                }
+                else if (action == Window::RELEASE)
+                {
+                    Systems::g_InputSystem->StopDragging();
+                }
+            }
+        });
 }
 
 void FPSCameraSystem::OnRun(float deltaTime)
@@ -67,22 +89,15 @@ glm::mat4 FPSCameraSystem::GetViewMatrix(const CameraComponent& camera)
     return camera.GetViewMatrix();
 }
 
-void FPSCameraSystem::ProcessMouseMovement(double xpos, double ypos)
+void FPSCameraSystem::ProcessMouseMovement()
 {
-    static bool firstMouse = true;
-    static float lastX = 0.0f;
-    static float lastY = 0.0f;
-    
-    if (firstMouse) 
-    {
-        lastX = static_cast<float>(xpos);
-        lastY = static_cast<float>(ypos);
-        firstMouse = false;
-        return; // Skip the first frame to avoid jumps
-    }
-    
     // Get mouse delta from input system
     glm::vec2 mouseDelta = Systems::g_InputSystem->GetMouseDelta();
+    
+    // Skip if no movement
+    if (glm::length(mouseDelta) < 0.0001f)
+        return;
+    
     float xOffset = mouseDelta.x;
     float yOffset = mouseDelta.y;
     
