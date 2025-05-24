@@ -69,24 +69,14 @@ void RenderSystem::SetupLighting()
     
     if (lightView.empty())
     {
-        // Create new light
         m_LightEntity = m_Registry.Create();
-        
-        // Direction (world space) - with a clear downward component
         light.m_Direction = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
-        
-        // Light color - bright white
         light.m_Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        
-        // Light is enabled by default
-        light.m_Enabled = 1.0f;
-        
-        // Add the light component to the entity
+        light.m_Enabled = 0.0f;
         m_Registry.AddComponent<DirectionalLightComponent>(m_LightEntity, DirectionalLightComponent(light));
     }
     else
     {
-        // Use existing light
         m_LightEntity = *lightView.begin();
         light = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity).m_Light;
     }
@@ -96,21 +86,17 @@ void RenderSystem::SetupLighting()
 
 void RenderSystem::SetupMaterial()
 {
-    // Set up a default material with strong ambient for visibility when directional lighting is off
     Material material;
     
-    // Set higher ambient values to ensure objects are visible when directional lighting is off
     material.m_AmbientColor = glm::vec3(1.0f, 1.0f, 1.0f);
     material.m_AmbientIntensity = 0.5f;
     
-    // Standard diffuse and specular settings
     material.m_DiffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     material.m_DiffuseIntensity = 1.0f;
     material.m_SpecularColor = glm::vec3(0.5f, 0.5f, 0.5f);
     material.m_SpecularIntensity = 0.5f;
     material.m_Shininess = 32.0f;
     
-    // Set up UBO for the material
     static GLuint materialUBO = 0;
     if (materialUBO == 0) 
     {
@@ -119,19 +105,16 @@ void RenderSystem::SetupMaterial()
     } 
     else 
     {
-        // Update the data
         Buffer::UpdateUniformBuffer(materialUBO, &material, sizeof(Material));
     }
 }
 
 void RenderSystem::UpdateLighting()
 {
-    // Verify the light entity exists
     if (m_LightEntity != entt::null && m_Registry.HasComponent<DirectionalLightComponent>(m_LightEntity))
     {
         DirectionalLight light = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity).m_Light;
         
-        // Set up UBO for the light using Buffer class methods
         static GLuint lightUBO = 0;
         if (lightUBO == 0) 
         {
@@ -140,7 +123,6 @@ void RenderSystem::UpdateLighting()
         } 
         else 
         {
-            // Update the data
             Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
         }
     }

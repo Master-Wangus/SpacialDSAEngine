@@ -81,6 +81,7 @@ struct CollisionComponent
         struct 
         {
             glm::vec3 m_Vertices[3];
+            glm::vec3 m_LocalVertices[3];  // Store local space vertices for proper transformation
         } m_Triangle;
         
         struct 
@@ -137,6 +138,13 @@ struct CollisionComponent
         comp.m_Triangle.m_Vertices[0] = v0;
         comp.m_Triangle.m_Vertices[1] = v1;
         comp.m_Triangle.m_Vertices[2] = v2;
+        
+        // Calculate center and store local vertices
+        glm::vec3 center = (v0 + v1 + v2) / 3.0f;
+        comp.m_Triangle.m_LocalVertices[0] = v0 - center;
+        comp.m_Triangle.m_LocalVertices[1] = v1 - center;
+        comp.m_Triangle.m_LocalVertices[2] = v2 - center;
+        
         return comp;
     }
     
@@ -196,8 +204,6 @@ struct CollisionComponent
                 
             case CollisionShapeType::Plane:
             {
-                // For a plane, we update the distance value to maintain the plane's position relative to the new position
-                // Note: This assumes the normal hasn't changed direction
                 float signedDist = glm::dot(m_Plane.m_Normal, position);
                 m_Plane.m_Distance = -signedDist; // Plane equation: dot(normal, point) + distance = 0
                 break;
@@ -205,15 +211,10 @@ struct CollisionComponent
                 
             case CollisionShapeType::Triangle:
             {
-                // For a triangle, we need to translate all vertices by the difference in position
-                // Calculate translation from original center to new position
-                glm::vec3 center = (m_Triangle.m_Vertices[0] + m_Triangle.m_Vertices[1] + m_Triangle.m_Vertices[2]) / 3.0f;
-                glm::vec3 translation = position - center;
-                
-                // Apply translation to each vertex
-                m_Triangle.m_Vertices[0] += translation;
-                m_Triangle.m_Vertices[1] += translation;
-                m_Triangle.m_Vertices[2] += translation;
+                // Transform local vertices to world space using the new position
+                m_Triangle.m_Vertices[0] = position + m_Triangle.m_LocalVertices[0];
+                m_Triangle.m_Vertices[1] = position + m_Triangle.m_LocalVertices[1];
+                m_Triangle.m_Vertices[2] = position + m_Triangle.m_LocalVertices[2];
                 break;
             }
                 

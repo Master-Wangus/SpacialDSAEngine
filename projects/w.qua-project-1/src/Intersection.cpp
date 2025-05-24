@@ -6,8 +6,11 @@
 // Sphere vs Sphere intersection test
 bool Intersection::SphereVsSphere(const BoundingSphere& a, const BoundingSphere& b) 
 {
-    // Calculate the squared distance between centers
-    float distSquared = glm::distance2(a.m_Center, b.m_Center);
+    // Calculate the distance vector between centers
+    glm::vec3 d = a.m_Center - b.m_Center;
+    
+    // Calculate the squared distance using dot product
+    float distSquared = glm::dot(d, d);
     
     // Calculate the squared sum of radii
     float sumRadiiSquared = (a.m_Radius + b.m_Radius) * (a.m_Radius + b.m_Radius);
@@ -57,119 +60,140 @@ bool Intersection::PointVsAABB(const glm::vec3& point, const AABB& aabb)
     glm::vec3 min = aabb.GetMin();
     glm::vec3 max = aabb.GetMax();
     
-    return (point.x >= min.x && point.x <= max.x) &&
-           (point.y >= min.y && point.y <= max.y) &&
-           (point.z >= min.z && point.z <= max.z);
+    // Early exit optimization - check each axis and return false immediately if outside bounds
+    if (point.x < min.x || point.x > max.x) return false;
+    if (point.y < min.y || point.y > max.y) return false;
+    if (point.z < min.z || point.z > max.z) return false;
+    
+    // If we get here, the point is inside the AABB on all axes
+    return true;
 }
 
-// Ray vs Sphere intersection test (renamed from RayVsSphere)
+// Ray vs Sphere intersection test
 bool Intersection::SphereVsRay(const BoundingSphere& sphere, const Ray& ray, float& t) 
 {
-    glm::vec3 m = ray.m_Origin - sphere.m_Center;
-    float b = glm::dot(m, ray.m_Direction);
-    float c = glm::dot(m, m) - sphere.m_Radius * sphere.m_Radius;
+    // Compute vector from sphere center to ray origin
+    glm::vec3 L = ray.m_Origin - sphere.m_Center;
     
-    // Exit if ray origin is outside sphere and ray is pointing away from sphere
-    if (c > 0.0f && b > 0.0f) 
-    {
-        return false;
-    }
+    // Coefficients of the quadratic equation
+    float a = glm::dot(ray.m_Direction, ray.m_Direction);  // Should be 1.0 if normalized
+    float b = 2.0f * glm::dot(ray.m_Direction, L);
+    float c = glm::dot(L, L) - sphere.m_Radius * sphere.m_Radius;
     
-    // Calculate discriminant
-    float discriminant = b * b - c;
+    // Compute the discriminant to check for real solutions
+    float discriminant = b * b - 4.0f * a * c;
     
-    // Exit if discriminant is negative (no real roots)
+    // If the discriminant is negative, the ray misses the sphere
     if (discriminant < 0.0f) 
     {
         return false;
     }
     
-    // Calculate closest intersection distance
-    t = -b - std::sqrt(discriminant);
+    // Compute the two possible t values (solutions to the quadratic)
+    float sqrtDiscriminant = std::sqrt(discriminant);
+    float t1 = (-b - sqrtDiscriminant) / (2.0f * a);
+    float t2 = (-b + sqrtDiscriminant) / (2.0f * a);
     
-    // If t is negative, the intersection is behind the ray's origin
-    if (t < 0.0f) 
+    // If both t values are negative, the sphere is behind the ray
+    if (t1 < 0.0f && t2 < 0.0f) 
     {
-        t = -b + std::sqrt(discriminant);
+        return false;
     }
     
-    // If t is still negative, the entire sphere is behind the ray's origin
-    return t >= 0.0f;
+    // Choose the nearest positive t
+    if (t1 < 0.0f)
+    {
+        t = t2;
+    }
+    else if (t2 < 0.0f)
+    {
+        t = t1;
+    }
+    else
+    {
+        t = std::min(t1, t2);
+    }
+    
+    // Return true to indicate intersection
+    return true;
 }
 
-// Ray vs AABB intersection test
+// Ray vs AABB intersection test - optimized vectorized version
 bool Intersection::RayVsAABB(const Ray& ray, const AABB& aabb, float& t) 
 {
     glm::vec3 min = aabb.GetMin();
     glm::vec3 max = aabb.GetMax();
     
-    float tmin = (min.x - ray.m_Origin.x) / ray.m_Direction.x;
-    float tmax = (max.x - ray.m_Origin.x) / ray.m_Direction.x;
+    // Step 1: Compute the inverse of the ray's direction vector for all axes
+    // Handle division by zero by using a very large value instead
+    glm::vec3 invDir;
+    invDir.x = (std::fabs(ray.m_Direction.x) < 1e-8f) ? 1e8f : 1.0f / ray.m_Direction.x;
+    invDir.y = (std::fabs(ray.m_Direction.y) < 1e-8f) ? 1e8f : 1.0f / ray.m_Direction.y;
+    invDir.z = (std::fabs(ray.m_Direction.z) < 1e-8f) ? 1e8f : 1.0f / ray.m_Direction.z;
     
-    if (tmin > tmax) std::swap(tmin, tmax);
+    // Step 2: Compute intersection points (t-values) for each axis
+    glm::vec3 tMinVec = (min - ray.m_Origin) * invDir;
+    glm::vec3 tMaxVec = (max - ray.m_Origin) * invDir;
     
-    float tymin = (min.y - ray.m_Origin.y) / ray.m_Direction.y;
-    float tymax = (max.y - ray.m_Origin.y) / ray.m_Direction.y;
+    // Step 3: Apply element-wise min and max
+    glm::vec3 tMin = glm::vec3(
+        std::min(tMinVec.x, tMaxVec.x),
+        std::min(tMinVec.y, tMaxVec.y),
+        std::min(tMinVec.z, tMaxVec.z)
+    );
     
-    if (tymin > tymax) std::swap(tymin, tymax);
+    glm::vec3 tMax = glm::vec3(
+        std::max(tMinVec.x, tMaxVec.x),
+        std::max(tMinVec.y, tMaxVec.y),
+        std::max(tMinVec.z, tMaxVec.z)
+    );
     
-    if ((tmin > tymax) || (tymin > tmax))
-                return false;
+    // Step 4: Find the maximum of the minimums (entry point) and minimum of the maximums (exit point)
+    float tEntry = std::max(std::max(tMin.x, tMin.y), tMin.z);
+    float tExit = std::min(std::min(tMax.x, tMax.y), tMax.z);
     
-    if (tymin > tmin)
-        tmin = tymin;
+    // Step 5: Perform the final intersection check
+    if (tExit >= tEntry && tExit >= 0.0f) {
+        t = tEntry > 0.0f ? tEntry : tExit; // Use tEntry if it's positive, otherwise use tExit
+        return true;
+    }
     
-    if (tymax < tmax)
-        tmax = tymax;
-    
-    float tzmin = (min.z - ray.m_Origin.z) / ray.m_Direction.z;
-    float tzmax = (max.z - ray.m_Origin.z) / ray.m_Direction.z;
-    
-    if (tzmin > tzmax) std::swap(tzmin, tzmax);
-    
-    if ((tmin > tzmax) || (tzmin > tmax))
-                return false;
-    
-    if (tzmin > tmin)
-        tmin = tzmin;
-    
-    if (tzmax < tmax)
-        tmax = tzmax;
-    
-    t = tmin;
-    return tmax >= 0.0f;
+    return false;
 }
 
 // Ray vs Triangle intersection test (Möller–Trumbore algorithm)
 bool Intersection::RayVsTriangle(const Ray& ray, const Triangle& triangle, float& t) 
 {
+    const float EPSILON = 1e-8f;
+
     const glm::vec3& v0 = triangle.m_Vertices[0].m_Data;
     const glm::vec3& v1 = triangle.m_Vertices[1].m_Data;
     const glm::vec3& v2 = triangle.m_Vertices[2].m_Data;
     
     glm::vec3 edge1 = v1 - v0;
     glm::vec3 edge2 = v2 - v0;
+    // h determines whether the ray and edge of triangle is parallel or not
     glm::vec3 h = glm::cross(ray.m_Direction, edge2);
-    float a = glm::dot(edge1, h);
+    float det = glm::dot(edge1, h);
     
-    if (std::fabs(a) < 1e-8f)
+    if (std::fabs(det) < EPSILON)
         return false;
     
-    float f = 1.0f / a;
+    float invDet = 1.0f / det;
     glm::vec3 s = ray.m_Origin - v0;
-    float u = f * glm::dot(s, h);
+    float u = invDet * glm::dot(s, h);
     
     if (u < 0.0f || u > 1.0f)
         return false;
     
     glm::vec3 q = glm::cross(s, edge1);
-    float v = f * glm::dot(ray.m_Direction, q);
+    float v = invDet * glm::dot(ray.m_Direction, q);
     
     if (v < 0.0f || u + v > 1.0f)
         return false;
     
-    t = f * glm::dot(edge2, q);
-    return t > 1e-8f;
+    t = invDet * glm::dot(edge2, q);
+    return t > EPSILON;
 }
 
 // Ray vs Plane intersection test
@@ -206,54 +230,98 @@ bool Intersection::PointVsPlane(const glm::vec3& point, const Plane& plane)
     return std::fabs(distance) < 1e-8f;
 }
 
-// Point vs Triangle intersection test
+// Point vs Triangle intersection test - using barycentric coordinates
 bool Intersection::PointVsTriangle(const glm::vec3& point, const Triangle& triangle) 
 {
-    const glm::vec3& v0 = triangle.m_Vertices[0].m_Data;
-    const glm::vec3& v1 = triangle.m_Vertices[1].m_Data;
-    const glm::vec3& v2 = triangle.m_Vertices[2].m_Data;
+    const glm::vec3& V0 = triangle.m_Vertices[0].m_Data;
+    const glm::vec3& V1 = triangle.m_Vertices[1].m_Data;
+    const glm::vec3& V2 = triangle.m_Vertices[2].m_Data;
+    const glm::vec3& P = point;
     
-    // Compute vectors
-    glm::vec3 v0p = point - v0;
-    glm::vec3 v1p = point - v1;
-    glm::vec3 v2p = point - v2;
+    // Compute edge vectors from vertex V0
+    glm::vec3 E0 = V1 - V0;
+    glm::vec3 E1 = V2 - V0;
+    glm::vec3 VP = P - V0;
     
-    // Compute normal vectors for each sub-triangle
-    glm::vec3 n = triangle.ComputeNormal();
-    glm::vec3 n1 = glm::cross(v1 - v0, v0p);
-    glm::vec3 n2 = glm::cross(v2 - v1, v1p);
-    glm::vec3 n3 = glm::cross(v0 - v2, v2p);
+    // Compute dot products for barycentric coordinate calculation
+    float d00 = glm::dot(E0, E0);
+    float d01 = glm::dot(E0, E1);
+    float d11 = glm::dot(E1, E1);
+    float d20 = glm::dot(VP, E0);
+    float d21 = glm::dot(VP, E1);
     
-    // Check if point is inside the triangle
-    return (glm::dot(n, n1) >= 0.0f && 
-            glm::dot(n, n2) >= 0.0f && 
-            glm::dot(n, n3) >= 0.0f);
+    // Compute determinant for normalization
+    float denom = d00 * d11 - d01 * d01;
+    
+    // Check for degenerate triangle
+    if (std::fabs(denom) < 1e-8f)
+    {
+        return false;
+    }
+    
+    // Compute barycentric coordinates
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0f - v - w;
+    
+    // Return true if point is inside triangle (all barycentric coordinates are non-negative)
+    return (u >= 0.0f) && (v >= 0.0f) && (w >= 0.0f);
 }
 
 // Plane vs Sphere intersection test
 bool Intersection::PlaneVsSphere(const Plane& plane, const BoundingSphere& sphere) 
 {
-    // Calculate the signed distance from sphere center to plane
-    float distance = glm::dot(plane.GetNormal(), sphere.m_Center) + plane.m_Data.w;
+    // Step 1: Compute the signed distance from the sphere's center to the plane
+    float w = glm::dot(plane.GetNormal(), sphere.m_Center) + plane.m_Data.w;
     
-    // Sphere intersects plane if the absolute distance is less than or equal to the radius
-    return std::fabs(distance) <= sphere.m_Radius;
+    // Step 2: Calculate the absolute distance to the plane
+    float distance = std::fabs(w);
+    
+    // Step 3: Check if the distance is less than or equal to the radius
+    return distance <= sphere.m_Radius;
 }
 
 // Plane vs AABB intersection test
 bool Intersection::PlaneVsAABB(const Plane& plane, const AABB& aabb) 
 {
-    // Calculate the positive extends in the direction of the plane normal
-    glm::vec3 extents = aabb.m_HalfExtents;
+    // Get the plane normal
+    glm::vec3 normal = plane.GetNormal();
     
-    // Project half extents onto the plane normal
-    float r = extents.x * std::fabs(plane.GetNormal().x) +
-              extents.y * std::fabs(plane.GetNormal().y) +
-              extents.z * std::fabs(plane.GetNormal().z);
+    // Step 1: Find the extremal points of the AABB along the plane normal direction
+    glm::vec3 pMin = aabb.m_Center;
+    glm::vec3 pMax = aabb.m_Center;
     
-    // Calculate signed distance from box center to plane
-    float s = glm::dot(plane.GetNormal(), aabb.m_Center) + plane.m_Data.w;
+    // Compute the extremal points based on the normal direction
+    // These are easy to compute from center and half-extents
+    if (normal.x > 0.0f) {
+        pMin.x -= aabb.m_HalfExtents.x;
+        pMax.x += aabb.m_HalfExtents.x;
+    } else {
+        pMin.x += aabb.m_HalfExtents.x;
+        pMax.x -= aabb.m_HalfExtents.x;
+    }
     
-    // Intersection if the center's distance to the plane is within the projected radius
-    return std::fabs(s) <= r;
+    if (normal.y > 0.0f) {
+        pMin.y -= aabb.m_HalfExtents.y;
+        pMax.y += aabb.m_HalfExtents.y;
+    } else {
+        pMin.y += aabb.m_HalfExtents.y;
+        pMax.y -= aabb.m_HalfExtents.y;
+    }
+    
+    if (normal.z > 0.0f) {
+        pMin.z -= aabb.m_HalfExtents.z;
+        pMax.z += aabb.m_HalfExtents.z;
+    } else {
+        pMin.z += aabb.m_HalfExtents.z;
+        pMax.z -= aabb.m_HalfExtents.z;
+    }
+    
+    // Step 2: Calculate signed distances from the plane to these extremal points
+    float dMin = glm::dot(normal, pMin) + plane.m_Data.w;
+    float dMax = glm::dot(normal, pMax) + plane.m_Data.w;
+    
+    // Step 3: If signs are different, AABB intersects the plane
+    // If both are positive or both are negative, no intersection
+    return dMin * dMax <= 0.0f;
 } 

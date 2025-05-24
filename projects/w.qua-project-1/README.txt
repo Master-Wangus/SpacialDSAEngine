@@ -5,15 +5,18 @@ CSD3150/CS350 Geometry Toolbox - Project 1
 UI USAGE INSTRUCTIONS:
 ---------------------
 - WASD: Move the camera (W - forward, S - backward, A - left, D - right)
-- Mouse: Look around (yaw and pitch camera control)
-- ESC: Close the application
+- Mouse Hold Right Click: Look around (yaw and pitch camera control)
+- Mouse Hold Left Click on Object: Drag object around to test collision.
+- Color of entities:
+ - Red: Collision
+ - Blue: Non-Collision
+ - Yellow: Dragged
 
 ASSUMPTIONS AND CRASH CONDITIONS:
 -------------------------------
 - Requires OpenGL 4.6 compatible GPU and drivers
-- Requires GLFW, GLEW, GLM, and EnTT libraries (automatically downloaded via CMake)
-- Shader files must be in the correct location (project-1-geometry-toolbox/shaders/)
-- Collision detection is performed but only prints to console, no visual feedback
+- Requires GLFW, GLEW, GLM, EnTT libraries and ImGui (automatically downloaded via CMake)
+- Shader files must be in the correct location (w.qua-project-1/shaders/)
 
 COMPLETED PARTS:
 --------------
@@ -31,7 +34,7 @@ COMPLETED PARTS:
    - Components: Transform, Mesh, Material, AABB, BoundingSphere, DirectionalLight
    - Systems: Transform update, Rendering, Collision detection
 
-4. Lighting (Task 5) - Complete
+4. Lighting (Task 5) - Buggy
    - Implemented directional light
    - Phong lighting model with ambient, diffuse, and specular components
    - Per-fragment lighting calculations
@@ -45,13 +48,16 @@ COMPLETED PARTS:
    - Point3D, Plane, Triangle, Ray, BoundingSphere, AABB primitives
    - All required intersection tests:
      - Sphere vs Sphere, AABB vs AABB, Sphere vs AABB, AABB vs Sphere
-     - Point vs Sphere/AABB/Triangle/Plane
+     - Point vs Sphere/AABB/Plane/Triangle
      - Ray vs Plane/AABB/Sphere/Triangle
      - Plane vs AABB/Sphere
 
 INCOMPLETE/BUGGY PARTS:
 ---------------------
-- None
+- Triangle vs Point/Ray is buggy due to the rendering of Triangle is slightly off, resulting in having to drag the Triangle off its rendered shape around to test.
+  The collider is correct but the render is offset by a bit.
+- The same issue is occuring for Point
+- Lighting is buggy, weird shadows
 
 FILE PATHS, FUNCTION NAMES, AND LINE NUMBERS:
 ------------------------------------------
@@ -69,7 +75,7 @@ TEST PLATFORM DETAILS:
 -------------------
 - Windows 10
 - Visual Studio 2022
-- NVIDIA GeForce GTX/RTX (Tested on multiple systems)
+- NVIDIA GeForce RTX 3070
 - OpenGL 4.6
 
 WEEKLY TIME BREAKDOWN:
@@ -84,7 +90,8 @@ KEY MAPPINGS:
 - S: Move backward
 - A: Move left
 - D: Move right
-- Mouse: Look around
+- Mouse RMB: Look around
+- Mouse LMB: Drag entity
 - ESC: Exit application
 
 ASSUMPTIONS:
@@ -95,5 +102,5 @@ ASSUMPTIONS:
 
 KNOWN ISSUES:
 -----------
-- No visualization of collisions between objects
+- Sometimes the dragging of entities may stop or bug out. Move around and try again.
 - Camera movement speed doesn't account for low frame rates 

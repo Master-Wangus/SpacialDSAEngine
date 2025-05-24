@@ -139,6 +139,14 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
     ImGui::Text("Current Scene: %s", sceneNames[selectedScene]);
     ImGui::Separator();
     
+    // Show ray controls help if a ray-based demo is selected
+    if (selectedScene >= static_cast<int>(DemoSceneType::RayVsPlane) && 
+        selectedScene <= static_cast<int>(DemoSceneType::RayVsTriangle)) {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Ray Controls:");
+        ImGui::Text("Press Q/E to rotate the ray");
+        ImGui::Separator();
+    }
+    
     if (ImGui::TreeNode("Volume-Based Tests"))
     {
         if (ImGui::Selectable("Sphere vs Sphere", selectedScene == static_cast<int>(DemoSceneType::SphereVsSphere)))
@@ -264,35 +272,6 @@ void ImGuiManager::RenderLightingControls(Registry& registry)
         if (ImGui::Checkbox("Enable Directional Lighting", &lightEnabled))
         {
             Systems::g_RenderSystem->ToggleDirectionalLight(lightEnabled);
-        }
-        
-        ImGui::SameLine();
-        HelpMarker("Toggle directional lighting to see objects with or without shading");
-        
-        // Add ambient lighting controls
-        ImGui::Separator();
-        ImGui::Text("Ambient Lighting Controls");
-        
-        // Ambient intensity slider
-        if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f))
-        {
-            // Update the material UBO with just the ambient intensity
-            Buffer::UpdateUniformBuffer(materialUBO, &ambientIntensity, 
-                                        sizeof(float), offsetof(Material, m_AmbientIntensity));
-        }
-        
-        // Ambient color control
-        if (ImGui::ColorEdit3("Ambient Color", ambientColor))
-        {
-            // Update the material UBO with just the ambient color
-            glm::vec3 color(ambientColor[0], ambientColor[1], ambientColor[2]);
-            Buffer::UpdateUniformBuffer(materialUBO, &color, 
-                                        sizeof(glm::vec3), offsetof(Material, m_AmbientColor));
-        }
-        
-        if (!lightEnabled)
-        {
-            ImGui::TextWrapped("Directional lighting is disabled. Objects are illuminated using ambient lighting only.");
         }
     }
 }

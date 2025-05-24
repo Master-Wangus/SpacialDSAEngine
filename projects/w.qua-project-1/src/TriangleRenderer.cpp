@@ -4,9 +4,11 @@
 TriangleRenderer::TriangleRenderer(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& color)
     : m_Color(color)
 {
-    m_Vertices[0] = v0;
-    m_Vertices[1] = v1;
-    m_Vertices[2] = v2;
+    // Calculate center and store vertices in local space
+    glm::vec3 center = (v0 + v1 + v2) / 3.0f;
+    m_Vertices[0] = v0 - center;
+    m_Vertices[1] = v1 - center;
+    m_Vertices[2] = v2 - center;
 }
 
 TriangleRenderer::~TriangleRenderer()
@@ -32,7 +34,7 @@ void TriangleRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& vie
         
     m_Shader->Use();
     
-    // Set matrices
+    // Set matrices - Apply the model matrix transformation
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
@@ -63,11 +65,12 @@ void TriangleRenderer::CleanUp()
 
 void TriangleRenderer::SetVertices(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2)
 {
-    m_Vertices[0] = v0;
-    m_Vertices[1] = v1;
-    m_Vertices[2] = v2;
+    // Calculate center and store vertices in local space
+    glm::vec3 center = (v0 + v1 + v2) / 3.0f;
+    m_Vertices[0] = v0 - center;
+    m_Vertices[1] = v1 - center;
+    m_Vertices[2] = v2 - center;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();
@@ -77,6 +80,8 @@ void TriangleRenderer::SetVertices(const glm::vec3& v0, const glm::vec3& v1, con
 
 void TriangleRenderer::GetVertices(glm::vec3& v0, glm::vec3& v1, glm::vec3& v2) const
 {
+    // Note: These are local space vertices. To get world space vertices,
+    // you need to transform them using the entity's transform matrix.
     v0 = m_Vertices[0];
     v1 = m_Vertices[1];
     v2 = m_Vertices[2];

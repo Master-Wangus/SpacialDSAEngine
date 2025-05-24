@@ -49,6 +49,9 @@ public:
     void StopDragging();
 
 private:
+    // Handle rotation of ray entities with Q and E keys
+    void HandleRayRotation(float deltaTime);
+
     Registry& m_Registry;
     Window& m_Window;
     

@@ -45,13 +45,13 @@ void main()
     
     // Check if directional lighting is enabled
     vec3 result;
-    if (light.enabled > 0.5) {
+    if (light.enabled > 0.5) 
+    {
         // Directional lighting
         result = CalcDirLight(norm, viewDir);
-    } else {
-        // When light is disabled, use only ambient term for basic visibility
-        // Ensure we have sufficient ambient lighting to see objects
-        result = material.ambientColor * material.ambientIntensity * Color;
+    } else 
+    {
+        result = Color;
     }
     
     // Final color

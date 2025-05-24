@@ -41,6 +41,8 @@ public:
     static const int KEY_A = 65;
     static const int KEY_S = 83;
     static const int KEY_D = 68;
+    static const int KEY_Q = 81;
+    static const int KEY_E = 69;
     static const int KEY_ESCAPE = 256;
     static const int KEY_SPACE = 32;
     static const int KEY_LEFT_SHIFT = 340;

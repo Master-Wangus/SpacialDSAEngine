@@ -95,59 +95,69 @@ std::vector<Vertex> SphereRenderer::CreateVertices()
 {
     std::vector<Vertex> vertices;
     
-    // Create a unit sphere (radius 1.0) - scaling will be applied in the model matrix
-    const int rings = 16;
-    const int sectors = 16;
-    
-    float const R = 1.0f / (float)(rings - 1);
-    float const S = 1.0f / (float)(sectors - 1);
+    // Parameters for sphere generation
+    float radius = 1.0f; // Unit sphere - scaling applied via model matrix
+    int sectors = 36;    // Horizontal divisions (longitude)
+    int stacks = 18;     // Vertical divisions (latitude)
     
     // Generate vertices and normals for a sphere
     std::vector<glm::vec3> sphereVertices;
     std::vector<glm::vec3> sphereNormals;
     std::vector<glm::vec2> sphereUVs;
     
-    for (int r = 0; r < rings; ++r)
+    // Generate sphere points using latitude/longitude approach
+    for(int i = 0; i <= stacks; ++i) 
     {
-        for (int s = 0; s < sectors; ++s)
+        float V = i / (float)stacks;
+        float phi = V * glm::pi<float>(); // Latitude angle from 0 to PI
+        
+        for(int j = 0; j <= sectors; ++j) 
         {
-            float const y = sin(-glm::half_pi<float>() + glm::pi<float>() * r * R);
-            float const x = cos(2 * glm::pi<float>() * s * S) * sin(glm::pi<float>() * r * R);
-            float const z = sin(2 * glm::pi<float>() * s * S) * sin(glm::pi<float>() * r * R);
+            float U = j / (float)sectors;
+            float theta = U * (glm::pi<float>() * 2); // Longitude angle from 0 to 2*PI
             
-            // UV coordinates
-            float u = static_cast<float>(s) / (sectors - 1);
-            float v = static_cast<float>(r) / (rings - 1);
+            // Convert spherical to Cartesian coordinates
+            float x = cosf(theta) * sinf(phi);
+            float y = cosf(phi);
+            float z = sinf(theta) * sinf(phi);
             
             // Unit sphere with radius 1.0
-            sphereVertices.push_back(glm::vec3(x, y, z));
+            glm::vec3 position = glm::vec3(x, y, z);
+            sphereVertices.push_back(position);
             // Normal is same as position for a unit sphere at origin
-            sphereNormals.push_back(glm::normalize(glm::vec3(x, y, z)));
+            sphereNormals.push_back(glm::normalize(position));
             // UV coordinates
-            sphereUVs.push_back(glm::vec2(u, v));
+            sphereUVs.push_back(glm::vec2(U, V));
         }
     }
     
     // Generate triangle indices
-    for (int r = 0; r < rings - 1; ++r)
+    for(int i = 0; i < stacks; ++i) 
     {
-        for (int s = 0; s < sectors - 1; ++s)
+        for(int j = 0; j < sectors; ++j) 
         {
-            // Current vertex and the three around it form two triangles
-            int current = r * sectors + s;
+            // Calculate the four corner indices
+            int current = i * (sectors + 1) + j;
             int next = current + 1;
-            int nextRing = current + sectors;
-            int nextRingNext = nextRing + 1;
+            int nextStack = (i + 1) * (sectors + 1) + j;
+            int nextStackNext = nextStack + 1;
             
-            // First triangle
-            vertices.push_back({ sphereVertices[current], m_Color, sphereNormals[current], sphereUVs[current] });
-            vertices.push_back({ sphereVertices[nextRing], m_Color, sphereNormals[nextRing], sphereUVs[nextRing] });
-            vertices.push_back({ sphereVertices[next], m_Color, sphereNormals[next], sphereUVs[next] });
+            // Skip degenerate triangles at the poles
+            if(i != 0) 
+            {
+                // Upper triangle
+                vertices.push_back({ sphereVertices[current], m_Color, sphereNormals[current], sphereUVs[current] });
+                vertices.push_back({ sphereVertices[nextStack], m_Color, sphereNormals[nextStack], sphereUVs[nextStack] });
+                vertices.push_back({ sphereVertices[next], m_Color, sphereNormals[next], sphereUVs[next] });
+            }
             
-            // Second triangle
-            vertices.push_back({ sphereVertices[next], m_Color, sphereNormals[next], sphereUVs[next] });
-            vertices.push_back({ sphereVertices[nextRing], m_Color, sphereNormals[nextRing], sphereUVs[nextRing] });
-            vertices.push_back({ sphereVertices[nextRingNext], m_Color, sphereNormals[nextRingNext], sphereUVs[nextRingNext] });
+            if(i != (stacks-1)) 
+            {
+                // Lower triangle
+                vertices.push_back({ sphereVertices[next], m_Color, sphereNormals[next], sphereUVs[next] });
+                vertices.push_back({ sphereVertices[nextStack], m_Color, sphereNormals[nextStack], sphereUVs[nextStack] });
+                vertices.push_back({ sphereVertices[nextStackNext], m_Color, sphereNormals[nextStackNext], sphereUVs[nextStackNext] });
+            }
         }
     }
     

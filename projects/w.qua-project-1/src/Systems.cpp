@@ -15,7 +15,6 @@
 #include "PlaneRenderer.hpp"
 #include "RayRenderer.hpp"
 
-#include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace
@@ -260,34 +259,52 @@ namespace Systems
     
     void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
     {
-        // Create a point for all demos with fixed unit size
-        auto pointEntity = CreatePointEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), shader);
+        // Point position will be set based on the specific demo
+        glm::vec3 pointPosition(0.0f);
+        glm::vec3 pointColor(1.0f, 1.0f, 0.0f);
         
         switch (sceneType)
         {
             case DemoSceneType::PointVsSphere:
+                pointPosition = glm::vec3(0.0f, 0.0f, 0.0f);
                 CreateSphereEntity(registry, glm::vec3(1.5f, 0.0f, 0.0f), 1.0f, glm::vec3(0.2f, 0.2f, 1.0f), shader);
                 break;
                 
             case DemoSceneType::PointVsAABB:
+                pointPosition = glm::vec3(0.0f, 0.0f, 0.0f);
                 CreateAABBEntity(registry, glm::vec3(1.5f, 0.0f, 0.0f), glm::vec3(0.8f), glm::vec3(0.2f, 0.8f, 0.2f), shader);
                 break;
                 
             case DemoSceneType::PointVsTriangle:
-                CreateTriangleEntity(registry, 
-                    glm::vec3(0.0f, 0.0f, 0.0f), 
-                    glm::vec3(2.0f, 0.0f, 0.0f), 
-                    glm::vec3(1.0f, 2.0f, 0.0f), 
-                    glm::vec3(0.8f, 0.2f, 0.8f), shader);
+            {
+                // Define triangle vertices
+                glm::vec3 v0(0.0f, 0.0f, 0.0f);
+                glm::vec3 v1(2.0f, 0.0f, 0.0f);
+                glm::vec3 v2(1.0f, 2.0f, 0.0f);
+                
+                CreateTriangleEntity(registry, v0, v1, v2, glm::vec3(0.8f, 0.2f, 0.8f), shader);
                 break;
+            }
                 
             case DemoSceneType::PointVsPlane:
-                CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 1.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+            {
+                // Define plane parameters
+                glm::vec3 planeNormal(0.0f, 1.0f, 0.0f);
+                float planeDistance = 1.0f;
+                
+                // Position the point exactly on the plane (y = 1.0)
+                pointPosition = glm::vec3(0.0f, planeDistance, 0.0f);
+                
+                CreatePlaneEntity(registry, planeNormal, planeDistance, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
                 break;
+            }
                 
             default:
                 break;
         }
+        
+        // Create the point entity with the appropriate position
+        auto pointEntity = CreatePointEntity(registry, pointPosition, pointColor, shader);
     }
     
     void SetupRayBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
@@ -298,7 +315,9 @@ namespace Systems
         switch (sceneType)
         {
             case DemoSceneType::RayVsPlane:
-                CreatePlaneEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 3.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+                // Use a normal facing directly towards the ray (opposite direction of ray)
+                // This ensures the ray will intersect the plane when pointing in the positive X direction
+                CreatePlaneEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 3.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
                 break;
                 
             case DemoSceneType::RayVsAABB:

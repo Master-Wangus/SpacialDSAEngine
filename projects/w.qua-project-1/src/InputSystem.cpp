@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "InputSystem.hpp"
 #include "Window.hpp"
+#include "Components.hpp"
+#include "RayRenderer.hpp"
 
 InputSystem::InputSystem(Registry& registry, Window& window)
     : m_Registry(registry), 
@@ -46,6 +48,65 @@ void InputSystem::Update(float deltaTime)
 {
     // Save current key states for the next frame
     m_PreviousKeysPressed = m_KeysPressed;
+    
+    // Handle ray rotation with Q and E keys
+    HandleRayRotation(deltaTime);
+}
+
+// Function to handle ray rotation with Q and E keys
+void InputSystem::HandleRayRotation(float deltaTime)
+{
+    const float rotationSpeed = 2.0f; // Radians per second
+    bool qPressed = IsKeyPressed(Window::KEY_Q);
+    bool ePressed = IsKeyPressed(Window::KEY_E);
+    
+    if (!qPressed && !ePressed) {
+        return; // No rotation keys pressed
+    }
+    
+    // Find ray entities in the registry
+    auto view = m_Registry.View<CollisionComponent, RenderComponent>();
+    for (auto entity : view)
+    {
+        auto& collisionComp = m_Registry.GetComponent<CollisionComponent>(entity);
+        
+        // Only process ray entities
+        if (collisionComp.m_ShapeType != CollisionShapeType::Ray) {
+            continue;
+        }
+        
+        auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
+        auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderComp.m_Renderable);
+        
+        if (!rayRenderer) {
+            continue;
+        }
+        
+        // Get current direction
+        glm::vec3 currentDir = rayRenderer->GetDirection();
+        
+        // Calculate rotation axis (Y-axis for rotation in XZ plane)
+        glm::vec3 rotationAxis(0.0f, 1.0f, 0.0f);
+        
+        // Calculate rotation angle based on which key is pressed
+        float rotationAngle = 0.0f;
+        if (qPressed) {
+            rotationAngle = rotationSpeed * deltaTime; // Counterclockwise rotation
+        }
+        if (ePressed) {
+            rotationAngle = -rotationSpeed * deltaTime; // Clockwise rotation
+        }
+        
+        // Create rotation quaternion
+        glm::quat rotation = glm::angleAxis(rotationAngle, rotationAxis);
+        
+        // Apply rotation to direction
+        glm::vec3 newDirection = rotation * currentDir;
+        
+        // Update ray renderer and collision component
+        rayRenderer->SetDirection(newDirection);
+        collisionComp.m_Ray.m_Direction = newDirection;
+    }
 }
 
 bool InputSystem::IsKeyPressed(int keyCode) const

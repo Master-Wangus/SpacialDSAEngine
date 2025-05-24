@@ -23,6 +23,6 @@ public:
 protected:
     Buffer m_Buffer;
     std::shared_ptr<Shader> m_Shader;
-    glm::mat4 m_ModelMatrix;
+    glm::mat4 m_ModelMatrix{};
     Material m_Material; // Default material (white)
 }; 
