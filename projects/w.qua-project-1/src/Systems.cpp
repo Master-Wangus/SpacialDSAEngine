@@ -70,16 +70,16 @@ namespace
         return entity;
     }
     
-    static Registry::Entity CreatePlaneEntity(Registry& registry, const glm::vec3& normal, float distance, const glm::vec3& color, float size, std::shared_ptr<Shader> shader)
+    static Registry::Entity CreatePlaneEntity(Registry& registry, const glm::vec3& normal, float distance, const glm::vec3& color, std::shared_ptr<Shader> shader)
     {
         auto entity = registry.Create();
         
-        auto planeRenderable = std::make_shared<PlaneRenderer>(normal, distance, color, size);
+        auto planeRenderable = std::make_shared<PlaneRenderer>(normal, distance, color);
         planeRenderable->Initialize(shader);
         
         // Calculate a position on the plane for transform
         glm::vec3 position = normal * distance;
-        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(size)));
+        registry.AddComponent<TransformComponent>(entity, TransformComponent(position, glm::vec3(0.0f), glm::vec3(1.0f)));
         registry.AddComponent<RenderComponent>(entity, RenderComponent(planeRenderable));
         
         // Add a collision component
@@ -290,12 +290,9 @@ namespace Systems
             {
                 // Define plane parameters
                 glm::vec3 planeNormal(0.0f, 1.0f, 0.0f);
-                float planeDistance = 1.0f;
+                float planeDistance = 0.0f;
                 
-                // Position the point exactly on the plane (y = 1.0)
-                pointPosition = glm::vec3(0.0f, planeDistance, 0.0f);
-                
-                CreatePlaneEntity(registry, planeNormal, planeDistance, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+                CreatePlaneEntity(registry, planeNormal, planeDistance, glm::vec3(0.5f, 0.5f, 0.5f), shader);
                 break;
             }
                 
@@ -317,7 +314,7 @@ namespace Systems
             case DemoSceneType::RayVsPlane:
                 // Use a normal facing directly towards the ray (opposite direction of ray)
                 // This ensures the ray will intersect the plane when pointing in the positive X direction
-                CreatePlaneEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 3.0f, glm::vec3(0.5f, 0.5f, 0.5f), 5.0f, shader);
+                CreatePlaneEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 3.0f, glm::vec3(0.5f, 0.5f, 0.5f), shader);
                 break;
                 
             case DemoSceneType::RayVsAABB:
@@ -344,7 +341,7 @@ namespace Systems
     void SetupPlaneBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
     {
         // Create a plane for all demos
-        auto planeEntity = CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.5f, 0.5f, 0.5f), 10.0f, shader);
+        auto planeEntity = CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, glm::vec3(0.5f, 0.5f, 0.5f), shader);
         
         switch (sceneType)
         {
