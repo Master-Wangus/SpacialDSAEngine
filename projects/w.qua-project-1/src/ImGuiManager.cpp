@@ -8,6 +8,7 @@
 #include "Shader.hpp"
 #include "RenderSystem.hpp"
 #include "Buffer.hpp"
+#include "DemoScene.hpp"
 
 ImGuiManager::ImGuiManager(Window& window)
     : m_Window(window)
@@ -248,15 +249,11 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
 
 void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
 {
-    // Get the shader from the render system (assuming it's already initialized)
-    auto& renderSystem = Systems::g_RenderSystem;
-    if (!renderSystem) return;
+    // Update current scene type in Systems namespace
+    Systems::g_CurrentDemoScene = sceneType;
     
-    auto shader = renderSystem->GetShader();
-    if (!shader) return;
-    
-    // Switch to the selected scene
-    Systems::SwitchScene(registry, m_Window, shader, sceneType);
+    // Use DemoScene namespace to switch scenes
+    DemoScene::SwitchScene(registry, m_Window, Systems::g_RenderSystem->GetShader(), sceneType);
 }
 
 void ImGuiManager::RenderLightingControls(Registry& registry)
