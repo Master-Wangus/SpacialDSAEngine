@@ -1,3 +1,11 @@
+/**
+ * @class Registry
+ * @brief Central registry for entity-component management.
+ *
+ * This class implements a centralized registry for entity-component system (ECS) architecture,
+ * handling entity creation, component attachment, and system registration.
+ */
+
 #pragma once
 
 #include "pch.h"

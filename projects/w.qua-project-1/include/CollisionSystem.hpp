@@ -1,3 +1,11 @@
+/**
+ * @class CollisionSystem
+ * @brief System for detecting and handling collisions between 3D objects.
+ *
+ * This system processes collision components and performs intersection tests between
+ * different 3D primitives, providing collision response and visualization.
+ */
+
 #pragma once
 
 #include "pch.h"

@@ -1,3 +1,11 @@
+/**
+ * @file Primitives.hpp
+ * @brief Definitions of 3D geometric primitive shapes and structures.
+ *
+ * This file defines fundamental 3D geometric primitives such as points, planes, triangles,
+ * rays, bounding spheres, and axis-aligned bounding boxes (AABBs) for collision detection.
+ */
+
 #pragma once
 
 #include "pch.h"

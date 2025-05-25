@@ -1,3 +1,11 @@
+/**
+ * @class Intersection
+ * @brief Implements 3D geometric collision detection algorithms.
+ *
+ * This module provides various intersection tests between different geometric primitives
+ * such as spheres, rays, AABBs, planes, triangles, and points for collision detection.
+ */
+
 #pragma once
 
 #include "pch.h"

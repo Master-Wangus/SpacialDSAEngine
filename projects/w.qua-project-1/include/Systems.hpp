@@ -1,3 +1,11 @@
+/**
+ * @file Systems.hpp
+ * @brief System management and coordination for the game engine.
+ *
+ * This file provides centralized management of all systems in the engine, including
+ * initialization, update, rendering, and shutdown of system components.
+ */
+
 #pragma once
 
 #include "pch.h"

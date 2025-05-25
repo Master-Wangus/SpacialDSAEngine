@@ -1,3 +1,11 @@
+/**
+ * @class Window
+ * @brief OpenGL rendering window and application context.
+ *
+ * This class manages the creation and lifecycle of an OpenGL rendering window,
+ * including initialization, event handling, and the main application loop.
+ */
+
 #pragma once
 
 #include "pch.h"

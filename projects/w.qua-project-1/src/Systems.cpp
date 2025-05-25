@@ -1,3 +1,11 @@
+/**
+ * @file Systems.cpp
+ * @brief Implementation of the systems registry and management.
+ *
+ * This file contains the implementation of system registration, initialization,
+ * update, and lifecycle management for the entity-component-system architecture.
+ */
+
 #include "Systems.hpp"
 #include "Components.hpp"
 #include "Shader.hpp"

@@ -1,3 +1,11 @@
+/**
+ * @class ObjectManipulationSystem
+ * @brief System for interactive manipulation of 3D objects.
+ *
+ * This system enables selection, translation, rotation, and scaling of 3D objects
+ * through user interaction, supporting various manipulation modes and visual feedback.
+ */
+
 #pragma once
 
 #include "pch.h"

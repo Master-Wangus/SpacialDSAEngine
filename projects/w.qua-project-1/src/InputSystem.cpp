@@ -1,3 +1,11 @@
+/**
+ * @class InputSystem
+ * @brief System for handling user input from keyboard, mouse and other devices.
+ *
+ * This system manages input events, state tracking, and provides a framework for
+ * binding input actions to game logic, supporting both polling and event-driven approaches.
+ */
+
 #include "pch.h"
 #include "InputSystem.hpp"
 #include "Window.hpp"

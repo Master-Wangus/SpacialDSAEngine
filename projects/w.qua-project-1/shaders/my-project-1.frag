@@ -1,3 +1,11 @@
+/**
+ * @file my-project-1.frag
+ * @brief Fragment shader for 3D object rendering with directional lighting.
+ *
+ * This shader implements Blinn-Phong lighting model with ambient, diffuse, and specular
+ * components for directional light sources, supporting material properties.
+ */
+
 #version 460 core
 
 // Input from vertex shader

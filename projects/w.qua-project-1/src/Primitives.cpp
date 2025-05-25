@@ -1,3 +1,11 @@
+/**
+ * @file Primitives.cpp
+ * @brief Implementation of 3D primitive geometric shapes and structures.
+ *
+ * This file contains the implementation of fundamental 3D geometric primitives
+ * such as bounding spheres, AABBs, and utility functions for primitive operations.
+ */
+
 #include "Primitives.hpp"
 #include <algorithm>
 #include <glm/gtx/norm.hpp>

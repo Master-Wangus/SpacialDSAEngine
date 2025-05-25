@@ -1,3 +1,11 @@
+/**
+ * @class TriangleRenderer
+ * @brief Renderer for 3D triangle primitives with vertex color support.
+ *
+ * This class implements the IRenderable interface to render 3D triangles using OpenGL.
+ * It manages triangle vertex data, normal calculation, and provides efficient rendering capabilities.
+ */
+
 #include "TriangleRenderer.hpp"
 #include "Shader.hpp"
 

@@ -1,3 +1,11 @@
+/**
+ * @class Shader
+ * @brief GLSL shader program manager for loading, compiling and using shaders.
+ *
+ * This class handles the complete lifecycle of OpenGL shader programs,
+ * including compilation, linking, uniform setting, and runtime management.
+ */
+
 #pragma once
 
 #include "pch.h"

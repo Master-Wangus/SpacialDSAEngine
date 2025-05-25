@@ -1,3 +1,11 @@
+/**
+ * @file main.cpp
+ * @brief Entry point for the 3D graphics application.
+ *
+ * This file contains the main function that initializes the rendering window,
+ * sets up the demo scene, and runs the main application loop.
+ */
+
 #include "pch.h"
 #include "Window.hpp"
 #include "Shader.hpp"

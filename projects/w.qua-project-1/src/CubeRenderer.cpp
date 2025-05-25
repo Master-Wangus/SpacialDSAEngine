@@ -1,3 +1,11 @@
+/**
+ * @class CubeRenderer
+ * @brief Renderer for 3D cube primitives with custom color and transformation.
+ *
+ * This class implements the IRenderable interface to render 3D cubes using OpenGL.
+ * It manages vertex data, buffers, and rendering operations with proper shading support.
+ */
+
 #include "CubeRenderer.hpp"
 #include "Shader.hpp"
 

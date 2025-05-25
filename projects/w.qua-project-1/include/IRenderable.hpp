@@ -1,3 +1,11 @@
+/**
+ * @class IRenderable
+ * @brief Interface for renderable 3D objects in the graphics system.
+ *
+ * This interface defines the common operations required for any object that can be rendered,
+ * including initialization, rendering, cleanup, and material property management.
+ */
+
 #pragma once
 
 #include "pch.h"

@@ -1,3 +1,11 @@
+/**
+ * @class RenderSystem
+ * @brief System for rendering 3D objects and scenes.
+ *
+ * This system manages the rendering process of 3D objects in the scene,
+ * including camera view, projection setup, and proper draw call ordering.
+ */
+
 #pragma once
 
 #include "pch.h"

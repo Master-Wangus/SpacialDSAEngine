@@ -1,3 +1,11 @@
+/**
+ * @class RayRenderer
+ * @brief Renderer for 3D ray primitives with origin, direction and length.
+ *
+ * This class implements the IRenderable interface to visualize rays in 3D space.
+ * It provides line-based rendering of rays with customizable appearance for debugging and visualization.
+ */
+
 #include "RayRenderer.hpp"
 #include "Shader.hpp"
 #include <glm/gtc/matrix_transform.hpp>

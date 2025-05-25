@@ -1,3 +1,11 @@
+/**
+ * @class Shader
+ * @brief GLSL shader program manager for loading, compiling and using shaders.
+ *
+ * This class handles the complete lifecycle of OpenGL shader programs,
+ * including compilation, linking, uniform setting, and runtime management.
+ */
+
 #include "Shader.hpp"
 
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) : m_ID(0) 

@@ -1,3 +1,11 @@
+/**
+ * @file my-project-1.vert
+ * @brief Vertex shader for 3D object rendering with lighting support.
+ *
+ * This shader transforms vertices from model space to clip space and passes
+ * position, normal, color, and texture coordinates to the fragment shader.
+ */
+
 #version 460 core
 
 // Input vertex attributes

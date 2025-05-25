@@ -1,3 +1,11 @@
+/**
+ * @file Components.hpp
+ * @brief Component definitions for the entity-component system.
+ *
+ * This file contains the definitions of all components used in the entity-component system,
+ * including transform, rendering, collision, camera, and lighting components.
+ */
+
 #pragma once
 
 #include "pch.h"

@@ -1,3 +1,11 @@
+/**
+ * @file Lighting.hpp
+ * @brief Definitions for lighting and material properties in 3D rendering.
+ *
+ * This file defines structures for representing directional lights and material properties,
+ * with proper memory alignment for GPU buffer usage in lighting calculations.
+ */
+
 #pragma once
 
 #include "pch.h"

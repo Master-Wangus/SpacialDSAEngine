@@ -1,3 +1,11 @@
+/**
+ * @class SphereRenderer
+ * @brief Renderer for 3D sphere primitives with customizable properties.
+ *
+ * This class implements the IRenderable interface to render 3D spheres using OpenGL.
+ * It manages vertex generation for sphere approximation, buffer handling, and rendering with proper shading.
+ */
+
 #pragma once
 
 #include "pch.h"

@@ -1,3 +1,11 @@
+/**
+ * @class Buffer
+ * @brief OpenGL vertex buffer wrapper for 3D geometry data management.
+ *
+ * This class encapsulates the OpenGL vertex buffer object (VBO) and vertex array object (VAO)
+ * operations, providing a simplified interface for managing 3D geometry data.
+ */
+
 #include "Buffer.hpp"
 
 Buffer::Buffer() : m_vao(0), m_vbo(0), m_vertexCount(0) 

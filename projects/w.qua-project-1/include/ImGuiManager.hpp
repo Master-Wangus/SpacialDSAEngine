@@ -1,3 +1,11 @@
+/**
+ * @class ImGuiManager
+ * @brief Manager for Dear ImGui integration and UI rendering.
+ *
+ * This class handles the initialization, rendering, and shutdown of the Dear ImGui
+ * library for creating interactive debug interfaces and control panels.
+ */
+
 #pragma once
 #include "pch.h"
 

@@ -1,3 +1,11 @@
+/**
+ * @class PlaneRenderer
+ * @brief Renderer for 3D plane primitives with custom size and appearance.
+ *
+ * This class implements the IRenderable interface to render 3D planes using OpenGL.
+ * It provides efficient plane geometry generation and rendering with proper normal and texture coordinate support.
+ */
+
 #pragma once
 
 #include "pch.h"

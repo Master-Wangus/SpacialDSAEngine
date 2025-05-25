@@ -1,3 +1,11 @@
+/**
+ * @class DemoScene
+ * @brief Demonstration scene with multiple 3D objects and interaction.
+ *
+ * This class sets up a 3D scene with various primitive objects, lighting, and
+ * interactive components to showcase the engine's capabilities.
+ */
+
 #include "DemoScene.hpp"
 #include "Components.hpp"
 #include "Registry.hpp"

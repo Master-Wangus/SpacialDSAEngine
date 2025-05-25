@@ -1,3 +1,11 @@
+/**
+ * @file Components.cpp
+ * @brief Implementation of component functionality for the entity-component system.
+ *
+ * This file contains the implementation of component-specific functionality
+ * for the entity-component system, particularly transform operations.
+ */
+
 #include "Components.hpp"
 
 void TransformComponent::UpdateModelMatrix()

@@ -1,3 +1,11 @@
+/**
+ * @class FPSCameraSystem
+ * @brief System for handling first-person camera movement and control.
+ *
+ * This system manages camera movement, rotation, and view calculations for first-person
+ * perspective, responding to user input and providing smooth camera dynamics.
+ */
+
 #pragma once
 
 #include "pch.h"

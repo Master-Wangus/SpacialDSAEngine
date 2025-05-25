@@ -1,3 +1,11 @@
+/**
+ * @file Keybinds.hpp
+ * @brief Constants and definitions for keyboard and mouse input handling.
+ *
+ * This file provides centralized definitions of key codes, mouse buttons, and input actions
+ * for consistent input handling across the application.
+ */
+
 #pragma once
 
 namespace Keybinds 

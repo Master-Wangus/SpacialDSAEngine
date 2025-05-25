@@ -1,3 +1,11 @@
+/**
+ * @file pch.h
+ * @brief Precompiled header with common dependencies for the project.
+ *
+ * This file contains standard library includes, third-party libraries, and common definitions
+ * that are used throughout the project to improve compilation speed.
+ */
+
 #pragma once
 
 #include <GL/glew.h>
