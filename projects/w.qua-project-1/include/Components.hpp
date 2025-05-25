@@ -105,7 +105,7 @@ struct CollisionComponent
         } m_Point;
     };
     
-    // Default constructor
+    // How does one initialize unions???
     CollisionComponent() = default;
     
     // Sphere constructor
@@ -246,7 +246,8 @@ struct DirectionalLightComponent
 
 enum class CameraType 
 {
-    FPS
+    FPS,
+    Orbital
     // More incoming!
 };
 
@@ -312,18 +313,87 @@ struct FPSCameraComponent
     }
 };
 
+struct OrbitalCameraComponent 
+{
+    glm::vec3 m_Target;           // Point the camera orbits around
+    float m_Distance;             // Distance from target
+    float m_Yaw;                  // Horizontal rotation (around Y-axis)
+    float m_Pitch;                // Vertical rotation
+    float m_MinDistance;          // Minimum zoom distance
+    float m_MaxDistance;          // Maximum zoom distance
+    float m_ZoomSpeed;            // Speed of zooming
+    float m_OrbitSpeed;           // Speed of orbital movement
+    float m_MouseSensitivity;     // Mouse sensitivity for orbital control
+
+    OrbitalCameraComponent(
+        const glm::vec3& target = glm::vec3(0.0f, 0.0f, 0.0f),
+        float distance = 5.0f,
+        float yaw = 0.0f,
+        float pitch = 0.0f)
+        : m_Target(target),
+          m_Distance(distance),
+          m_Yaw(yaw),
+          m_Pitch(pitch),
+          m_MinDistance(1.0f),
+          m_MaxDistance(50.0f),
+          m_ZoomSpeed(2.0f),
+          m_OrbitSpeed(1.0f),
+          m_MouseSensitivity(0.5f)
+    {
+        // Clamp pitch to prevent flipping
+        m_Pitch = glm::clamp(m_Pitch, -89.0f, 89.0f);
+        m_Distance = glm::clamp(m_Distance, m_MinDistance, m_MaxDistance);
+    }
+
+    glm::vec3 GetCameraPosition() const 
+    {
+        // Convert spherical coordinates to cartesian
+        float x = m_Distance * cos(glm::radians(m_Pitch)) * cos(glm::radians(m_Yaw));
+        float y = m_Distance * sin(glm::radians(m_Pitch));
+        float z = m_Distance * cos(glm::radians(m_Pitch)) * sin(glm::radians(m_Yaw));
+        return m_Target + glm::vec3(x, y, z);
+    }
+
+    glm::mat4 GetViewMatrix() const 
+    {
+        glm::vec3 cameraPos = GetCameraPosition();
+        return glm::lookAt(cameraPos, m_Target, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+
+    void Zoom(float deltaZoom) 
+    {
+        m_Distance += deltaZoom * m_ZoomSpeed;
+        m_Distance = glm::clamp(m_Distance, m_MinDistance, m_MaxDistance);
+    }
+
+    void Orbit(float deltaYaw, float deltaPitch) 
+    {
+        m_Yaw += deltaYaw * m_MouseSensitivity * m_OrbitSpeed;
+        m_Pitch += deltaPitch * m_MouseSensitivity * m_OrbitSpeed;
+        
+        // Keep yaw in [0, 360) range
+        if (m_Yaw > 360.0f) m_Yaw -= 360.0f;
+        if (m_Yaw < 0.0f) m_Yaw += 360.0f;
+        
+        // Clamp pitch to prevent flipping
+        m_Pitch = glm::clamp(m_Pitch, -89.0f, 89.0f);
+    }
+};
+
 struct CameraComponent 
 {
     ProjectionComponent m_Projection;
     FPSCameraComponent m_FPS;
+    OrbitalCameraComponent m_Orbital;
     CameraType m_ActiveCameraType = CameraType::FPS;
     
     CameraComponent() = default;
     CameraComponent(
         const ProjectionComponent& proj,
         const FPSCameraComponent& fpsCamera,
+        const OrbitalCameraComponent& orbitalCamera = OrbitalCameraComponent(),
         CameraType type = CameraType::FPS)
-        : m_Projection(proj), m_FPS(fpsCamera), m_ActiveCameraType(type) {}
+        : m_Projection(proj), m_FPS(fpsCamera), m_Orbital(orbitalCamera), m_ActiveCameraType(type) {}
     
     glm::mat4 GetViewMatrix() const 
     {
@@ -331,6 +401,8 @@ struct CameraComponent
         {
             case CameraType::FPS:
                 return m_FPS.GetViewMatrix();
+            case CameraType::Orbital:
+                return m_Orbital.GetViewMatrix();
             default:
                 return m_FPS.GetViewMatrix(); // Default to FPS camera
         }
@@ -347,6 +419,8 @@ struct CameraComponent
         {
             case CameraType::FPS:
                 return m_FPS.m_CameraPosition;
+            case CameraType::Orbital:
+                return m_Orbital.GetCameraPosition();
             default:
                 return m_FPS.m_CameraPosition; // Default to FPS camera
         }

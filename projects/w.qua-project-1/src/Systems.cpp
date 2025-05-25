@@ -12,7 +12,7 @@
 #include "Intersection.hpp"
 #include "Window.hpp"
 #include "Registry.hpp"
-#include "FPSCameraSystem.hpp"
+#include "CameraSystem.hpp"
 #include "CollisionSystem.hpp"
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
@@ -30,7 +30,7 @@
 namespace Systems
 {
     std::unique_ptr<InputSystem> g_InputSystem = nullptr;
-    std::unique_ptr<FPSCameraSystem> g_CameraSystem = nullptr;
+    std::unique_ptr<CameraSystem> g_CameraSystem = nullptr;
     std::unique_ptr<CollisionSystem> g_CollisionSystem = nullptr;
     std::unique_ptr<RenderSystem> g_RenderSystem = nullptr;
     std::unique_ptr<ObjectManipulationSystem> g_ObjectManipulationSystem = nullptr;
@@ -41,7 +41,7 @@ namespace Systems
         // Initialize InputSystem first as other systems will use it
         g_InputSystem = std::make_unique<InputSystem>(registry, window);
         
-        g_CameraSystem = std::make_unique<FPSCameraSystem>(registry, window);
+        g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
         g_CollisionSystem = std::make_unique<CollisionSystem>(registry);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
         g_ObjectManipulationSystem = std::make_unique<ObjectManipulationSystem>(registry, window);

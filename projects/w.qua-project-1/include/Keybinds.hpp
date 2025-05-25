@@ -32,6 +32,7 @@ namespace Keybinds
     static const int KEY_D = 68;
     static const int KEY_Q = 81;
     static const int KEY_E = 69;
+    static const int KEY_C = 67;
     static const int KEY_ESCAPE = 256;
     static const int KEY_SPACE = 32;
     static const int KEY_LEFT_SHIFT = 340;

@@ -108,6 +108,12 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
         RenderSceneSelector(registry);
     }
     
+    // Camera controls
+    if (ImGui::CollapsingHeader("Camera Controls"))
+    {
+        RenderCameraControls(registry);
+    }
+    
     // Lighting settings
     if (ImGui::CollapsingHeader("Lighting Settings"))
     {
@@ -263,6 +269,60 @@ void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
     
     // Use DemoScene namespace to switch scenes
     DemoScene::SwitchScene(registry, m_Window, Systems::g_RenderSystem->GetShader(), sceneType);
+}
+
+void ImGuiManager::RenderCameraControls(Registry& registry)
+{
+    auto cameraView = registry.View<CameraComponent>();
+    if (cameraView.empty()) {
+        ImGui::Text("No camera found");
+        return;
+    }
+    
+    auto cameraEntity = *cameraView.begin();
+    auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
+    
+    const char* currentCameraType = (camera.m_ActiveCameraType == CameraType::FPS) ? "FPS Camera" : "Orbital Camera";
+    ImGui::Text("Current Camera: %s", currentCameraType);
+    
+    glm::vec3 cameraPos = camera.GetPosition();
+    ImGui::Text("Position: (%.2f, %.2f, %.2f)", cameraPos.x, cameraPos.y, cameraPos.z);
+    
+    ImGui::Separator();
+    
+    // Camera type specific information
+    if (camera.m_ActiveCameraType == CameraType::FPS) 
+    {
+        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "FPS Camera Controls:");
+        ImGui::Text("WASD - Move camera");
+        ImGui::Text("Mouse + Right Click - Look around");
+        ImGui::Text("C - Switch to Orbital camera");
+        
+        ImGui::Separator();
+        
+        // FPS Camera details
+        ImGui::Text("Yaw: %.1f°", camera.m_FPS.m_YawAngle);
+        ImGui::Text("Pitch: %.1f°", camera.m_FPS.m_PitchAngle);
+        ImGui::Text("Speed: %.2f", camera.m_FPS.m_MovementSpeed);
+    }
+    else if (camera.m_ActiveCameraType == CameraType::Orbital) 
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Orbital Camera Controls:");
+        ImGui::Text("Mouse + Right Click - Orbit around target");
+        ImGui::Text("Mouse Wheel - Zoom in/out");
+        ImGui::Text("WASD - Move target point");
+        ImGui::Text("C - Switch to FPS camera");
+        
+        ImGui::Separator();
+        
+        // Orbital Camera details
+        glm::vec3 target = camera.m_Orbital.m_Target;
+        ImGui::Text("Target: (%.2f, %.2f, %.2f)", target.x, target.y, target.z);
+        ImGui::Text("Distance: %.2f", camera.m_Orbital.m_Distance);
+        ImGui::Text("Yaw: %.1f°", camera.m_Orbital.m_Yaw);
+        ImGui::Text("Pitch: %.1f°", camera.m_Orbital.m_Pitch);
+        ImGui::Text("Zoom Range: %.1f - %.1f", camera.m_Orbital.m_MinDistance, camera.m_Orbital.m_MaxDistance);
+    }
 }
 
 void ImGuiManager::RenderLightingControls(Registry& registry)

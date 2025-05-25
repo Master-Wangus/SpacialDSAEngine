@@ -30,6 +30,7 @@ public:
     void RenderMainWindow(Registry& registry);
     void RenderSceneSelector(Registry& registry);
     void RenderLightingControls(Registry& registry);
+    void RenderCameraControls(Registry& registry);
     void RenderStats();
     
     // Helper functions

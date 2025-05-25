@@ -1,9 +1,9 @@
 /**
- * @class FPSCameraSystem
- * @brief System for handling first-person camera movement and control.
+ * @class CameraSystem
+ * @brief System for handling camera movement and control for multiple camera types.
  *
- * This system manages camera movement, rotation, and view calculations for first-person
- * perspective, responding to user input and providing smooth camera dynamics.
+ * This system manages camera movement, rotation, and view calculations for both
+ * first-person and orbital perspectives, responding to user input and providing smooth camera dynamics.
  */
 
 #pragma once
@@ -15,10 +15,10 @@ class Registry;
 class Window;
 struct CameraComponent;
 
-class FPSCameraSystem 
+class CameraSystem 
 {
 public:
-    FPSCameraSystem(Registry& registry, Window& window);
+    CameraSystem(Registry& registry, Window& window);
     
     void OnRun(float deltaTime);
     
@@ -28,8 +28,12 @@ private:
     void SetupInputCallbacks();
     void ProcessMouseMovement();
     void ProcessKeyboardInput(float deltaTime);
+    void SwitchCameraType();
     
     Registry& m_Registry;
     Window& m_Window;
     Registry::Entity m_CameraEntity = entt::null;
+    
+    // Camera switching state
+    bool m_CKeyPressed = false;
 }; 

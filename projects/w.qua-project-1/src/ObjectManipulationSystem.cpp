@@ -169,27 +169,27 @@ void ObjectManipulationSystem::StartDragging(Registry::Entity entity)
         auto renderable = renderComp.m_Renderable;
         
         // Handle different renderable types for regular objects
-        if (auto sphereRenderer = std::static_pointer_cast<SphereRenderer>(renderable))
+        if (auto sphereRenderer = std::dynamic_pointer_cast<SphereRenderer>(renderable))
         {
             m_OriginalColors[entity] = sphereRenderer->GetColor();
             sphereRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto cubeRenderer = std::static_pointer_cast<CubeRenderer>(renderable))
+        else if (auto cubeRenderer = std::dynamic_pointer_cast<CubeRenderer>(renderable))
         {
             m_OriginalColors[entity] = cubeRenderer->GetColor();
             cubeRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto triangleRenderer = std::static_pointer_cast<TriangleRenderer>(renderable))
+        else if (auto triangleRenderer = std::dynamic_pointer_cast<TriangleRenderer>(renderable))
         {
             m_OriginalColors[entity] = triangleRenderer->GetColor();
             triangleRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto planeRenderer = std::static_pointer_cast<PlaneRenderer>(renderable))
+        else if (auto planeRenderer = std::dynamic_pointer_cast<PlaneRenderer>(renderable))
         {
             m_OriginalColors[entity] = planeRenderer->GetColor();
             planeRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto rayRenderer = std::static_pointer_cast<RayRenderer>(renderable))
+        else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
         {
             m_OriginalColors[entity] = rayRenderer->GetColor();
             rayRenderer->SetColor(SELECTED_COLOR);
