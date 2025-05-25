@@ -1,5 +1,6 @@
 #include "RenderSystem.hpp"
 #include "Shader.hpp"
+#include "SphereRenderer.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -44,6 +45,10 @@ void RenderSystem::Render()
     
     glm::vec3 cameraPosition = camera.GetPosition();
     
+    // Set the camera position uniform for lighting calculations
+    m_Shader->Use();
+    m_Shader->SetVec3("viewPos", cameraPosition);
+    
     auto renderView = m_Registry.View<TransformComponent, RenderComponent>();
     for (auto entity : renderView)
     {
@@ -72,7 +77,7 @@ void RenderSystem::SetupLighting()
         m_LightEntity = m_Registry.Create();
         light.m_Direction = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
         light.m_Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        light.m_Enabled = 0.0f;
+        light.m_Enabled = 1.0f;  // Enable light by default
         m_Registry.AddComponent<DirectionalLightComponent>(m_LightEntity, DirectionalLightComponent(light));
     }
     else
@@ -81,7 +86,40 @@ void RenderSystem::SetupLighting()
         light = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity).m_Light;
     }
     
+    // Create a visual representation of the light source
+    CreateLightSourceVisualization(light);
+    
     UpdateLighting();
+}
+
+void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
+{
+
+    // Calculate position for the light source visualization
+    // Place it in the opposite direction of the light direction
+    glm::vec3 lightDirection = glm::normalize(glm::vec3(light.m_Direction));
+    glm::vec3 lightPosition = -lightDirection * 5.0f; // Place 5 units away
+    
+    // Create a small yellow sphere to represent the light source
+    m_LightVisualizationEntity = m_Registry.Create();
+    
+    auto lightSphereRenderer = std::make_shared<SphereRenderer>(
+        lightPosition, 
+        0.2f,  // Small radius
+        glm::vec3(1.0f, 1.0f, 0.0f)  // Yellow color
+    );
+    lightSphereRenderer->Initialize(m_Shader);
+    
+    m_Registry.AddComponent<TransformComponent>(m_LightVisualizationEntity, 
+        TransformComponent(lightPosition, glm::vec3(0.0f), glm::vec3(0.2f)));
+    m_Registry.AddComponent<RenderComponent>(m_LightVisualizationEntity, 
+        RenderComponent(lightSphereRenderer));
+    
+    // Add collision component so the light can be dragged
+    m_Registry.AddComponent<CollisionComponent>(m_LightVisualizationEntity, 
+        CollisionComponent::CreateSphere(lightPosition, 0.2f));
+    
+    // Add a special tag to identify this as a light source
 }
 
 void RenderSystem::SetupMaterial()
@@ -149,4 +187,28 @@ bool RenderSystem::IsDirectionalLightEnabled() const
     }
     
     return false;
+}
+
+void RenderSystem::UpdateLightFromVisualization()
+{
+    // Update light direction based on the current position of the light visualization
+    if (m_LightEntity != entt::null && 
+        m_LightVisualizationEntity != entt::null &&
+        m_Registry.HasComponent<DirectionalLightComponent>(m_LightEntity) &&
+        m_Registry.HasComponent<TransformComponent>(m_LightVisualizationEntity))
+    {
+        auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
+        auto& lightTransform = m_Registry.GetComponent<TransformComponent>(m_LightVisualizationEntity);
+        
+        // Calculate direction from light position toward the origin (scene center)
+        glm::vec3 lightPosition = lightTransform.m_Position;
+        glm::vec3 sceneCenter = glm::vec3(0.0f, 0.0f, 0.0f); // Point light direction toward scene center
+        glm::vec3 lightDirection = glm::normalize(sceneCenter - lightPosition);
+        
+        // Update the directional light direction
+        lightComp.m_Light.m_Direction = glm::vec4(lightDirection, 0.0f);
+        
+        // Update the lighting UBO
+        UpdateLighting();
+    }
 } 

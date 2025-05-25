@@ -35,13 +35,14 @@ void SphereRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewM
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
-    m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
-    m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
-    m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
-    m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
-    m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
-    m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
+    // Material uniforms are now handled by the RenderSystem through UBOs
+    // m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
+    // m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
+    // m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
+    // m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
+    // m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
+    // m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
+    // m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
     
     m_Buffer.Bind();
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));

@@ -23,14 +23,18 @@ public:
     // Lighting control
     void ToggleDirectionalLight(bool enabled);
     bool IsDirectionalLightEnabled() const;
+    void UpdateLightFromVisualization(); // Update light direction from visualization position
+    Registry::Entity GetLightVisualizationEntity() const { return m_LightVisualizationEntity; }
 
 private:
     void SetupLighting();
     void UpdateLighting();
     void SetupMaterial();
+    void CreateLightSourceVisualization(const DirectionalLight& light);
     
     Registry& m_Registry;
     Window& m_Window;
     std::shared_ptr<Shader> m_Shader;
     Registry::Entity m_LightEntity = entt::null;
+    Registry::Entity m_LightVisualizationEntity = entt::null;
 }; 

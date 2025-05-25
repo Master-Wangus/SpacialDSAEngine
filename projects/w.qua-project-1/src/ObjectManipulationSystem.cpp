@@ -2,6 +2,7 @@
 #include "Systems.hpp"
 #include "InputSystem.hpp"
 #include "CollisionSystem.hpp"
+#include "RenderSystem.hpp"
 #include "CubeRenderer.hpp"
 #include "SphereRenderer.hpp"
 #include "PlaneRenderer.hpp"
@@ -12,9 +13,9 @@
 ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
 {
-    // Register mouse callbacks
     Systems::g_InputSystem->SubscribeToMouseButton(Window::MOUSE_BUTTON_LEFT, 
-        [this](int button, int action, int mods) {
+        [this](int button, int action, int mods)
+        {
             // Only handle mouse clicks when ImGui is not capturing mouse
             if (ImGui::GetIO().WantCaptureMouse)
                 return;
@@ -50,7 +51,8 @@ ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& w
         
     // Register mouse movement for dragging
     Systems::g_InputSystem->SubscribeToMouseMove(
-        [this](double xpos, double ypos) {
+        [this](double xpos, double ypos) 
+        {
             // Only process if we're dragging an entity and ImGui isn't capturing mouse
             if (IsDragging() && !ImGui::GetIO().WantCaptureMouse)
             {
@@ -67,7 +69,6 @@ ObjectManipulationSystem::~ObjectManipulationSystem()
 
 void ObjectManipulationSystem::Update(float deltaTime)
 {
-    // Update collision colors
     UpdateCollisionColors();
 }
 
@@ -76,7 +77,6 @@ Registry::Entity ObjectManipulationSystem::PickObject(const glm::vec2& screenPos
     // Convert screen position to a ray in world space
     Ray ray = ScreenToWorldRay(screenPos);
     
-    // Get all entities with collision components
     auto view = m_Registry.View<TransformComponent, CollisionComponent>();
     
     Registry::Entity closestEntity = entt::null;
@@ -150,34 +150,33 @@ void ObjectManipulationSystem::StartDragging(Registry::Entity entity)
         
     m_DraggingEntity = entity;
     
-    // Store original color for restoration later
     if (m_Registry.HasComponent<RenderComponent>(entity))
     {
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         auto renderable = renderComp.m_Renderable;
         
-        // Handle different renderable types
-        if (auto sphereRenderer = std::dynamic_pointer_cast<SphereRenderer>(renderable))
+        // Handle different renderable types for regular objects
+        if (auto sphereRenderer = std::static_pointer_cast<SphereRenderer>(renderable))
         {
             m_OriginalColors[entity] = sphereRenderer->GetColor();
             sphereRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto cubeRenderer = std::dynamic_pointer_cast<CubeRenderer>(renderable))
+        else if (auto cubeRenderer = std::static_pointer_cast<CubeRenderer>(renderable))
         {
             m_OriginalColors[entity] = cubeRenderer->GetColor();
             cubeRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto triangleRenderer = std::dynamic_pointer_cast<TriangleRenderer>(renderable))
+        else if (auto triangleRenderer = std::static_pointer_cast<TriangleRenderer>(renderable))
         {
             m_OriginalColors[entity] = triangleRenderer->GetColor();
             triangleRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto planeRenderer = std::dynamic_pointer_cast<PlaneRenderer>(renderable))
+        else if (auto planeRenderer = std::static_pointer_cast<PlaneRenderer>(renderable))
         {
             m_OriginalColors[entity] = planeRenderer->GetColor();
             planeRenderer->SetColor(SELECTED_COLOR);
         }
-        else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
+        else if (auto rayRenderer = std::static_pointer_cast<RayRenderer>(renderable))
         {
             m_OriginalColors[entity] = rayRenderer->GetColor();
             rayRenderer->SetColor(SELECTED_COLOR);
@@ -246,6 +245,12 @@ void ObjectManipulationSystem::DragSelected(const glm::vec2& screenPos)
             auto& collisionComp = m_Registry.GetComponent<CollisionComponent>(m_DraggingEntity);
             collisionComp.UpdateTransform(newPosition, transform.m_Scale);
         }
+        
+        // If this is the light source, update the lighting calculations
+        if (IsLightSource(m_DraggingEntity))
+        {
+            Systems::g_RenderSystem->UpdateLightFromVisualization();
+        }
     }
 }
 
@@ -255,62 +260,75 @@ void ObjectManipulationSystem::UpdateCollisionColors()
     if (IsDragging())
         return;
         
-    // Get all entities with render components
-    auto renderView = m_Registry.View<RenderComponent>();
+    // Get all entities with render components AND collision components (exclude light visualization)
+    auto renderView = m_Registry.View<RenderComponent, CollisionComponent>();
+    std::vector<Registry::Entity> entities;
     
-    // Reset all entity colors to non-colliding state
-    for (auto entity : renderView)
+    // Filter out the light source from normal object color management
+    for (auto entity : renderView) {
+        if (!IsLightSource(entity)) {
+            entities.push_back(entity);
+        }
+    }
+    
+    // Reset all entity colors to their base colors (excluding light source)
+    int objectIndex = 0;
+    for (auto entity : entities)
     {
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         auto renderable = renderComp.m_Renderable;
         
-        // Handle different renderable types
+        // Determine base color for this object
+        glm::vec3 baseColor;
+        if (objectIndex == 0) {
+            baseColor = OBJECT1_COLOR; // Green for first object
+        } else if (objectIndex == 1) {
+            baseColor = OBJECT2_COLOR; // Blue for second object
+        } else {
+            // Use original color or a default for additional objects
+            auto colorIt = m_OriginalColors.find(entity);
+            if (colorIt != m_OriginalColors.end()) {
+                baseColor = colorIt->second;
+            } else {
+                baseColor = glm::vec3(0.5f, 0.5f, 0.5f); // Gray for additional objects
+            }
+        }
+        
+        // Store original color if not already stored
+        if (m_OriginalColors.find(entity) == m_OriginalColors.end())
+        {
+            m_OriginalColors[entity] = baseColor;
+        }
+        
+        // Set the base color for non-colliding state
         if (auto sphereRenderer = std::dynamic_pointer_cast<SphereRenderer>(renderable))
         {
-            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
-            {
-                m_OriginalColors[entity] = sphereRenderer->GetColor();
-            }
-            sphereRenderer->SetColor(NON_COLLISION_COLOR);
+            sphereRenderer->SetColor(baseColor);
         }
         else if (auto cubeRenderer = std::dynamic_pointer_cast<CubeRenderer>(renderable))
         {
-            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
-            {
-                m_OriginalColors[entity] = cubeRenderer->GetColor();
-            }
-            cubeRenderer->SetColor(NON_COLLISION_COLOR);
+            cubeRenderer->SetColor(baseColor);
         }
         else if (auto triangleRenderer = std::dynamic_pointer_cast<TriangleRenderer>(renderable))
         {
-            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
-            {
-                m_OriginalColors[entity] = triangleRenderer->GetColor();
-            }
-            triangleRenderer->SetColor(NON_COLLISION_COLOR);
+            triangleRenderer->SetColor(baseColor);
         }
         else if (auto planeRenderer = std::dynamic_pointer_cast<PlaneRenderer>(renderable))
         {
-            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
-            {
-                m_OriginalColors[entity] = planeRenderer->GetColor();
-            }
-            planeRenderer->SetColor(NON_COLLISION_COLOR);
+            planeRenderer->SetColor(baseColor);
         }
         else if (auto rayRenderer = std::dynamic_pointer_cast<RayRenderer>(renderable))
         {
-            if (m_OriginalColors.find(entity) == m_OriginalColors.end())
-            {
-                m_OriginalColors[entity] = rayRenderer->GetColor();
-            }
-            rayRenderer->SetColor(NON_COLLISION_COLOR);
+            rayRenderer->SetColor(baseColor);
         }
+        
+        objectIndex++;
     }
     
     // Get collision pairs
     const auto& collisions = Systems::g_CollisionSystem->GetCollisions();
     
-    // Set colliding entities to collision color
+    // Set colliding entities to collision color (red)
     for (const auto& collision : collisions)
     {
         Registry::Entity entity1 = collision.entity1;
@@ -370,6 +388,19 @@ void ObjectManipulationSystem::UpdateCollisionColors()
             {
                 rayRenderer->SetColor(COLLISION_COLOR);
             }
+        }
+    }
+    
+    // Ensure light source always stays yellow regardless of collisions
+    Registry::Entity lightEntity = Systems::g_RenderSystem->GetLightVisualizationEntity();
+    if (lightEntity != entt::null && m_Registry.HasComponent<RenderComponent>(lightEntity))
+    {
+        auto& renderComp = m_Registry.GetComponent<RenderComponent>(lightEntity);
+        auto renderable = renderComp.m_Renderable;
+        
+        if (auto sphereRenderer = std::dynamic_pointer_cast<SphereRenderer>(renderable))
+        {
+            sphereRenderer->SetColor(LIGHT_COLOR);
         }
     }
 }
@@ -474,4 +505,10 @@ glm::vec3 ObjectManipulationSystem::GetDragPosition(const glm::vec2& screenPos)
     
     // Last resort fallback
     return glm::vec3(0.0f);
+}
+
+bool ObjectManipulationSystem::IsLightSource(Registry::Entity entity) const
+{
+    // Get the light visualization entity from the render system
+    return entity == Systems::g_RenderSystem->GetLightVisualizationEntity();
 } 

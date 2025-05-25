@@ -37,6 +37,9 @@ private:
     // Reset entity colors to their original state
     void ResetEntityColors(Registry::Entity entity);
     
+    // Check if entity is the light source visualization
+    bool IsLightSource(Registry::Entity entity) const;
+    
     // Calculate drag plane and position
     glm::vec3 GetDragPosition(const glm::vec2& screenPos);
     
@@ -54,6 +57,8 @@ private:
     
     // Constants for visualization
     const glm::vec3 COLLISION_COLOR = glm::vec3(1.0f, 0.0f, 0.0f); // Red
-    const glm::vec3 NON_COLLISION_COLOR = glm::vec3(0.0f, 0.4f, 1.0f); // Blue
-    const glm::vec3 SELECTED_COLOR = glm::vec3(1.0f, 1.0f, 0.0f); // Yellow
+    const glm::vec3 OBJECT1_COLOR = glm::vec3(0.0f, 1.0f, 0.0f);   // Green
+    const glm::vec3 OBJECT2_COLOR = glm::vec3(0.0f, 0.0f, 1.0f);   // Blue
+    const glm::vec3 SELECTED_COLOR = glm::vec3(1.0f, 1.0f, 0.0f);  // Yellow
+    const glm::vec3 LIGHT_COLOR = glm::vec3(1.0f, 1.0f, 0.0f);     // Yellow for light source
 }; 

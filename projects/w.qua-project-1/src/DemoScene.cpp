@@ -2,6 +2,7 @@
 #include "Systems.hpp"
 #include "Window.hpp"
 #include "Shader.hpp"
+#include "RenderSystem.hpp"
 #include "SphereRenderer.hpp"
 #include "CubeRenderer.hpp"
 #include "TriangleRenderer.hpp"
@@ -164,6 +165,10 @@ namespace DemoScene
             if (registry.HasComponent<CameraComponent>(entity))
                 continue;
                 
+            // Skip light visualization entity
+            if (Systems::g_RenderSystem && entity == Systems::g_RenderSystem->GetLightVisualizationEntity())
+                continue;
+                
             registry.Destroy(entity);
         }
     }
@@ -177,22 +182,22 @@ namespace DemoScene
     void SetupSphereVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
     {
         // Create two spheres for collision testing
-        CreateSphereEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 0.4f, 1.0f), shader);
-        CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 0.4f, 1.0f), shader);
+        CreateSphereEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), shader); // Green
+        CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 0.0f, 1.0f), shader);  // Blue
     }
     
     void SetupAABBVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
     {
         // Create a sphere and an AABB for collision testing
-        CreateSphereEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 0.4f, 1.0f), shader);
-        CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.4f, 1.0f), shader);
+        CreateSphereEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 1.0f, 0.0f), shader); // Green
+        CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, 1.0f), shader); // Blue
     }
     
     void SetupAABBVsAABBDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
     {
         // Create two AABBs for collision testing
-        CreateAABBEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.4f, 1.0f), shader);
-        CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.4f, 1.0f), shader);
+        CreateAABBEntity(registry, glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 1.0f, 0.0f), shader); // Green
+        CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, 1.0f), shader);  // Blue
     }
     
     void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
