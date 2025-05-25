@@ -1,48 +1,39 @@
 #include "Shader.hpp"
-#include <GL/glew.h>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <glm/gtc/type_ptr.hpp>
 
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) : m_ID(0) 
 {
-    // 1. Retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
     std::string fragmentCode;
     std::ifstream vShaderFile;
     std::ifstream fShaderFile;
     
-    // Ensure ifstream objects can throw exceptions
     vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
     
     try 
     {
-        // Open files
         vShaderFile.open(vertexPath);
         fShaderFile.open(fragmentPath);
         
-        // Read file contents into streams
         std::stringstream vShaderStream, fShaderStream;
         vShaderStream << vShaderFile.rdbuf();
         fShaderStream << fShaderFile.rdbuf();
         
-        // Close file handlers
         vShaderFile.close();
         fShaderFile.close();
         
-        // Convert stream into string
         vertexCode = vShaderStream.str();
         fragmentCode = fShaderStream.str();
-    } catch(std::ifstream::failure& e) {
+    } 
+    catch(std::ifstream::failure& e) 
+    {
         std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
     }
     
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
     
-    // 2. Compile shaders
+    // Compile shaders
     unsigned int vertex, fragment;
     int success;
     char infoLog[512];
@@ -52,7 +43,6 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
     glShaderSource(vertex, 1, &vShaderCode, NULL);
     glCompileShader(vertex);
     
-    // Check for compile errors
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
     if(!success) 
     {
@@ -65,7 +55,6 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
     
-    // Check for compile errors
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
     if(!success) 
     {
@@ -79,7 +68,6 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
     glAttachShader(m_ID, fragment);
     glLinkProgram(m_ID);
     
-    // Check for linking errors
     glGetProgramiv(m_ID, GL_LINK_STATUS, &success);
     if(!success) 
     {

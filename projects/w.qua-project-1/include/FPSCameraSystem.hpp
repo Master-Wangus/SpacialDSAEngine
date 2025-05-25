@@ -1,11 +1,11 @@
 #pragma once
 
 #include "pch.h"
-#include "Components.hpp"
-#include "Registry.hpp"
-#include <glm/glm.hpp>
 
+// Forward declarations
+class Registry;
 class Window;
+struct CameraComponent;
 
 class FPSCameraSystem 
 {
@@ -23,5 +23,5 @@ private:
     
     Registry& m_Registry;
     Window& m_Window;
-    Registry::Entity m_CameraEntity;
+    Registry::Entity m_CameraEntity = entt::null;
 }; 

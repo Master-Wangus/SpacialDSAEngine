@@ -44,20 +44,11 @@ namespace Systems
     
     void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
     {
-        // Update input system first
         g_InputSystem->Update(deltaTime);
-        
         g_CameraSystem->OnRun(deltaTime);
-        
-        // Update object manipulation system
         g_ObjectManipulationSystem->Update(deltaTime);
-        
         DemoScene::UpdateTransforms(registry);
-        
-        // Finally, detect collisions
         g_CollisionSystem->DetectCollisions();
-        
-        // Update collision visualization
         g_ObjectManipulationSystem->UpdateCollisionColors();
     }
     

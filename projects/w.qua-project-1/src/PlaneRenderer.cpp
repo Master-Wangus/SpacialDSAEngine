@@ -15,11 +15,7 @@ PlaneRenderer::~PlaneRenderer()
 void PlaneRenderer::Initialize(const std::shared_ptr<Shader>& shader)
 {
     m_Shader = shader;
-    
-    // Create buffer with quad vertices and indices
     auto vertices = CreateVertices();
-    
-    // Setup the buffer with vertices
     m_Buffer.Setup(vertices);
 }
 
@@ -34,15 +30,7 @@ void PlaneRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMa
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
-    
-    // Material uniforms are now handled by the RenderSystem through UBOs
-    // m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
-    // m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
-    // m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
-    // m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
-    // m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
-    // m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
-    // m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
+   
     
     // Bind buffer and draw
     m_Buffer.Bind();
@@ -58,12 +46,10 @@ void PlaneRenderer::CleanUp()
     // Buffer destructor will handle cleanup
 }
 
-// Getters and setters
 void PlaneRenderer::SetNormal(const glm::vec3& normal)
 {
     m_Normal = normal;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();
@@ -80,7 +66,6 @@ void PlaneRenderer::SetDistance(float distance)
 {
     m_Distance = distance;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();
@@ -97,7 +82,6 @@ void PlaneRenderer::SetColor(const glm::vec3& color)
 {
     m_Color = color;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();
@@ -114,7 +98,6 @@ void PlaneRenderer::SetSize(float size)
 {
     m_Size = size;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();
@@ -131,7 +114,6 @@ std::vector<Vertex> PlaneRenderer::CreateVertices()
 {
     std::vector<Vertex> vertices;
     
-    // Normalize the normal
     glm::vec3 normal = glm::normalize(m_Normal);
     
     // Create a coordinate system for the plane

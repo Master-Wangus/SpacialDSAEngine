@@ -17,10 +17,8 @@ void SphereRenderer::Initialize(const std::shared_ptr<Shader>& shader)
 {
     m_Shader = shader;
     
-    // Create buffer with sphere vertices
     auto vertices = CreateVertices();
     
-    // Setup the buffer with vertices
     m_Buffer.Setup(vertices);
 }
 
@@ -34,15 +32,6 @@ void SphereRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewM
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
-    
-    // Material uniforms are now handled by the RenderSystem through UBOs
-    // m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
-    // m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
-    // m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
-    // m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
-    // m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
-    // m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
-    // m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
     
     m_Buffer.Bind();
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
@@ -79,7 +68,6 @@ void SphereRenderer::SetColor(const glm::vec3& color)
 {
     m_Color = color;
     
-    // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
         auto vertices = CreateVertices();

@@ -3,6 +3,8 @@
 #include "Window.hpp"
 #include "Components.hpp"
 #include "RayRenderer.hpp"
+#include "Systems.hpp"
+#include "Keybinds.hpp"
 
 InputSystem::InputSystem(Registry& registry, Window& window)
     : m_Registry(registry), 
@@ -46,10 +48,7 @@ InputSystem::~InputSystem()
 
 void InputSystem::Update(float deltaTime)
 {
-    // Save current key states for the next frame
     m_PreviousKeysPressed = m_KeysPressed;
-    
-    // Handle ray rotation with Q and E keys
     HandleRayRotation(deltaTime);
 }
 
@@ -57,10 +56,11 @@ void InputSystem::Update(float deltaTime)
 void InputSystem::HandleRayRotation(float deltaTime)
 {
     const float rotationSpeed = 2.0f; // Radians per second
-    bool qPressed = IsKeyPressed(Window::KEY_Q);
-    bool ePressed = IsKeyPressed(Window::KEY_E);
+    bool qPressed = IsKeyPressed(Keybinds::KEY_Q);
+    bool ePressed = IsKeyPressed(Keybinds::KEY_E);
     
-    if (!qPressed && !ePressed) {
+    if (!qPressed && !ePressed) 
+    {
         return; // No rotation keys pressed
     }
     
@@ -70,7 +70,6 @@ void InputSystem::HandleRayRotation(float deltaTime)
     {
         auto& collisionComp = m_Registry.GetComponent<CollisionComponent>(entity);
         
-        // Only process ray entities
         if (collisionComp.m_ShapeType != CollisionShapeType::Ray) {
             continue;
         }
@@ -82,7 +81,6 @@ void InputSystem::HandleRayRotation(float deltaTime)
             continue;
         }
         
-        // Get current direction
         glm::vec3 currentDir = rayRenderer->GetDirection();
         
         // Calculate rotation axis (Y-axis for rotation in XZ plane)
@@ -90,10 +88,12 @@ void InputSystem::HandleRayRotation(float deltaTime)
         
         // Calculate rotation angle based on which key is pressed
         float rotationAngle = 0.0f;
-        if (qPressed) {
+        if (qPressed) 
+        {
             rotationAngle = rotationSpeed * deltaTime; // Counterclockwise rotation
         }
-        if (ePressed) {
+        if (ePressed) 
+        {
             rotationAngle = -rotationSpeed * deltaTime; // Clockwise rotation
         }
         
@@ -164,29 +164,34 @@ void InputSystem::SubscribeToMouseScroll(MouseScrollCallback callback)
 void InputSystem::StartDragging()
 {
     // Only start dragging if ImGui isn't capturing the mouse
-    if (!ImGui::GetIO().WantCaptureMouse) {
+    if (!ImGui::GetIO().WantCaptureMouse) 
+    {
         m_MouseDragging = true;
-        m_Window.SetInputMode(Window::CURSOR, Window::CURSOR_DISABLED);
+        m_Window.SetInputMode(Keybinds::CURSOR, Keybinds::CURSOR_DISABLED);
     }
 }
 
 void InputSystem::StopDragging()
 {
     m_MouseDragging = false;
-    m_Window.SetInputMode(Window::CURSOR, Window::CURSOR_NORMAL);
+    m_Window.SetInputMode(Keybinds::CURSOR, Keybinds::CURSOR_NORMAL);
 }
 
 void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods)
 {
     // Skip keyboard input if ImGui is capturing keyboard
-    if (ImGui::GetIO().WantCaptureKeyboard) {
+    if (ImGui::GetIO().WantCaptureKeyboard) 
+    {
         return;
     }
     
     // Update key state
-    if (action == Window::PRESS) {
+    if (action == Keybinds::PRESS) 
+    {
         m_KeysPressed[key] = true;
-    } else if (action == Window::RELEASE) {
+    }
+    else if (action == Keybinds::RELEASE) 
+    {
         m_KeysPressed[key] = false;
     }
     
@@ -200,20 +205,24 @@ void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods
 void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
 {
     // Skip mouse input if ImGui is capturing mouse
-    if (ImGui::GetIO().WantCaptureMouse) {
+    if (ImGui::GetIO().WantCaptureMouse) 
+    {
         return;
     }
     
     // Update mouse button state
-    if (action == Window::PRESS) {
+    if (action == Keybinds::PRESS) 
+    {
         m_MouseButtonsPressed[button] = true;
-    } else if (action == Window::RELEASE) {
+    } else if (action == Keybinds::RELEASE) 
+    {
         m_MouseButtonsPressed[button] = false;
     }
     
     // Notify subscribers first (object manipulation system will handle object selection)
     auto range = m_MouseButtonCallbacks.equal_range(button);
-    for (auto it = range.first; it != range.second; ++it) {
+    for (auto it = range.first; it != range.second; ++it) 
+    {
         it->second(button, action, mods);
     }
     
@@ -227,7 +236,8 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     m_CurrentMousePos = glm::vec2(static_cast<float>(xpos), static_cast<float>(ypos));
     
     // Calculate delta only when dragging and not captured by ImGui
-    if (m_MouseDragging && !ImGui::GetIO().WantCaptureMouse) {
+    if (m_MouseDragging && !ImGui::GetIO().WantCaptureMouse) 
+    {
         m_MouseDelta.x = m_CurrentMousePos.x - m_LastMousePos.x;
         m_MouseDelta.y = m_LastMousePos.y - m_CurrentMousePos.y; // Inverted Y for camera control
     } else {
@@ -247,7 +257,8 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
 void InputSystem::ProcessScrollCallback(double xoffset, double yoffset)
 {
     // Skip scroll input if ImGui is capturing mouse
-    if (ImGui::GetIO().WantCaptureMouse) {
+    if (ImGui::GetIO().WantCaptureMouse) 
+    {
         return;
     }
     

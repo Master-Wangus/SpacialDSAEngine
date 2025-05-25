@@ -1,14 +1,12 @@
 #pragma once
 
 #include "pch.h"
-#include "Registry.hpp"
-#include "Window.hpp"
-#include "Components.hpp"
-#include "Primitives.hpp"
 
 // Forward declarations
+class Window;
 class InputSystem;
 class CollisionSystem;
+struct Ray;
 
 class ObjectManipulationSystem
 {
@@ -48,9 +46,9 @@ private:
     Registry::Entity m_DraggingEntity = entt::null;
     
     // State variables for dragging
-    glm::vec3 m_DragPlaneNormal;
-    glm::vec3 m_DragPlanePoint;
-    glm::vec3 m_DragOffset;
+    glm::vec3 m_DragPlaneNormal{};
+    glm::vec3 m_DragPlanePoint{};
+    glm::vec3 m_DragOffset{};
     
     // Original colors of entities (for restoring)
     std::unordered_map<Registry::Entity, glm::vec3> m_OriginalColors;

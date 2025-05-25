@@ -1,11 +1,11 @@
 #pragma once
 
 #include "pch.h"
-#include "Components.hpp"
-#include "Registry.hpp"
 
+// Forward declarations
 class Shader;
 class Window;
+class Registry;
 
 // Define demo scene types
 enum class DemoSceneType

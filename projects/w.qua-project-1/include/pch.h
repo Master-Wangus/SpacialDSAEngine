@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <chrono>
+#include <fstream>
+#include <sstream>
 
 // GLM
 #include <glm/glm.hpp>
@@ -26,3 +28,6 @@
 
 // EnTT
 #include <entt/entt.hpp> 
+
+// Engine includes
+#include "Registry.hpp"

@@ -2,13 +2,8 @@
 
 #include "pch.h"
 
-#include <GLFW/glfw3.h> // As per task 1 requirements
-
 // Forward declarations
 struct GLFWwindow;
-class InputSystem;
-
-// Forward declaration for InputSystem friendship
 class InputSystem;
 
 class Window 
@@ -21,40 +16,27 @@ public:
     using CursorPosCallback = std::function<void(double xpos, double ypos)>;
     using ScrollCallback = std::function<void(double xoffset, double yoffset)>;
     
-    // Input modes
-    static const int CURSOR = 0x00033001;
-    static const int CURSOR_NORMAL = 0x00034001;
-    static const int CURSOR_HIDDEN = 0x00034002;
-    static const int CURSOR_DISABLED = 0x00034003;
+    // Input mode constants
+    static const int CURSOR;
+    static const int CURSOR_NORMAL;
+    static const int CURSOR_HIDDEN;
+    static const int CURSOR_DISABLED;
     
-    // Mouse buttons
-    static const int MOUSE_BUTTON_LEFT = 0;
-    static const int MOUSE_BUTTON_RIGHT = 1;
-    static const int MOUSE_BUTTON_MIDDLE = 2;
+    // Mouse button constants
+    static const int MOUSE_BUTTON_LEFT;
+    static const int MOUSE_BUTTON_RIGHT;
+    static const int MOUSE_BUTTON_MIDDLE;
     
-    // Key actions
-    static const int PRESS = 1;
-    static const int RELEASE = 0;
+    // Action constants
+    static const int PRESS;
+    static const int RELEASE;
     
-    // Common keys
-    static const int KEY_W = 87;
-    static const int KEY_A = 65;
-    static const int KEY_S = 83;
-    static const int KEY_D = 68;
-    static const int KEY_Q = 81;
-    static const int KEY_E = 69;
-    static const int KEY_ESCAPE = 256;
-    static const int KEY_SPACE = 32;
-    static const int KEY_LEFT_SHIFT = 340;
-    static const int KEY_RIGHT_SHIFT = 344;
-    static const int KEY_LEFT_CONTROL = 341;
-    static const int KEY_RIGHT_CONTROL = 345;
-
     Window(int width, int height, const std::string& title);
     ~Window();
     
     // Window state
     GLFWwindow* GetHandle() const;
+    void* GetNativeWindow() const;
     bool ShouldClose() const;
     void SetShouldClose(bool value) const;
     void MakeContextCurrent() const;
@@ -62,6 +44,12 @@ public:
     int GetHeight() const;
     bool IsKeyPressed(int key) const;
     double GetTime() const;
+
+    void SetKeyCallback(std::function<void(int, int, int, int)> callback);
+    void SetCursorPosCallback(std::function<void(double, double)> callback);
+    void SetMouseButtonCallback(std::function<void(int, int, int)> callback);
+    void SetScrollCallback(std::function<void(double, double)> callback);
+    void SetFramebufferSizeCallback(std::function<void(int, int)> callback);
     
     // Window operation
     void PollEvents() const;
@@ -72,17 +60,7 @@ public:
     bool IsMouseButtonPressed(int button) const;
     void GetCursorPos(double* xpos, double* ypos) const;
     void SetInputMode(int mode, int value) const;
-    
-    // Callback registration
-    void SetKeyCallback(KeyCallback callback);
-    void SetCursorPosCallback(CursorPosCallback callback);
-    void SetMouseButtonCallback(MouseButtonCallback callback);
-    void SetScrollCallback(ScrollCallback callback);
-    void SetFramebufferSizeCallback(FramebufferSizeCallback callback);
-    
-    // Get the native GLFW window handle
-    void* GetNativeWindow() const;
-    
+        
     // Make InputSystem a friend so it can access our private members
     friend class InputSystem;
 

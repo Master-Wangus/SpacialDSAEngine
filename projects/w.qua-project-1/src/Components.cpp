@@ -1,5 +1,4 @@
 #include "Components.hpp"
-#include <glm/gtc/matrix_transform.hpp>
 
 void TransformComponent::UpdateModelMatrix()
 {

@@ -1,4 +1,6 @@
 #include "DemoScene.hpp"
+#include "Components.hpp"
+#include "Registry.hpp"
 #include "Systems.hpp"
 #include "Window.hpp"
 #include "Shader.hpp"
@@ -11,7 +13,6 @@
 #include "Primitives.hpp"
 #include "Intersection.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace
 {
@@ -202,7 +203,6 @@ namespace DemoScene
     
     void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
     {
-        // Create a point entity
         auto pointEntity = CreatePointEntity(registry, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), shader);
         
         // Create the appropriate test shape based on demo type
@@ -210,21 +210,18 @@ namespace DemoScene
         {
             case DemoSceneType::PointVsSphere:
             {
-                // Sphere slightly offset from the point
                 CreateSphereEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, glm::vec3(0.0f, 0.4f, 1.0f), shader);
                 break;
             }
             
             case DemoSceneType::PointVsAABB:
             {
-                // AABB slightly offset from the point
                 CreateAABBEntity(registry, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.5f), glm::vec3(0.0f, 0.4f, 1.0f), shader);
                 break;
             }
             
             case DemoSceneType::PointVsTriangle:
             {
-                // Triangle slightly offset from the point
                 glm::vec3 v0(0.0f, 0.0f, 0.0f);
                 glm::vec3 v1(1.0f, 0.0f, 0.0f);
                 glm::vec3 v2(0.5f, 1.0f, 0.0f);
@@ -234,7 +231,6 @@ namespace DemoScene
             
             case DemoSceneType::PointVsPlane:
             {
-                // Plane slightly below the point
                 CreatePlaneEntity(registry, glm::vec3(0.0f, 1.0f, 0.0f), 0.5f, glm::vec3(0.0f, 0.4f, 1.0f), shader);
                 break;
             }
@@ -243,7 +239,6 @@ namespace DemoScene
     
     void SetupRayBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType)
     {
-        // Create a ray entity from origin pointing forward
         auto rayEntity = CreateRayEntity(
             registry, 
             glm::vec3(0.0f, 0.0f, -5.0f), // Origin behind camera
@@ -253,7 +248,6 @@ namespace DemoScene
             shader
         );
         
-        // Create the appropriate test shape based on demo type
         switch (sceneType)
         {
             case DemoSceneType::RayVsPlane:

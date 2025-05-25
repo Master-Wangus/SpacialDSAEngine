@@ -1,6 +1,11 @@
 #include "RenderSystem.hpp"
 #include "Shader.hpp"
 #include "SphereRenderer.hpp"
+#include "Components.hpp"
+#include "Registry.hpp"
+#include "Window.hpp"
+#include "Buffer.hpp"
+#include "Lighting.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -8,7 +13,8 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     : m_Registry(registry), m_Window(window), m_Shader(shader)
 {
     // Set up framebuffer resize callback
-    window.SetFramebufferSizeCallback([](int width, int height) {
+    window.SetFramebufferSizeCallback([](int width, int height)
+        {
         // Update viewport when window is resized
         glViewport(0, 0, width, height);
     });
@@ -16,17 +22,14 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
 
 void RenderSystem::Initialize()
 {
-    // Set initial viewport size
     glViewport(0, 0, m_Window.GetWidth(), m_Window.GetHeight());
     
-    // Initialize all renderable objects
     for (auto entity : m_Registry.View<RenderComponent>()) 
     {
         m_Registry.GetComponent<RenderComponent>(entity).m_Renderable->Initialize(m_Shader);
     }
     SetupLighting();
     
-    // Initialize material uniform buffer
     SetupMaterial();
 }
 
@@ -77,7 +80,7 @@ void RenderSystem::SetupLighting()
         m_LightEntity = m_Registry.Create();
         light.m_Direction = glm::vec4(-0.2f, -1.0f, -0.3f, 0.0f);
         light.m_Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        light.m_Enabled = 1.0f;  // Enable light by default
+        light.m_Enabled = 1.0f;  
         m_Registry.AddComponent<DirectionalLightComponent>(m_LightEntity, DirectionalLightComponent(light));
     }
     else
@@ -119,7 +122,6 @@ void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
     m_Registry.AddComponent<CollisionComponent>(m_LightVisualizationEntity, 
         CollisionComponent::CreateSphere(lightPosition, 0.2f));
     
-    // Add a special tag to identify this as a light source
 }
 
 void RenderSystem::SetupMaterial()
@@ -173,7 +175,6 @@ void RenderSystem::ToggleDirectionalLight(bool enabled)
         auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
         lightComp.m_Light.m_Enabled = enabled ? 1.0f : 0.0f;
         
-        // Update the UBO data
         UpdateLighting();
     }
 }
@@ -191,7 +192,6 @@ bool RenderSystem::IsDirectionalLightEnabled() const
 
 void RenderSystem::UpdateLightFromVisualization()
 {
-    // Update light direction based on the current position of the light visualization
     if (m_LightEntity != entt::null && 
         m_LightVisualizationEntity != entt::null &&
         m_Registry.HasComponent<DirectionalLightComponent>(m_LightEntity) &&
@@ -200,15 +200,12 @@ void RenderSystem::UpdateLightFromVisualization()
         auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
         auto& lightTransform = m_Registry.GetComponent<TransformComponent>(m_LightVisualizationEntity);
         
-        // Calculate direction from light position toward the origin (scene center)
         glm::vec3 lightPosition = lightTransform.m_Position;
-        glm::vec3 sceneCenter = glm::vec3(0.0f, 0.0f, 0.0f); // Point light direction toward scene center
+        glm::vec3 sceneCenter = glm::vec3(0.0f, 0.0f, 0.0f); 
         glm::vec3 lightDirection = glm::normalize(sceneCenter - lightPosition);
         
-        // Update the directional light direction
         lightComp.m_Light.m_Direction = glm::vec4(lightDirection, 0.0f);
         
-        // Update the lighting UBO
         UpdateLighting();
     }
 } 

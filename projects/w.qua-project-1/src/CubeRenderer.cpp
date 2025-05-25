@@ -1,6 +1,5 @@
 #include "CubeRenderer.hpp"
 #include "Shader.hpp"
-#include <glm/gtc/matrix_transform.hpp>
 
 CubeRenderer::CubeRenderer(const glm::vec3& center, const glm::vec3& size, const glm::vec3& color)
     : m_Center(center), m_Size(size), m_Color(color)
@@ -37,15 +36,6 @@ void CubeRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMat
     m_Shader->SetMat4("model", cubeModelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
-    
-    // Material uniforms are now handled by the RenderSystem through UBOs
-    // m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
-    // m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
-    // m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
-    // m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
-    // m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
-    // m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
-    // m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
     
     // Bind buffer
     m_Buffer.Bind();

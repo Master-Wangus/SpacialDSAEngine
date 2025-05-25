@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Registry.hpp"
+#include "pch.h"
 
+// Forward declarations
+class Registry;
 class Window;
 
 // Input event types

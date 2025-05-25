@@ -4,6 +4,9 @@
 #include "InputSystem.hpp"
 #include "Systems.hpp"
 #include "ObjectManipulationSystem.hpp"
+#include "Keybinds.hpp"
+#include "Registry.hpp"
+#include "Components.hpp"
 
 FPSCameraSystem::FPSCameraSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
@@ -14,8 +17,6 @@ FPSCameraSystem::FPSCameraSystem(Registry& registry, Window& window)
     } 
     else 
     {
-        // Create a default camera
-        std::cout << "FPSCameraSystem: Creating default camera" << std::endl;
         
         m_CameraEntity = registry.Create();
         
@@ -54,12 +55,12 @@ void FPSCameraSystem::SetupInputCallbacks()
     });
     
     // Subscribe to mouse button for camera control
-    Systems::g_InputSystem->SubscribeToMouseButton(Window::MOUSE_BUTTON_RIGHT, 
+    Systems::g_InputSystem->SubscribeToMouseButton(Keybinds::MOUSE_BUTTON_RIGHT, 
         [this](int button, int action, int mods) {
             // Only handle right mouse button for camera control
-            if (button == Window::MOUSE_BUTTON_RIGHT)
+            if (button == Keybinds::MOUSE_BUTTON_RIGHT)
             {
-                if (action == Window::PRESS)
+                if (action == Keybinds::PRESS)
                 {
                     // Only start camera control if we're not dragging an object
                     if (!Systems::g_ObjectManipulationSystem->IsDragging())
@@ -67,7 +68,7 @@ void FPSCameraSystem::SetupInputCallbacks()
                         Systems::g_InputSystem->StartDragging();
                     }
                 }
-                else if (action == Window::RELEASE)
+                else if (action == Keybinds::RELEASE)
                 {
                     Systems::g_InputSystem->StopDragging();
                 }
@@ -123,10 +124,10 @@ void FPSCameraSystem::ProcessKeyboardInput(float deltaTime)
     auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
     
     // Get keys state from input system
-    bool keyW = Systems::g_InputSystem->IsKeyPressed(Window::KEY_W);
-    bool keyS = Systems::g_InputSystem->IsKeyPressed(Window::KEY_S);
-    bool keyA = Systems::g_InputSystem->IsKeyPressed(Window::KEY_A);
-    bool keyD = Systems::g_InputSystem->IsKeyPressed(Window::KEY_D);
+    bool keyW = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_W);
+    bool keyS = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_S);
+    bool keyA = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_A);
+    bool keyD = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_D);
     
     float cameraSpeed = camera.m_FPS.m_MovementSpeed * deltaTime;
     

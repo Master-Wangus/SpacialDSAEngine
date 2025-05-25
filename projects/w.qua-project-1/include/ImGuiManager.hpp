@@ -1,11 +1,11 @@
 #pragma once
-
-#include "Window.hpp"
-#include "Systems.hpp"
+#include "pch.h"
 
 // Forward declarations
 class Registry;
 class Shader;
+class Window;
+enum class DemoSceneType;
 
 class ImGuiManager 
 {

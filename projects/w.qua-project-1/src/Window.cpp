@@ -1,8 +1,6 @@
 #include "Window.hpp"
-#include <GLFW/glfw3.h>
-#include <iostream>
-#include <stdexcept>
-#include <unordered_map>
+#include "Keybinds.hpp"
+#include <GLFW/glfw3.h> // as required by task 1
 
 // Static map to associate GLFW windows with Window instances
 static std::unordered_map<GLFWwindow*, Window*> windowMap;

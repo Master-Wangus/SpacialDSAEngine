@@ -1,11 +1,10 @@
 #pragma once
 
 #include "pch.h"
-#include "Buffer.hpp"
-#include "Lighting.hpp"
 #include "IRenderable.hpp"
 
 class Shader;
+struct Vertex;
 
 class CubeRenderer : public IRenderable
 {

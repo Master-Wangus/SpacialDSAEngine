@@ -5,6 +5,7 @@
 #include "Systems.hpp"
 #include "InputSystem.hpp"
 #include "ImGuiManager.hpp"
+#include "Keybinds.hpp"
 
 // Constants
 const int WINDOW_WIDTH = 1024;
@@ -39,9 +40,9 @@ int main()
         ImGuiManager imguiManager(window);
         imguiManager.Init();
         
-        Systems::g_InputSystem->SubscribeToKey(Window::KEY_ESCAPE, 
+        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_ESCAPE, 
             [&window](int key, int scancode, int action, int mods) {
-                if (action == Window::PRESS) {
+                if (action == Keybinds::PRESS) {
                     window.SetShouldClose(true);
                 }
             });

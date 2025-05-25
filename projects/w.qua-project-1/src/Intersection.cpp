@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-// Sphere vs Sphere intersection test
 bool Intersection::SphereVsSphere(const BoundingSphere& a, const BoundingSphere& b) 
 {
     // Calculate the distance vector between centers
@@ -19,7 +18,6 @@ bool Intersection::SphereVsSphere(const BoundingSphere& a, const BoundingSphere&
     return distSquared <= sumRadiiSquared;
 }
 
-// AABB vs AABB intersection test
 bool Intersection::AabbVsAABB(const AABB& a, const AABB& b) 
 {
     // Early rejection test - check for separation on any axis
@@ -31,7 +29,6 @@ bool Intersection::AabbVsAABB(const AABB& a, const AABB& b)
     return true;
 }
 
-// Sphere vs AABB intersection test
 bool Intersection::SphereVsAABB(const BoundingSphere& sphere, const AABB& aabb) 
 {
     // Find the closest point on the AABB to the sphere's center
@@ -48,13 +45,11 @@ bool Intersection::SphereVsAABB(const BoundingSphere& sphere, const AABB& aabb)
     return distSquared <= sphere.m_Radius * sphere.m_Radius;
 }
 
-// Point vs Sphere intersection test
 bool Intersection::PointVsSphere(const glm::vec3& point, const BoundingSphere& sphere) 
 {
     return glm::distance2(point, sphere.m_Center) <= sphere.m_Radius * sphere.m_Radius;
 }
 
-// Point vs AABB intersection test
 bool Intersection::PointVsAABB(const glm::vec3& point, const AABB& aabb) 
 {
     glm::vec3 min = aabb.GetMin();
@@ -69,7 +64,6 @@ bool Intersection::PointVsAABB(const glm::vec3& point, const AABB& aabb)
     return true;
 }
 
-// Ray vs Sphere intersection test
 bool Intersection::SphereVsRay(const BoundingSphere& sphere, const Ray& ray, float& t) 
 {
     // Compute vector from sphere center to ray origin
@@ -118,7 +112,6 @@ bool Intersection::SphereVsRay(const BoundingSphere& sphere, const Ray& ray, flo
     return true;
 }
 
-// Ray vs AABB intersection test - optimized vectorized version
 bool Intersection::RayVsAABB(const Ray& ray, const AABB& aabb, float& t) 
 {
     glm::vec3 min = aabb.GetMin();
@@ -161,7 +154,7 @@ bool Intersection::RayVsAABB(const Ray& ray, const AABB& aabb, float& t)
     return false;
 }
 
-// Ray vs Triangle intersection test (Möller–Trumbore algorithm)
+// Möller–Trumbore algorithm
 bool Intersection::RayVsTriangle(const Ray& ray, const Triangle& triangle, float& t) 
 {
     const float EPSILON = 1e-8f;
@@ -196,7 +189,6 @@ bool Intersection::RayVsTriangle(const Ray& ray, const Triangle& triangle, float
     return t > EPSILON;
 }
 
-// Ray vs Plane intersection test
 bool Intersection::RayVsPlane(const Ray& ray, const Plane& plane, float& t) 
 {
     // Get the plane normal
@@ -219,7 +211,6 @@ bool Intersection::RayVsPlane(const Ray& ray, const Plane& plane, float& t)
     return t >= 0.0f;
 }
 
-// Point vs Plane intersection test
 bool Intersection::PointVsPlane(const glm::vec3& point, const Plane& plane) 
 {
     // A point lies on a plane if the distance is zero
@@ -230,7 +221,6 @@ bool Intersection::PointVsPlane(const glm::vec3& point, const Plane& plane)
     return std::fabs(distance) < 1e-8f;
 }
 
-// Point vs Triangle intersection test - using barycentric coordinates
 bool Intersection::PointVsTriangle(const glm::vec3& point, const Triangle& triangle) 
 {
     const glm::vec3& V0 = triangle.m_Vertices[0].m_Data;
@@ -268,7 +258,6 @@ bool Intersection::PointVsTriangle(const glm::vec3& point, const Triangle& trian
     return (u >= 0.0f) && (v >= 0.0f) && (w >= 0.0f);
 }
 
-// Plane vs Sphere intersection test
 bool Intersection::PlaneVsSphere(const Plane& plane, const BoundingSphere& sphere) 
 {
     // Step 1: Compute the signed distance from the sphere's center to the plane
@@ -281,7 +270,6 @@ bool Intersection::PlaneVsSphere(const Plane& plane, const BoundingSphere& spher
     return distance <= sphere.m_Radius;
 }
 
-// Plane vs AABB intersection test
 bool Intersection::PlaneVsAABB(const Plane& plane, const AABB& aabb) 
 {
     // Get the plane normal
@@ -293,10 +281,12 @@ bool Intersection::PlaneVsAABB(const Plane& plane, const AABB& aabb)
     
     // Compute the extremal points based on the normal direction
     // These are easy to compute from center and half-extents
-    if (normal.x > 0.0f) {
+    if (normal.x > 0.0f) 
+    {
         pMin.x -= aabb.m_HalfExtents.x;
         pMax.x += aabb.m_HalfExtents.x;
-    } else {
+    } else 
+    {
         pMin.x += aabb.m_HalfExtents.x;
         pMax.x -= aabb.m_HalfExtents.x;
     }

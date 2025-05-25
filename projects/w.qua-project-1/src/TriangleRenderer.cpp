@@ -20,10 +20,8 @@ void TriangleRenderer::Initialize(const std::shared_ptr<Shader>& shader)
 {
     m_Shader = shader;
     
-    // Create buffer with triangle vertices
     auto vertices = CreateVertices();
     
-    // Setup the buffer with vertices
     m_Buffer.Setup(vertices);
 }
 
@@ -34,27 +32,12 @@ void TriangleRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& vie
         
     m_Shader->Use();
     
-    // Set matrices - Apply the model matrix transformation
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    // Material uniforms are now handled by the RenderSystem through UBOs
-    // m_Shader->SetVec3("material.ambientColor", m_Material.m_AmbientColor);
-    // m_Shader->SetFloat("material.ambientIntensity", m_Material.m_AmbientIntensity);
-    // m_Shader->SetVec3("material.diffuseColor", m_Material.m_DiffuseColor);
-    // m_Shader->SetFloat("material.diffuseIntensity", m_Material.m_DiffuseIntensity);
-    // m_Shader->SetVec3("material.specularColor", m_Material.m_SpecularColor);
-    // m_Shader->SetFloat("material.specularIntensity", m_Material.m_SpecularIntensity);
-    // m_Shader->SetFloat("material.shininess", m_Material.m_Shininess);
-    
-    // Bind buffer
-    m_Buffer.Bind();
-    
-    // Draw triangle (3 vertices)
+    m_Buffer.Bind();   
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
-    
-    // Unbind
     m_Buffer.Unbind();
 }
 
@@ -81,7 +64,7 @@ void TriangleRenderer::SetVertices(const glm::vec3& v0, const glm::vec3& v1, con
 void TriangleRenderer::GetVertices(glm::vec3& v0, glm::vec3& v1, glm::vec3& v2) const
 {
     // Note: These are local space vertices. To get world space vertices,
-    // you need to transform them using the entity's transform matrix.
+    // need to transform them using the entity's transform matrix.
     v0 = m_Vertices[0];
     v1 = m_Vertices[1];
     v2 = m_Vertices[2];
@@ -108,7 +91,6 @@ std::vector<Vertex> TriangleRenderer::CreateVertices()
 {
     std::vector<Vertex> vertices;
     
-    // Compute triangle normal
     glm::vec3 normal = ComputeNormal();
     
     // Calculate UV coordinates (simple barycentric mapping)

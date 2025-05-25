@@ -1,12 +1,16 @@
 #pragma once
 
 #include "pch.h"
-#include "Components.hpp"
-#include "Registry.hpp"
-#include "Window.hpp"
-#include "FPSCameraSystem.hpp"
 
+// Forward declarations
 class Shader;
+class Window;
+
+// Forward declare components and registry
+struct RenderComponent;
+struct TransformComponent;
+struct CameraComponent;
+struct DirectionalLightComponent;
 
 class RenderSystem 
 {
@@ -30,7 +34,7 @@ private:
     void SetupLighting();
     void UpdateLighting();
     void SetupMaterial();
-    void CreateLightSourceVisualization(const DirectionalLight& light);
+    void CreateLightSourceVisualization(const struct DirectionalLight& light);
     
     Registry& m_Registry;
     Window& m_Window;

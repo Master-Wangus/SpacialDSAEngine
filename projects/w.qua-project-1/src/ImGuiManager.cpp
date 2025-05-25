@@ -9,6 +9,7 @@
 #include "RenderSystem.hpp"
 #include "Buffer.hpp"
 #include "DemoScene.hpp"
+#include "Window.hpp"
 
 ImGuiManager::ImGuiManager(Window& window)
     : m_Window(window)
@@ -75,7 +76,7 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     ImGui::Begin("Geometry Toolbox Controls");
     
     // FPS counter and performance stats
-    float currentTime = (float)glfwGetTime();
+    float currentTime = static_cast<double>(m_Window.GetTime());
     float deltaTime = currentTime - m_LastFrameTime;
     m_LastFrameTime = currentTime;
     
@@ -295,9 +296,6 @@ void ImGuiManager::RenderStats()
     ImGui::Text("GLSL Version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
     
     ImGui::Separator();
-    
-    // Memory usage (this is a placeholder - implement actual memory tracking if needed)
-    ImGui::Text("Memory Usage: N/A");
     
     ImGui::Separator();
     

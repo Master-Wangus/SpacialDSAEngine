@@ -3,8 +3,6 @@
 #include "pch.h"
 #include "Registry.hpp"
 #include "Components.hpp"
-#include "Primitives.hpp"
-#include "Intersection.hpp"
 
 struct CollisionPair 
 {

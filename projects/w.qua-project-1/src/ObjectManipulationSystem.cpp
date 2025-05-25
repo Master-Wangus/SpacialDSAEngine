@@ -1,4 +1,6 @@
 #include "ObjectManipulationSystem.hpp"
+#include "Registry.hpp"
+#include "Window.hpp"
 #include "Systems.hpp"
 #include "InputSystem.hpp"
 #include "CollisionSystem.hpp"
@@ -9,11 +11,14 @@
 #include "TriangleRenderer.hpp"
 #include "RayRenderer.hpp"
 #include "Intersection.hpp"
+#include "Components.hpp"
+#include "Primitives.hpp"
+#include "Keybinds.hpp"
 
 ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
 {
-    Systems::g_InputSystem->SubscribeToMouseButton(Window::MOUSE_BUTTON_LEFT, 
+    Systems::g_InputSystem->SubscribeToMouseButton(Keybinds::MOUSE_BUTTON_LEFT, 
         [this](int button, int action, int mods)
         {
             // Only handle mouse clicks when ImGui is not capturing mouse
@@ -24,7 +29,7 @@ ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& w
             if (Systems::g_InputSystem->IsMouseDragging())
                 return;
                 
-            if (action == Window::PRESS)
+            if (action == Keybinds::PRESS)
             {
                 // Try to pick an object
                 auto mousePos = Systems::g_InputSystem->GetMousePosition();
@@ -39,7 +44,7 @@ ObjectManipulationSystem::ObjectManipulationSystem(Registry& registry, Window& w
                     Systems::g_InputSystem->StopDragging();
                 }
             }
-            else if (action == Window::RELEASE)
+            else if (action == Keybinds::RELEASE)
             {
                 // Stop dragging if we were dragging an entity
                 if (IsDragging())
@@ -280,16 +285,22 @@ void ObjectManipulationSystem::UpdateCollisionColors()
         
         // Determine base color for this object
         glm::vec3 baseColor;
-        if (objectIndex == 0) {
+        if (objectIndex == 0) 
+        {
             baseColor = OBJECT1_COLOR; // Green for first object
-        } else if (objectIndex == 1) {
+        } else if (objectIndex == 1) 
+        {
             baseColor = OBJECT2_COLOR; // Blue for second object
-        } else {
+        } else 
+        {
             // Use original color or a default for additional objects
             auto colorIt = m_OriginalColors.find(entity);
-            if (colorIt != m_OriginalColors.end()) {
+            if (colorIt != m_OriginalColors.end()) 
+            {
                 baseColor = colorIt->second;
-            } else {
+            } 
+            else 
+            {
                 baseColor = glm::vec3(0.5f, 0.5f, 0.5f); // Gray for additional objects
             }
         }
