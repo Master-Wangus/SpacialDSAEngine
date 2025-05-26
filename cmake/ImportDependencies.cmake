@@ -99,6 +99,27 @@ macro(import_imgui)
     endif()
 endmacro()
 
+# Macro to import assimp
+macro(import_assimp)
+    if(NOT TARGET assimp)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            assimp
+            GIT_REPOSITORY https://github.com/assimp/assimp.git
+            GIT_TAG v5.2.5
+        )
+        
+        # Configure Assimp build options
+        set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+        set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+        set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
+        
+        FetchContent_MakeAvailable(assimp)
+        
+        include_directories(${assimp_SOURCE_DIR}/include)
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -122,6 +143,10 @@ macro(importDependencies)
     message(STATUS "Importing ImGui...")
     import_imgui()
     message(STATUS "ImGui imported successfully.")
+    
+    message(STATUS "Importing Assimp...")
+    import_assimp()
+    message(STATUS "Assimp imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

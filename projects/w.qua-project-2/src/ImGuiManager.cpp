@@ -10,7 +10,6 @@
 #include "ImGuiManager.hpp"
 #include "Registry.hpp"
 #include "Components.hpp"
-#include "Primitives.hpp"
 #include "CollisionSystem.hpp"
 #include "Systems.hpp"
 #include "Shader.hpp"
@@ -255,6 +254,17 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
         if (ImGui::Selectable("Plane vs Sphere", selectedScene == static_cast<int>(DemoSceneType::PlaneVsSphere)))
         {
             selectedScene = static_cast<int>(DemoSceneType::PlaneVsSphere);
+            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
+        }
+        
+        ImGui::TreePop();
+    }
+    
+    if (ImGui::TreeNode("Resource-Based Tests"))
+    {
+        if (ImGui::Selectable("3D Mesh (OBJ)", selectedScene == static_cast<int>(DemoSceneType::MeshResource)))
+        {
+            selectedScene = static_cast<int>(DemoSceneType::MeshResource);
             SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
         }
         

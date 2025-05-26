@@ -31,7 +31,8 @@ enum class DemoSceneType
     RayVsSphere,
     RayVsTriangle,
     PlaneVsAABB,
-    PlaneVsSphere
+    PlaneVsSphere,
+    MeshResource  // New demo type for mesh resources
 };
 
 namespace DemoScene
@@ -48,6 +49,7 @@ namespace DemoScene
     void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
     void SetupRayBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
     void SetupPlaneBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
+    void SetupMeshResourceDemo(Registry& registry, const std::shared_ptr<Shader>& shader); // New function
     
     void UpdateTransforms(Registry& registry);
 } 

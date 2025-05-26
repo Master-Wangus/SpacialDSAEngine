@@ -9,14 +9,12 @@
 #include "Systems.hpp"
 #include "Components.hpp"
 #include "Shader.hpp"
-#include "Intersection.hpp"
 #include "Window.hpp"
 #include "Registry.hpp"
 #include "CameraSystem.hpp"
 #include "CollisionSystem.hpp"
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
-#include "ObjectManipulationSystem.hpp"
 #include "SphereRenderer.hpp"
 #include "CubeRenderer.hpp"
 #include "TriangleRenderer.hpp"
@@ -33,7 +31,6 @@ namespace Systems
     std::unique_ptr<CameraSystem> g_CameraSystem = nullptr;
     std::unique_ptr<CollisionSystem> g_CollisionSystem = nullptr;
     std::unique_ptr<RenderSystem> g_RenderSystem = nullptr;
-    std::unique_ptr<ObjectManipulationSystem> g_ObjectManipulationSystem = nullptr;
     DemoSceneType g_CurrentDemoScene = DemoSceneType::SphereVsSphere;
 
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
@@ -44,7 +41,6 @@ namespace Systems
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
         g_CollisionSystem = std::make_unique<CollisionSystem>(registry);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
-        g_ObjectManipulationSystem = std::make_unique<ObjectManipulationSystem>(registry, window);
         
         DemoScene::SetupScene(registry, window, shader, g_CurrentDemoScene);
         g_RenderSystem->Initialize();
@@ -54,10 +50,8 @@ namespace Systems
     {
         g_InputSystem->Update(deltaTime);
         g_CameraSystem->OnRun(deltaTime);
-        g_ObjectManipulationSystem->Update(deltaTime);
         DemoScene::UpdateTransforms(registry);
         g_CollisionSystem->DetectCollisions();
-        g_ObjectManipulationSystem->UpdateCollisionColors();
     }
     
     void RenderSystems(Registry& registry, Window& window) 
@@ -68,7 +62,6 @@ namespace Systems
     void ShutdownSystems(Registry& registry) 
     {
         // Destroy systems in reverse order of creation
-        g_ObjectManipulationSystem.reset();
         g_RenderSystem.reset();
         g_CollisionSystem.reset();
         g_CameraSystem.reset();

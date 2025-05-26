@@ -37,5 +37,10 @@
 // EnTT
 #include <entt/entt.hpp> 
 
+// Assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 // Engine includes
 #include "Registry.hpp"

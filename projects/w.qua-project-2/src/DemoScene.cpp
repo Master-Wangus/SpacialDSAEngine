@@ -18,9 +18,8 @@
 #include "TriangleRenderer.hpp"
 #include "PlaneRenderer.hpp"
 #include "RayRenderer.hpp"
-#include "Primitives.hpp"
-#include "Intersection.hpp"
-
+#include "MeshRenderer.hpp"
+#include "ResourceSystem.hpp"
 
 namespace
 {
@@ -161,6 +160,10 @@ namespace DemoScene
             case DemoSceneType::PlaneVsAABB:
             case DemoSceneType::PlaneVsSphere:
                 SetupPlaneBasedDemos(registry, shader, sceneType);
+                break;
+                
+            case DemoSceneType::MeshResource:
+                SetupMeshResourceDemo(registry, shader);
                 break;
         }
     }
@@ -332,5 +335,42 @@ namespace DemoScene
             // Update the collider transform based on the entity transform
             collider.UpdateTransform(transform.m_Position, transform.m_Scale);
         }
+    }
+
+    void SetupMeshResourceDemo(Registry& registry, const std::shared_ptr<Shader>& shader)
+    {
+        // Create a floor plane
+        auto floor = registry.Create();
+        registry.AddComponent<TransformComponent>(floor, 
+            TransformComponent(glm::vec3(0.0f, -1.0f, 0.0f), 
+                              glm::vec3(0.0f), 
+                              glm::vec3(10.0f, 0.1f, 10.0f)));
+        
+        auto floorRenderer = std::make_shared<CubeRenderer>(
+            glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+        floorRenderer->Initialize(shader);
+        registry.AddComponent<RenderComponent>(floor, RenderComponent(floorRenderer));
+        
+        // Create a mesh entity (replace with the path to your .obj file)
+        const std::string meshPath = "../projects/w.qua-project-2/models/teddy.obj";  
+        
+        // Load the mesh and get a handle from the ResourceSystem
+        ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(meshPath);
+        
+        
+        auto meshEntity = registry.Create();
+        registry.AddComponent<TransformComponent>(meshEntity,
+            TransformComponent(glm::vec3(0.0f, 1.0f, 0.0f),
+                              glm::vec3(0.0f),
+                              glm::vec3(1.0f)));
+        
+        // Create a mesh renderer using the resource handle
+        auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
+        meshRenderer->Initialize(shader);
+        registry.AddComponent<RenderComponent>(meshEntity, RenderComponent(meshRenderer));
+        
+        // Add a collision component for the mesh
+        auto collisionComp = CollisionComponent::CreateSphere(glm::vec3(0.0f), 1.0f);
+        registry.AddComponent<CollisionComponent>(meshEntity, collisionComp);
     }
 } 

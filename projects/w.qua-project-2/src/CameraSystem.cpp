@@ -11,7 +11,6 @@
 #include "Window.hpp"
 #include "InputSystem.hpp"
 #include "Systems.hpp"
-#include "ObjectManipulationSystem.hpp"
 #include "Keybinds.hpp"
 #include "Registry.hpp"
 #include "Components.hpp"
@@ -78,11 +77,7 @@ void CameraSystem::SetupInputCallbacks()
             {
                 if (action == Keybinds::PRESS)
                 {
-                    // Only start camera control if we're not dragging an object
-                    if (!Systems::g_ObjectManipulationSystem->IsDragging())
-                    {
-                        Systems::g_InputSystem->StartDragging();
-                    }
+                    Systems::g_InputSystem->StartDragging();
                 }
                 else if (action == Keybinds::RELEASE)
                 {

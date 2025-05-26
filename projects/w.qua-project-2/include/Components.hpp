@@ -9,7 +9,6 @@
 #pragma once
 
 #include "pch.h"
-#include "Primitives.hpp"
 #include "Lighting.hpp"
 #include "Buffer.hpp"
 #include "IRenderable.hpp"
@@ -175,17 +174,7 @@ struct CollisionComponent
         comp.m_Point.m_Position = position;
         return comp;
     }
-    
-    // Conversion from primitive objects
-    static CollisionComponent FromBoundingSphere(const BoundingSphere& sphere) 
-    {
-        return CreateSphere(sphere.m_Center, sphere.m_Radius);
-    }
-    
-    static CollisionComponent FromAABB(const AABB& aabb) 
-    {
-        return CreateAABB(aabb.m_Center, aabb.m_HalfExtents);
-    }
+   
     
     // Update the transform of the collision shape
     void UpdateTransform(const glm::vec3& position, const glm::vec3& scale) 

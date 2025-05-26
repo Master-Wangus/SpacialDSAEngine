@@ -23,6 +23,7 @@ set(ALL_LIBS
   PRIVATE libglew_static
   EnTT::EnTT
   PRIVATE imgui
+  PRIVATE assimp
 )
 
 # Include path for GLM (optional if not using FetchContent)
