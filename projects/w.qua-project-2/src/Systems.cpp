@@ -12,7 +12,6 @@
 #include "Window.hpp"
 #include "Registry.hpp"
 #include "CameraSystem.hpp"
-#include "CollisionSystem.hpp"
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
 #include "SphereRenderer.hpp"
@@ -29,9 +28,8 @@ namespace Systems
 {
     std::unique_ptr<InputSystem> g_InputSystem = nullptr;
     std::unique_ptr<CameraSystem> g_CameraSystem = nullptr;
-    std::unique_ptr<CollisionSystem> g_CollisionSystem = nullptr;
     std::unique_ptr<RenderSystem> g_RenderSystem = nullptr;
-    DemoSceneType g_CurrentDemoScene = DemoSceneType::SphereVsSphere;
+    DemoSceneType g_CurrentDemoScene = DemoSceneType::MeshScene;
 
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
@@ -39,7 +37,6 @@ namespace Systems
         g_InputSystem = std::make_unique<InputSystem>(registry, window);
         
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
-        g_CollisionSystem = std::make_unique<CollisionSystem>(registry);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
         
         DemoScene::SetupScene(registry, window, shader, g_CurrentDemoScene);
@@ -50,8 +47,6 @@ namespace Systems
     {
         g_InputSystem->Update(deltaTime);
         g_CameraSystem->OnRun(deltaTime);
-        DemoScene::UpdateTransforms(registry);
-        g_CollisionSystem->DetectCollisions();
     }
     
     void RenderSystems(Registry& registry, Window& window) 
@@ -63,7 +58,6 @@ namespace Systems
     {
         // Destroy systems in reverse order of creation
         g_RenderSystem.reset();
-        g_CollisionSystem.reset();
         g_CameraSystem.reset();
         g_InputSystem.reset();
     }

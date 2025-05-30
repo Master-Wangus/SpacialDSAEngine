@@ -1,9 +1,9 @@
 /**
  * @class DemoScene
- * @brief Demonstration scene with multiple 3D objects and interaction.
+ * @brief Demonstration scene for rendering 3D mesh objects.
  *
- * This class sets up a 3D scene with various primitive objects, lighting, and
- * interactive components to showcase the engine's capabilities.
+ * This class sets up a 3D scene with mesh objects and lighting to showcase
+ * the engine's mesh rendering capabilities.
  */
 
 #pragma once
@@ -15,41 +15,18 @@ class Shader;
 class Window;
 class Registry;
 
-// Define demo scene types
 enum class DemoSceneType
 {
-    Default,
-    SphereVsSphere,
-    SphereVsAABB,  
-    AABBVsAABB,
-    PointVsSphere,
-    PointVsAABB,
-    PointVsTriangle,
-    PointVsPlane,
-    RayVsPlane,
-    RayVsAABB,
-    RayVsSphere,
-    RayVsTriangle,
-    PlaneVsAABB,
-    PlaneVsSphere,
-    MeshResource  // New demo type for mesh resources
+    MeshScene  
 };
 
 namespace DemoScene
 {
     // Scene management functions
-    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
+    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType = DemoSceneType::MeshScene);
     void ClearScene(Registry& registry);
-    void SwitchScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
     
-    // Scene setup helpers for collision demos
-    void SetupSphereVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader);
-    void SetupAABBVsSphereDemo(Registry& registry, const std::shared_ptr<Shader>& shader);
-    void SetupAABBVsAABBDemo(Registry& registry, const std::shared_ptr<Shader>& shader);
-    void SetupPointBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
-    void SetupRayBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
-    void SetupPlaneBasedDemos(Registry& registry, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType);
-    void SetupMeshResourceDemo(Registry& registry, const std::shared_ptr<Shader>& shader); // New function
+    // Scene setup for mesh rendering
+    void SetupMeshScene(Registry& registry, const std::shared_ptr<Shader>& shader);
     
-    void UpdateTransforms(Registry& registry);
 } 

@@ -126,10 +126,6 @@ void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
     m_Registry.AddComponent<RenderComponent>(m_LightVisualizationEntity, 
         RenderComponent(lightSphereRenderer));
     
-    // Add collision component so the light can be dragged
-    m_Registry.AddComponent<CollisionComponent>(m_LightVisualizationEntity, 
-        CollisionComponent::CreateSphere(lightPosition, 0.2f));
-    
 }
 
 void RenderSystem::SetupMaterial()

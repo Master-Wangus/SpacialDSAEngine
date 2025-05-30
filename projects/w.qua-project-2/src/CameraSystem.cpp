@@ -27,20 +27,20 @@ CameraSystem::CameraSystem(Registry& registry, Window& window)
         
         m_CameraEntity = registry.Create();
         
-        FPSCameraComponent fpsCamera(
+        FPSCamera fpsCamera(
             glm::vec3(0.0f, 0.0f, 3.0f),  // position
             glm::vec3(0.0f, 0.0f, -1.0f), // front
             glm::vec3(0.0f, 1.0f, 0.0f)   // up
         );
         
-        OrbitalCameraComponent orbitalCamera(
+        OrbitalCamera orbitalCamera(
             glm::vec3(0.0f, 0.0f, 0.0f),  // target
             5.0f,                          // distance
             45.0f,                         // yaw
             30.0f                          // pitch
         );
         
-        ProjectionComponent projection(
+        Projection projection(
             45.0f,  // fov
             0.1f,   // near plane
             100.0f  // far plane

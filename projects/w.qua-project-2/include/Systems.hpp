@@ -17,7 +17,6 @@ class Shader;
 class Window;
 class Registry;
 class CameraSystem;
-class CollisionSystem;
 class RenderSystem;
 class InputSystem;
 
@@ -25,7 +24,6 @@ namespace Systems
 {
     extern std::unique_ptr<InputSystem> g_InputSystem;
     extern std::unique_ptr<CameraSystem> g_CameraSystem;
-    extern std::unique_ptr<CollisionSystem> g_CollisionSystem;
     extern std::unique_ptr<RenderSystem> g_RenderSystem;
     extern DemoSceneType g_CurrentDemoScene;
 

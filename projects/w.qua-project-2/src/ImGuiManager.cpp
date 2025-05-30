@@ -10,7 +10,6 @@
 #include "ImGuiManager.hpp"
 #include "Registry.hpp"
 #include "Components.hpp"
-#include "CollisionSystem.hpp"
 #include "Systems.hpp"
 #include "Shader.hpp"
 #include "RenderSystem.hpp"
@@ -131,154 +130,22 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 void ImGuiManager::RenderSceneSelector(Registry& registry)
 {
     // Get the current selected scene
-    static const char* currentScene = "Sphere vs Sphere";
+    static const char* currentScene = "Demo Scene with Bouding Volumes";
     static int selectedScene = static_cast<int>(Systems::g_CurrentDemoScene);
     
     // Map the enum to descriptive strings
     static const char* sceneNames[] = {
-        "Sphere vs Sphere",
-        "Sphere vs AABB",  // Kept only the canonical version
-        "AABB vs AABB",
-        "Point vs Sphere",
-        "Point vs AABB",
-        "Point vs Triangle",
-        "Point vs Plane",
-        "Ray vs Plane",
-        "Ray vs AABB",
-        "Ray vs Sphere",
-        "Ray vs Triangle",
-        "Plane vs AABB",
-        "Plane vs Sphere"
+        "Demo Scene",
     };
     
     ImGui::Text("Current Scene: %s", sceneNames[selectedScene]);
     ImGui::Separator();
     
-    // Show ray controls help if a ray-based demo is selected
-    if (selectedScene >= static_cast<int>(DemoSceneType::RayVsPlane) && 
-        selectedScene <= static_cast<int>(DemoSceneType::RayVsTriangle)) {
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Ray Controls:");
-        ImGui::Text("Press Q/E to rotate the ray");
-        ImGui::Separator();
-    }
-    
-    if (ImGui::TreeNode("Volume-Based Tests"))
-    {
-        if (ImGui::Selectable("Sphere vs Sphere", selectedScene == static_cast<int>(DemoSceneType::SphereVsSphere)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::SphereVsSphere);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Sphere vs AABB", selectedScene == static_cast<int>(DemoSceneType::SphereVsAABB)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::SphereVsAABB);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("AABB vs AABB", selectedScene == static_cast<int>(DemoSceneType::AABBVsAABB)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::AABBVsAABB);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        ImGui::TreePop();
-    }
-    
-    if (ImGui::TreeNode("Point-Based Tests"))
-    {
-        if (ImGui::Selectable("Point vs Sphere", selectedScene == static_cast<int>(DemoSceneType::PointVsSphere)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PointVsSphere);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Point vs AABB", selectedScene == static_cast<int>(DemoSceneType::PointVsAABB)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PointVsAABB);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Point vs Triangle", selectedScene == static_cast<int>(DemoSceneType::PointVsTriangle)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PointVsTriangle);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Point vs Plane", selectedScene == static_cast<int>(DemoSceneType::PointVsPlane)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PointVsPlane);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        ImGui::TreePop();
-    }
-    
-    if (ImGui::TreeNode("Ray-Based Tests"))
-    {
-        if (ImGui::Selectable("Ray vs Plane", selectedScene == static_cast<int>(DemoSceneType::RayVsPlane)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::RayVsPlane);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Ray vs AABB", selectedScene == static_cast<int>(DemoSceneType::RayVsAABB)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::RayVsAABB);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Ray vs Sphere", selectedScene == static_cast<int>(DemoSceneType::RayVsSphere)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::RayVsSphere);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Ray vs Triangle", selectedScene == static_cast<int>(DemoSceneType::RayVsTriangle)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::RayVsTriangle);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        ImGui::TreePop();
-    }
-    
-    if (ImGui::TreeNode("Plane-Based Tests"))
-    {
-        if (ImGui::Selectable("Plane vs AABB", selectedScene == static_cast<int>(DemoSceneType::PlaneVsAABB)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PlaneVsAABB);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        if (ImGui::Selectable("Plane vs Sphere", selectedScene == static_cast<int>(DemoSceneType::PlaneVsSphere)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::PlaneVsSphere);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        ImGui::TreePop();
-    }
-    
-    if (ImGui::TreeNode("Resource-Based Tests"))
-    {
-        if (ImGui::Selectable("3D Mesh (OBJ)", selectedScene == static_cast<int>(DemoSceneType::MeshResource)))
-        {
-            selectedScene = static_cast<int>(DemoSceneType::MeshResource);
-            SwitchScene(registry, static_cast<DemoSceneType>(selectedScene));
-        }
-        
-        ImGui::TreePop();
-    }
 }
 
 void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
 {
-    // Update current scene type in Systems namespace
     Systems::g_CurrentDemoScene = sceneType;
-    
-    // Use DemoScene namespace to switch scenes
-    DemoScene::SwitchScene(registry, m_Window, Systems::g_RenderSystem->GetShader(), sceneType);
 }
 
 void ImGuiManager::RenderCameraControls(Registry& registry)
