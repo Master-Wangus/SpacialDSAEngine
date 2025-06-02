@@ -61,4 +61,13 @@ namespace Systems
         g_CameraSystem.reset();
         g_InputSystem.reset();
     }
+
+    void ResetCurrentScene(Registry& registry, Window& window)
+    {
+        if (g_RenderSystem)
+        {
+            auto shader = g_RenderSystem->GetShader();
+            DemoScene::ResetScene(registry, window, shader);
+        }
+    }
 }

@@ -31,4 +31,5 @@ namespace Systems
     void UpdateSystems(Registry& registry, Window& window, float deltaTime);
     void RenderSystems(Registry& registry, Window& window);
     void ShutdownSystems(Registry& registry);
+    void ResetCurrentScene(Registry& registry, Window& window);
 }

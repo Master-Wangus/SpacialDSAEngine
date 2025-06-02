@@ -82,14 +82,15 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     ImGui::Begin("Geometry Toolbox Controls");
     
     // FPS counter and performance stats
-    float currentTime = static_cast<double>(m_Window.GetTime());
+    float currentTime = static_cast<float>(m_Window.GetTime());
     float deltaTime = currentTime - m_LastFrameTime;
     m_LastFrameTime = currentTime;
     
     m_FrameCount++;
     m_FrameTimeAccumulator += deltaTime;
     
-    if (m_FrameTimeAccumulator >= 1.0f) {
+    if (m_FrameTimeAccumulator >= 1.0f) 
+    {
         m_FrameRate = static_cast<float>(m_FrameCount) / m_FrameTimeAccumulator;
         m_FrameCount = 0;
         m_FrameTimeAccumulator = 0.0f;
@@ -129,18 +130,17 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 
 void ImGuiManager::RenderSceneSelector(Registry& registry)
 {
-    // Get the current selected scene
-    static const char* currentScene = "Demo Scene with Bouding Volumes";
+    static const char* currentScene = "Demo Scene with Bounding Volumes";
     static int selectedScene = static_cast<int>(Systems::g_CurrentDemoScene);
     
-    // Map the enum to descriptive strings
-    static const char* sceneNames[] = {
+    static const char* sceneNames[] = 
+    {
         "Demo Scene",
     };
     
     ImGui::Text("Current Scene: %s", sceneNames[selectedScene]);
     ImGui::Separator();
-    
+   
 }
 
 void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)

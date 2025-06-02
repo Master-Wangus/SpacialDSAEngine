@@ -14,6 +14,8 @@
 #include "IRenderable.hpp"
 #include "Shapes.hpp"
 #include "CameraSystem.hpp"
+#include "Geometry.hpp"
+#include "ResourceSystem.hpp"
 
 class Shader;
 
@@ -79,9 +81,26 @@ struct BoundingComponent
     std::shared_ptr<IRenderable> m_SphereRenderable;
 
     BoundingComponent() = default;
+    BoundingComponent(const ResourceHandle& resourceHandle)
+    {
+        const auto& meshResource = ResourceSystem::GetInstance().GetMesh(resourceHandle);
 
-    BoundingComponent(const Aabb& aabb, const Sphere& ritter, const Sphere& larsson, const Sphere& pca)
-        : m_AABB(aabb), m_RitterSphere(ritter), m_LarssonSphere(larsson), m_PCASphere(pca) {}
+        Vertex* min = new Vertex();
+        Vertex* max = new Vertex();
+        CreateAabbBruteForce(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), min, max);
+        m_AABB = Aabb(min->m_Position, max->m_Position);
+
+        Vertex* center = new Vertex();
+        float* radius = new float();
+        CreateSphereRitters(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
+        m_RitterSphere = Sphere(center->m_Position, *radius);
+
+        CreateSphereIterative(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), 2, 0.5f, center, radius);
+        m_LarssonSphere = Sphere(center->m_Position, *radius);
+
+        CreateSpherePCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
+        m_PCASphere = Sphere(center->m_Position, *radius);
+    }
 };
 
 // ==================== Camera Components ====================

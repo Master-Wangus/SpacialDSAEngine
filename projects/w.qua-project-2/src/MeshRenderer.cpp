@@ -32,7 +32,7 @@ void MeshRenderer::Initialize(const std::shared_ptr<Shader>& shader)
     if (mesh)
     {
         // Make a copy of the mesh vertices with our custom color
-        auto vertices = mesh->GetVertices();
+        auto vertices = mesh->GetVertexes();
         
         // Apply the color to all vertices
         for (auto& vertex : vertices)
@@ -120,7 +120,7 @@ void MeshRenderer::UpdateVertexColors()
         return;
     
     // Get original vertices from the mesh resource
-    auto vertices = mesh->GetVertices();
+    auto vertices = mesh->GetVertexes();
     
     // Apply our color to all vertices
     for (auto& vertex : vertices)

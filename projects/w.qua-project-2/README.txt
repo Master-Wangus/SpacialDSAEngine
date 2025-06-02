@@ -10,6 +10,7 @@ UI USAGE INSTRUCTIONS:
 - Mouse Hold Right Click: Look around (FPS mode) or orbit around target (Orbital mode)
 - Mouse Scroll Wheel: Zoom in/out (Orbital mode only)
 - C Key: Switch between FPS and Orbital camera modes
+- R Key: Reset scene to initial state (also available as button in ImGui)
 - Mouse Hold Left Click on Object: Drag object around to test collision.
 - Color of entities:
   - Red: Collision
@@ -23,6 +24,7 @@ UI USAGE INSTRUCTIONS:
 - A: Move left (FPS) / Move target left (Orbital)
 - D: Move right (FPS) / Move target right (Orbital)
 - C: Switch between FPS and Orbital camera modes
+- R: Reset scene to initial state
 - Q/E: Rotate ray (in ray-based demos)
 - Mouse RMB: Look around (FPS) / Orbit around target (Orbital)
 - Mouse Scroll: Zoom in/out (Orbital mode only)

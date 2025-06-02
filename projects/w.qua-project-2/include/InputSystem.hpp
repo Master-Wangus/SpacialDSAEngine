@@ -31,7 +31,8 @@ using MouseButtonCallback = std::function<void(int, int, int)>;
 using MouseMoveCallback = std::function<void(double, double)>;
 using MouseScrollCallback = std::function<void(double, double)>;
 
-class InputSystem {
+class InputSystem 
+{
 public:
     InputSystem(Registry& registry, Window& window);
     ~InputSystem();
@@ -59,8 +60,6 @@ public:
     void StopDragging();
 
 private:
-    // Handle rotation of ray entities with Q and E keys
-    void HandleRayRotation(float deltaTime);
 
     Registry& m_Registry;
     Window& m_Window;

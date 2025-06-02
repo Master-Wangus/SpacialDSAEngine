@@ -11,12 +11,9 @@ Aabb::Aabb(const glm::vec3& centerParam, float extentsParam) : min(centerParam -
 
 }
 
-Aabb Aabb::Transform(const glm::mat4& transform) const
+void Aabb::Transform(const glm::mat4& transform)
 {
-    glm::vec3 transformed_min;
-    glm::vec3 transformed_max;
-    TransformAabb(min, max, transform, &transformed_min, &transformed_max);
-    return Aabb(transformed_min, transformed_max);
+    TransformAabb(min, max, transform);
 }
 
 glm::vec3 Aabb::GetCenter() const

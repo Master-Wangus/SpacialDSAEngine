@@ -43,6 +43,12 @@ namespace DemoScene
         }
     }
 
+    void ResetScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
+    {
+        ClearScene(registry);        
+        SetupScene(registry, window, shader, Systems::g_CurrentDemoScene);
+    }
+
     void SetupMeshScene(Registry& registry, const std::shared_ptr<Shader>& shader)
     {
                 
@@ -54,7 +60,7 @@ namespace DemoScene
         registry.AddComponent<TransformComponent>(meshEntityRhino,
             TransformComponent(glm::vec3(0.0f, 0.0f, 0.0f),
                               glm::vec3(0.0f),
-                              glm::vec3(0.4f)));
+                              glm::vec3(1.0f)));
         
         auto meshRendererRhino = std::make_shared<MeshRenderer>(meshHandleRhino, glm::vec3(0.0f, 1.0f, 0.0f));
         meshRendererRhino->Initialize(shader);
@@ -64,7 +70,7 @@ namespace DemoScene
         // Cup
         auto meshEntityCup = registry.Create();
         registry.AddComponent<TransformComponent>(meshEntityCup,
-            TransformComponent(glm::vec3(0.0f, 0.0f, -5.0f),
+            TransformComponent(glm::vec3(0.0f, 0.0f, 15.0f),
                 glm::vec3(0.0f),
                 glm::vec3(10.0f)));
         auto meshRendererCup = std::make_shared<MeshRenderer>(meshHandleCup, glm::vec3(0.0f, 1.0f, 0.0f));

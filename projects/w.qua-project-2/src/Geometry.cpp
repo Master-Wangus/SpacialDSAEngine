@@ -1,842 +1,844 @@
 #include "Geometry.hpp"
 
-    constexpr float kEpsilon = 1e-5f; // Custom epsilon for floating-point comparisons
+constexpr float kEpsilon = 1e-5f; // Custom epsilon for floating-point comparisons
 
-    SideResult ClassifyPointAabb(glm::vec3 const& p, glm::vec3 const& min, glm::vec3 const& max)
+SideResult ClassifyPointAabb(Vertex const& p, Vertex const& min, Vertex const& max)
+{
+    const glm::vec3& pos = p.m_Position;
+    const glm::vec3& minPos = min.m_Position;
+    const glm::vec3& maxPos = max.m_Position;
+    
+    if (pos.x >= minPos.x && pos.x <= maxPos.x &&
+        pos.y >= minPos.y && pos.y <= maxPos.y &&
+        pos.z >= minPos.z && pos.z <= maxPos.z)
     {
-        if (p.x >= min.x && p.x <= max.x &&
-            p.y >= min.y && p.y <= max.y &&
-            p.z >= min.z && p.z <= max.z)
+        if (pos.x > minPos.x && pos.x < maxPos.x &&
+            pos.y > minPos.y && pos.y < maxPos.y &&
+            pos.z > minPos.z && pos.z < maxPos.z)
         {
-            if (p.x > min.x && p.x < max.x &&
-                p.y > min.y && p.y < max.y &&
-                p.z > min.z && p.z < max.z)
-            {
-                return SideResult::eINSIDE;
-            }
-            return SideResult::eOVERLAPPING;
+            return SideResult::eINSIDE;
         }
+        return SideResult::eOVERLAPPING;
+    }
+    return SideResult::eOUTSIDE;
+}
+
+SideResult ClassifyPlanePoint(glm::vec3 const& n, float d, Vertex const& p)
+{
+    float distance = dot(n, p.m_Position) - d;
+    if (distance > kEpsilon) 
+    {
         return SideResult::eOUTSIDE;
     }
-
-    SideResult ClassifyPlanePoint(glm::vec3 const& n, float d, glm::vec3 const& p)
+    else if (distance < -kEpsilon) 
     {
-        float distance = dot(n, p) - d;
+        return SideResult::eINSIDE;
+    }
+    return SideResult::eOVERLAPPING;
+}
+
+SideResult ClassifyPlaneTriangle(glm::vec3 const& n, float d, Vertex const& A, Vertex const& B, Vertex const& C) 
+{
+    SideResult sideA = ClassifyPlanePoint(n, d, A);
+    SideResult sideB = ClassifyPlanePoint(n, d, B);
+    SideResult sideC = ClassifyPlanePoint(n, d, C);
+
+    if (sideA == SideResult::eINSIDE && sideB == SideResult::eINSIDE && sideC == SideResult::eINSIDE) {
+        return SideResult::eINSIDE;
+    }
+    else if (sideA == SideResult::eOUTSIDE && sideB == SideResult::eOUTSIDE && sideC == SideResult::eOUTSIDE) {
+        return SideResult::eOUTSIDE;
+    }
+    return SideResult::eOVERLAPPING;
+}
+
+SideResult ClassifyPlaneAabb(glm::vec3 const& n, float d, Vertex const& min, Vertex const& max) 
+{
+    const glm::vec3& minPos = min.m_Position;
+    const glm::vec3& maxPos = max.m_Position;
+    
+    glm::vec3 vertices[8] = 
+    {
+        {minPos.x, minPos.y, minPos.z},
+        {maxPos.x, minPos.y, minPos.z},
+        {minPos.x, maxPos.y, minPos.z},
+        {maxPos.x, maxPos.y, minPos.z},
+        {minPos.x, minPos.y, maxPos.z},
+        {maxPos.x, minPos.y, maxPos.z},
+        {minPos.x, maxPos.y, maxPos.z},
+        {maxPos.x, maxPos.y, maxPos.z}
+    };
+
+    bool inside = false;
+    bool outside = false;
+
+    for (const glm::vec3& vertex : vertices)
+    {
+        float distance = dot(n, vertex) - d;
         if (distance > kEpsilon) 
         {
-            return SideResult::eOUTSIDE;
+            outside = true;
         }
         else if (distance < -kEpsilon) 
         {
-            return SideResult::eINSIDE;
+            inside = true;
         }
-        return SideResult::eOVERLAPPING;
-    }
-
-    SideResult ClassifyPlaneTriangle(glm::vec3 const& n, float d, glm::vec3 const& A, glm::vec3 const& B, glm::vec3 const& C) 
-    {
-        SideResult sideA = ClassifyPlanePoint(n, d, A);
-        SideResult sideB = ClassifyPlanePoint(n, d, B);
-        SideResult sideC = ClassifyPlanePoint(n, d, C);
-
-        if (sideA == SideResult::eINSIDE && sideB == SideResult::eINSIDE && sideC == SideResult::eINSIDE) {
-            return SideResult::eINSIDE;
-        }
-        else if (sideA == SideResult::eOUTSIDE && sideB == SideResult::eOUTSIDE && sideC == SideResult::eOUTSIDE) {
-            return SideResult::eOUTSIDE;
-        }
-        return SideResult::eOVERLAPPING;
-    }
-
-    SideResult ClassifyPlaneAabb(glm::vec3 const& n, float d, glm::vec3 const& min, glm::vec3 const& max) 
-    {
-        glm::vec3 vertices[8] = 
+        if (inside && outside) 
         {
-            {min.x, min.y, min.z},
-            {max.x, min.y, min.z},
-            {min.x, max.y, min.z},
-            {max.x, max.y, min.z},
-            {min.x, min.y, max.z},
-            {max.x, min.y, max.z},
-            {min.x, max.y, max.z},
-            {max.x, max.y, max.z}
-        };
-
-        bool inside = false;
-        bool outside = false;
-
-        for (const glm::vec3& vertex : vertices)
-        {
-            SideResult side = ClassifyPlanePoint(n, d, vertex);
-            if (side == SideResult::eINSIDE) 
-            {
-                inside = true;
-            }
-            else if (side == SideResult::eOUTSIDE) 
-            {
-                outside = true;
-            }
-            if (inside && outside) 
-            {
-                return SideResult::eOVERLAPPING;
-            }
+            return SideResult::eOVERLAPPING;
         }
-
-        return inside ? SideResult::eINSIDE : SideResult::eOUTSIDE;
     }
 
-    SideResult ClassifyPlaneSphere(glm::vec3 const& n, float d, glm::vec3 const& c, float r)
+    return inside ? SideResult::eINSIDE : SideResult::eOUTSIDE;
+}
+
+SideResult ClassifyPlaneSphere(glm::vec3 const& n, float d, Vertex const& c, float r)
+{
+    float distance = dot(n, c.m_Position) - d;
+    if (distance > r) 
     {
-        float distance = dot(n, c) - d;
-        if (distance > r) 
+        return SideResult::eOUTSIDE;
+    }
+    else if (distance < -r)
+    {
+        return SideResult::eINSIDE;
+    }
+    return SideResult::eOVERLAPPING;
+}
+
+SideResult ClassifyFrustumSphereNaive(glm::vec3 const fn[6], float const fd[6], Vertex const& c, float r) 
+{
+    bool inside = true;
+    for (int i = 0; i < 6; ++i) 
+    {
+        SideResult side = ClassifyPlaneSphere(fn[i], fd[i], c, r);
+        if (side == SideResult::eOUTSIDE)
         {
             return SideResult::eOUTSIDE;
         }
-        else if (distance < -r)
+        else if (side == SideResult::eOVERLAPPING) 
         {
-            return SideResult::eINSIDE;
+            inside = false;
         }
-        return SideResult::eOVERLAPPING;
+    }
+    return inside ? SideResult::eINSIDE : SideResult::eOVERLAPPING;
+}
+
+SideResult ClassifyFrustumAabbNaive(glm::vec3 const fn[6], float const fd[6], Vertex const& min, Vertex const& max)
+{
+    bool inside = true;
+    for (int i = 0; i < 6; ++i) {
+        SideResult side = ClassifyPlaneAabb(fn[i], fd[i], min, max);
+        if (side == SideResult::eOUTSIDE) {
+            return SideResult::eOUTSIDE;
+        }
+        else if (side == SideResult::eOVERLAPPING) {
+            inside = false;
+        }
+    }
+    return inside ? SideResult::eINSIDE : SideResult::eOVERLAPPING;
+}
+
+bool OverlapPointAabb(Vertex const& p, Vertex const& min, Vertex const& max)
+{
+    return ClassifyPointAabb(p, min, max) != SideResult::eOUTSIDE;
+}
+
+bool OverlapPointSphere(Vertex const& p, Vertex const& c, float r)
+{
+    glm::vec3 difference = p.m_Position - c.m_Position;
+    return dot(difference, difference) <= r * r;
+}
+
+bool OverlapAabbAabb(Vertex const& min1, Vertex const& max1, Vertex const& min2, Vertex const& max2) 
+{
+    const glm::vec3& min1Pos = min1.m_Position;
+    const glm::vec3& max1Pos = max1.m_Position;
+    const glm::vec3& min2Pos = min2.m_Position;
+    const glm::vec3& max2Pos = max2.m_Position;
+    
+    return (min1Pos.x <= max2Pos.x && max1Pos.x >= min2Pos.x) &&
+           (min1Pos.y <= max2Pos.y && max1Pos.y >= min2Pos.y) &&
+           (min1Pos.z <= max2Pos.z && max1Pos.z >= min2Pos.z);
+}
+
+bool OverlapSphereSphere(Vertex const& c1, float r1, Vertex const& c2, float r2)
+{
+    glm::vec3 difference = c1.m_Position - c2.m_Position;
+    float distanceSquared = dot(difference, difference);
+    float radiusSum = r1 + r2;
+    return distanceSquared <= radiusSum * radiusSum;
+}
+
+bool OverlapSegmentPlane(Vertex const& s, Vertex const& e, glm::vec3 const& n, float d) 
+{
+    float distanceStart = dot(n, s.m_Position) - d;
+    float distanceEnd = dot(n, e.m_Position) - d;
+    return (distanceStart * distanceEnd <= 0.0f);
+}
+
+bool OverlapSegmentTriangle(Vertex const& s, Vertex const& e, Vertex const& A, Vertex const& B, Vertex const& C)
+{
+    const glm::vec3& APos = A.m_Position;
+    const glm::vec3& BPos = B.m_Position;
+    const glm::vec3& CPos = C.m_Position;
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    
+    glm::vec3 AB = BPos - APos;
+    glm::vec3 AC = CPos - APos;
+    glm::vec3 normal = cross(AB, AC);
+
+    // Check if the segment is parallel to the triangle plane
+    glm::vec3 segment = ePos - sPos;
+    if (glm::abs(glm::dot(normal, segment)) < kEpsilon) {
+        return false;
     }
 
-    SideResult ClassifyFrustumSphereNaive(glm::vec3 const fn[6], float const fd[6], glm::vec3 const& c, float r) 
+    // Compute the intersection point
+    float d = glm::dot(normal, APos);
+    float t = (d - glm::dot(normal, sPos)) / glm::dot(normal, segment);
+    if (t < 0.0f || t > 1.0f) {
+        return false;
+    }
+
+    glm::vec3 intersection = sPos + t * segment;
+
+    // Check if the intersection point is inside the triangle
+    glm::vec3 AP = intersection - APos;
+    float u = glm::dot(cross(AB, AP), normal);
+    float v = glm::dot(cross(AP, AC), normal);
+
+    return (u >= 0.0f && v >= 0.0f && u + v <= glm::dot(normal, normal));
+}
+
+bool OverlapSegmentAabb(Vertex const& s, Vertex const& e, Vertex const& min, Vertex const& max) 
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    const glm::vec3& minPos = min.m_Position;
+    const glm::vec3& maxPos = max.m_Position;
+    
+    float tmin = 0.0f;
+    float tmax = 1.0f;
+
+    glm::vec3 dir = ePos - sPos;
+
+    for (int i = 0; i < 3; ++i)
     {
-        bool inside = true;
-        for (int i = 0; i < 6; ++i) 
+        if (glm::abs(dir[i]) < kEpsilon)
         {
-            SideResult side = ClassifyPlaneSphere(fn[i], fd[i], c, r);
-            if (side == SideResult::eOUTSIDE)
-            {
-                return SideResult::eOUTSIDE;
-            }
-            else if (side == SideResult::eOVERLAPPING) 
-            {
-                inside = false;
-            }
-        }
-        return inside ? SideResult::eINSIDE : SideResult::eOVERLAPPING;
-    }
-
-    SideResult ClassifyFrustumAabbNaive(glm::vec3 const fn[6], float const fd[6], glm::vec3 const& min, glm::vec3 const& max)
-    {
-        bool inside = true;
-        for (int i = 0; i < 6; ++i) {
-            SideResult side = ClassifyPlaneAabb(fn[i], fd[i], min, max);
-            if (side == SideResult::eOUTSIDE) {
-                return SideResult::eOUTSIDE;
-            }
-            else if (side == SideResult::eOVERLAPPING) {
-                inside = false;
-            }
-        }
-        return inside ? SideResult::eINSIDE : SideResult::eOVERLAPPING;
-    }
-
-    bool OverlapPointAabb(glm::vec3 const& p, glm::vec3 const& min, glm::vec3 const& max)
-    {
-        return ClassifyPointAabb(p, min, max) != SideResult::eOUTSIDE;
-    }
-
-    bool OverlapPointSphere(glm::vec3 const& p, glm::vec3 const& c, float r)
-    {
-        glm::vec3 difference = p - c;
-        return dot(difference, difference) <= r * r;
-    }
-
-    bool OverlapAabbAabb(glm::vec3 const& min1, glm::vec3 const& max1, glm::vec3 const& min2, glm::vec3 const& max2) 
-    {
-        return (min1.x <= max2.x && max1.x >= min2.x) &&
-            (min1.y <= max2.y && max1.y >= min2.y) &&
-            (min1.z <= max2.z && max1.z >= min2.z);
-    }
-
-    bool OverlapSphereSphere(glm::vec3 const& c1, float r1, glm::vec3 const& c2, float r2)
-    {
-        glm::vec3 difference = c1 - c2;
-        float distanceSquared = dot(difference, difference);
-        float radiusSum = r1 + r2;
-        return distanceSquared <= radiusSum * radiusSum;
-    }
-
-    bool OverlapSegmentPlane(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& n, float d) 
-    {
-        float distanceStart = dot(n, s) - d;
-        float distanceEnd = dot(n, e) - d;
-        return (distanceStart * distanceEnd <= 0.0f);
-    }
-
-    bool OverlapSegmentTriangle(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& A, glm::vec3 const& B, glm::vec3 const& C)
-    {
-        glm::vec3 AB = B - A;
-        glm::vec3 AC = C - A;
-        glm::vec3 normal = cross(AB, AC);
-
-        // Check if the segment is parallel to the triangle plane
-        glm::vec3 segment = e - s;
-        if (glm::abs(glm::dot(normal, segment)) < kEpsilon) {
-            return false;
-        }
-
-        // Compute the intersection point
-        float d = glm::dot(normal, A);
-        float t = (d - glm::dot(normal, s)) / glm::dot(normal, segment);
-        if (t < 0.0f || t > 1.0f) {
-            return false;
-        }
-
-        glm::vec3 intersection = s + t * segment;
-
-        // Check if the intersection point is inside the triangle
-        glm::vec3 AP = intersection - A;
-        float u = glm::dot(cross(AB, AP), normal);
-        float v = glm::dot(cross(AP, AC), normal);
-
-        return (u >= 0.0f && v >= 0.0f && u + v <= glm::dot(normal, normal));
-    }
-
-    bool OverlapSegmentAabb(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& min, glm::vec3 const& max) 
-    {
-        float tmin = 0.0f;
-        float tmax = 1.0f;
-
-        glm::vec3 segment = e - s;
-
-        for (int i = 0; i < 3; ++i) 
-        {
-            if (abs(static_cast<float>(segment[i])) < kEpsilon) 
-            {
-                if (s[i] < min[i] || s[i] > max[i]) 
-                {
-                    return false;
-                }
-            }
-            else {
-                float invDir = 1.0f / segment[i];
-                float t1 = (min[i] - s[i]) * invDir;
-                float t2 = (max[i] - s[i]) * invDir;
-
-                if (t1 > t2) {
-                    std::swap(t1, t2);
-                }
-
-                tmin = std::max(tmin, t1);
-                tmax = std::min(tmax, t2);
-
-                if (tmin > tmax) 
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    bool OverlapSegmentSphere(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& c, float r)
-    {
-        glm::vec3 segment = e - s;
-        glm::vec3 centerToStart = s - c;
-
-        float a = dot(segment, segment);
-        float b = 2.0f * dot(centerToStart, segment);
-        float cDiscrimnant = dot(centerToStart, centerToStart) - r * r;
-
-        float discriminant = b * b - 4.0f * a * cDiscrimnant;
-        if (discriminant < 0.0f) 
-        {
-            return false;
-        }
-
-        float sqrtDiscriminant = glm::sqrt(discriminant);
-        float t1 = (-b - sqrtDiscriminant) / (2.0f * a);
-        float t2 = (-b + sqrtDiscriminant) / (2.0f * a);
-
-        return (t1 >= 0.0f && t1 <= 1.0f) || (t2 >= 0.0f && t2 <= 1.0f);
-    }
-
-    float IntersectionTimeRayPlane(glm::vec3 const& s, glm::vec3 const& dir, glm::vec3 const& n, float d) 
-    {
-        float denominator = dot(n, dir);
-        if (glm::abs(denominator) > kEpsilon)
-        {
-            float t = (d - dot(n, s)) / denominator;
-            if (t >= 0.0f) 
-            {
-                return t;
-            }
-        }
-        return  - 1.0f;
-    }
-
-    float IntersectionTimeRayTriangle(glm::vec3 const& s, glm::vec3 const& dir, glm::vec3 const& A, glm::vec3 const& B, glm::vec3 const& C) 
-    {
-        glm::vec3 AB = B - A;
-        glm::vec3 AC = C - A;
-        glm::vec3 normal = cross(AB, AC);
-
-        float d = glm::dot(normal, A);
-        float denominator = glm::dot(normal, dir);
-
-        if (glm::abs(denominator) > kEpsilon) {
-            float t = (d - glm::dot(normal, s)) / denominator;
-            if (t >= 0.0f) {
-                glm::vec3 intersection = s + t * dir;
-
-                glm::vec3 AP = intersection - A;
-                float u = glm::dot(cross(AB, AP), normal);
-                float v = glm::dot(cross(AP, AC), normal);
-
-                if (u >= 0.0f && v >= 0.0f && u + v <= glm::dot(normal, normal)) {
-                    return t;
-                }
-            }
-        }
-
-        return -1.0f;
-    }
-
-    float IntersectionTimeRayAabb(glm::vec3 const& s, glm::vec3 const& dir, glm::vec3 const& min, glm::vec3 const& max) 
-    {
-        float tmin = 0.0f;
-        float tmax = std::numeric_limits<float>::max();
-
-        for (int i = 0; i < 3; ++i) 
-        {
-            if (glm::abs(dir[i]) < kEpsilon)
-            {
-                if (s[i] < min[i] || s[i] > max[i]) 
-                {
-                    return -1.0f;
-                }
-            }
-            else 
-            {
-                float invDir = 1.0f / dir[i];
-                float t1 = (min[i] - s[i]) * invDir;
-                float t2 = (max[i] - s[i]) * invDir;
-
-                if (t1 > t2) 
-                {
-                    std::swap(t1, t2);
-                }
-
-                tmin = std::max(tmin, t1);
-                tmax = std::min(tmax, t2);
-
-                if (tmin > tmax) 
-                {
-                    return -1.0f;
-                }
-            }
-        }
-
-        return tmin;
-    }
-
-    float IntersectionTimeRayObb(glm::vec3 const& s, glm::vec3 const& dir, glm::vec3 const& min, glm::vec3 const& max, glm::mat4 const& m2w)
-    {
-        glm::mat4 w2m = inverse(m2w);
-        glm::vec3 localStart = TransformPoint(w2m, s);
-        glm::vec3 localDir = TransformVector(w2m, dir);
-
-        return IntersectionTimeRayAabb(localStart, localDir, min, max);
-    }
-
-    float IntersectionTimeRaySphere(glm::vec3 const& s, glm::vec3 const& dir, glm::vec3 const& c, float r)
-    {
-
-        if (OverlapPointSphere(s, c, r)) 
-        {
-            return 0.0f;
-        }
-        glm::vec3 sc = s - c; 
-
-
-        float a = glm::dot(dir, dir); 
-        float b = 2.0f * glm::dot(dir, sc); 
-        float c_val = glm::dot(sc, sc) - r * r; 
-
-        float discriminant = b * b - 4.0f * a * c_val;
-
-        if (discriminant < 0.0f)
-        {
-            // No intersection
-            return -1.0f;
-        }
-        else if (discriminant == 0.0f)
-        {
-            // Tangent to the sphere, one intersection point
-            float t = -b / (2.0f * a);
-            return t;
+            // Segment is parallel to slab
+            if (sPos[i] < minPos[i] || sPos[i] > maxPos[i])
+                return false;
         }
         else
         {
-            // Two points of intersection
-            float sqrtDiscriminant = sqrt(discriminant);
-            float t1 = (-b - sqrtDiscriminant) / (2.0f * a);
-            float t2 = (-b + sqrtDiscriminant) / (2.0f * a);
+            float invDir = 1.0f / dir[i];
+            float t1 = (minPos[i] - sPos[i]) * invDir;
+            float t2 = (maxPos[i] - sPos[i]) * invDir;
 
-            // Return the smallest non-negative t value
-            if (t1 >= 0.0f && t2 >= 0.0f)
-            {
-                return std::min(t1, t2);
-            }
-            else if (t1 >= 0.0f)
-            {
-                return t1;
-            }
-            else if (t2 >= 0.0f)
-            {
-                return t2;
-            }
-            else
-            {
-                // Both t values are negative, ray originates inside the sphere
+            if (t1 > t2) std::swap(t1, t2);
+
+            tmin = glm::max(tmin, t1);
+            tmax = glm::min(tmax, t2);
+
+            if (tmin > tmax) return false;
+        }
+    }
+
+    return tmin <= tmax;
+}
+
+bool OverlapSegmentSphere(Vertex const& s, Vertex const& e, Vertex const& c, float r)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    const glm::vec3& cPos = c.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    glm::vec3 toSphere = cPos - sPos;
+    
+    float segmentLength = glm::length(segment);
+    if (segmentLength < kEpsilon) {
+        return glm::length(toSphere) <= r;
+    }
+    
+    glm::vec3 segmentNorm = segment / segmentLength;
+    float projection = glm::dot(toSphere, segmentNorm);
+    
+    projection = glm::clamp(projection, 0.0f, segmentLength);
+    glm::vec3 closestPoint = sPos + projection * segmentNorm;
+    
+    return glm::length(cPos - closestPoint) <= r;
+}
+
+float IntersectionTimeRayPlane(Vertex const& s, glm::vec3 const& dir, glm::vec3 const& n, float d)
+{
+    float denominator = glm::dot(n, dir);
+    if (glm::abs(denominator) < kEpsilon) {
+        return -1.0f; // Ray is parallel to plane
+    }
+    
+    float t = (d - glm::dot(n, s.m_Position)) / denominator;
+    return (t >= 0.0f) ? t : -1.0f;
+}
+
+float IntersectionTimeRayTriangle(Vertex const& s, glm::vec3 const& dir, Vertex const& A, Vertex const& B, Vertex const& C)
+{
+    const glm::vec3& APos = A.m_Position;
+    const glm::vec3& BPos = B.m_Position;
+    const glm::vec3& CPos = C.m_Position;
+    const glm::vec3& sPos = s.m_Position;
+    
+    glm::vec3 AB = BPos - APos;
+    glm::vec3 AC = CPos - APos;
+    glm::vec3 normal = cross(AB, AC);
+    
+    float denominator = glm::dot(normal, dir);
+    if (glm::abs(denominator) < kEpsilon) {
+        return -1.0f; // Ray is parallel to triangle
+    }
+    
+    float d = glm::dot(normal, APos);
+    float t = (d - glm::dot(normal, sPos)) / denominator;
+    if (t < 0.0f) {
+        return -1.0f; // Intersection behind ray origin
+    }
+    
+    glm::vec3 intersection = sPos + t * dir;
+    
+    // Check if intersection point is inside triangle using barycentric coordinates
+    glm::vec3 AP = intersection - APos;
+    float u = glm::dot(cross(AB, AP), normal);
+    float v = glm::dot(cross(AP, AC), normal);
+    float normalSq = glm::dot(normal, normal);
+    
+    return (u >= 0.0f && v >= 0.0f && u + v <= normalSq) ? t : -1.0f;
+}
+
+float IntersectionTimeRayAabb(Vertex const& s, glm::vec3 const& dir, Vertex const& min, Vertex const& max)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& minPos = min.m_Position;
+    const glm::vec3& maxPos = max.m_Position;
+    
+    float tmin = 0.0f;
+    float tmax = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < 3; ++i)
+    {
+        if (glm::abs(dir[i]) < kEpsilon)
+        {
+            if (sPos[i] < minPos[i] || sPos[i] > maxPos[i])
                 return -1.0f;
-            }
+        }
+        else
+        {
+            float invDir = 1.0f / dir[i];
+            float t1 = (minPos[i] - sPos[i]) * invDir;
+            float t2 = (maxPos[i] - sPos[i]) * invDir;
+
+            if (t1 > t2) std::swap(t1, t2);
+
+            tmin = glm::max(tmin, t1);
+            tmax = glm::min(tmax, t2);
+
+            if (tmin > tmax) return -1.0f;
         }
     }
 
-    float IntersectionTimeSegmentPlane(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& n, float d) 
-    {
-        float tStart = dot(n, s) - d;
-        float tEnd = dot(n, e) - d;
+    return (tmin >= 0.0f) ? tmin : -1.0f;
+}
 
-        if (tStart * tEnd >= 0.0f) 
-        {
-            return -1.0f;
-        }
+float IntersectionTimeRayObb(Vertex const& s, glm::vec3 const& dir, Vertex const& min, Vertex const& max, glm::mat4 const& m2w)
+{
+    // Transform ray to OBB local space
+    glm::mat4 w2m = glm::inverse(m2w);
+    glm::vec3 localOrigin = glm::vec3(w2m * glm::vec4(s.m_Position, 1.0f));
+    glm::vec3 localDir = glm::vec3(w2m * glm::vec4(dir, 0.0f));
+    
+    // Create temporary vertices for AABB test in local space
+    Vertex localS, localMin, localMax;
+    localS.m_Position = localOrigin;
+    localMin.m_Position = min.m_Position;
+    localMax.m_Position = max.m_Position;
+    
+    return IntersectionTimeRayAabb(localS, localDir, localMin, localMax);
+}
 
-        return tStart / (tStart - tEnd);
+float IntersectionTimeSegmentPlane(Vertex const& s, Vertex const& e, glm::vec3 const& n, float d)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    float denominator = glm::dot(n, segment);
+    
+    if (glm::abs(denominator) < kEpsilon) {
+        return -1.0f; // Segment is parallel to plane
     }
+    
+    float t = (d - glm::dot(n, sPos)) / denominator;
+    return (t >= 0.0f && t <= 1.0f) ? t : -1.0f;
+}
 
-    float IntersectionTimeSegmentTriangle(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& A, glm::vec3 const& B, glm::vec3 const& C) 
-    {
-        glm::vec3 AB = B - A;
-        glm::vec3 AC = C - A;
-        glm::vec3 normal = glm::cross(AB, AC);
+float IntersectionTimeSegmentTriangle(Vertex const& s, Vertex const& e, Vertex const& A, Vertex const& B, Vertex const& C)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    float t = IntersectionTimeRayTriangle(s, segment, A, B, C);
+    
+    return (t >= 0.0f && t <= 1.0f) ? t : -1.0f;
+}
 
-        float d = glm::dot(normal, A);
-        glm::vec3 segment = e - s;
-        float denominator = glm::dot(normal, segment);
+float IntersectionTimeSegmentAabb(Vertex const& s, Vertex const& e, Vertex const& min, Vertex const& max)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    float t = IntersectionTimeRayAabb(s, segment, min, max);
+    
+    return (t >= 0.0f && t <= 1.0f) ? t : -1.0f;
+}
 
-        if (glm::abs(denominator) > kEpsilon)
-        {
-            float t = (d - glm::dot(normal, s)) / denominator;
-            if (t >= 0.0f && t <= 1.0f) 
-            {
-                glm::vec3 intersection = s + t * segment;
-
-                glm::vec3 AP = intersection - A;
-                float u = glm::dot(cross(AB, AP), normal);
-                float v = glm::dot(cross(AP, AC), normal);
-                if (u >= 0.0f && v >= 0.0f && u + v <= glm::dot(normal, normal)) {
-                    return t;
-                }
-            }
-        }
-
-        return -1.0f;
+float IntersectionTimeSegmentSphere(Vertex const& s, Vertex const& e, Vertex const& c, float r)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    const glm::vec3& cPos = c.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    glm::vec3 toSphere = sPos - cPos;
+    
+    float a = glm::dot(segment, segment);
+    float b = 2.0f * glm::dot(toSphere, segment);
+    float c_coeff = glm::dot(toSphere, toSphere) - r * r;
+    
+    float discriminant = b * b - 4.0f * a * c_coeff;
+    if (discriminant < 0.0f) {
+        return -1.0f; // No intersection
     }
+    
+    float sqrtDisc = glm::sqrt(discriminant);
+    float t1 = (-b - sqrtDisc) / (2.0f * a);
+    float t2 = (-b + sqrtDisc) / (2.0f * a);
+    
+    if (t1 >= 0.0f && t1 <= 1.0f) return t1;
+    if (t2 >= 0.0f && t2 <= 1.0f) return t2;
+    
+    return -1.0f;
+}
 
-    float IntersectionTimeSegmentAabb(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& min, glm::vec3 const& max)
-    {
-        float tmin = 0.0f;
-        float tmax = 1.0f;
+bool AreCollinear(Vertex const& a, Vertex const& b, Vertex const& c)
+{
+    glm::vec3 ab = b.m_Position - a.m_Position;
+    glm::vec3 ac = c.m_Position - a.m_Position;
+    glm::vec3 crossProduct = cross(ab, ac);
+    return glm::length(crossProduct) < kEpsilon;
+}
 
-        glm::vec3 segment = e - s;
+float DistancePointPlane(Vertex const& p, glm::vec3 const& n, float d)
+{
+    return glm::abs(glm::dot(n, p.m_Position) - d);
+}
 
-        for (int i = 0; i < 3; ++i) {
-            if (glm::abs(segment[i]) < kEpsilon) {
-                if (s[i] < min[i] || s[i] > max[i]) 
-                {
-                    return -1.0f;
-                }
-            }
-            else {
-                float invDir = 1.0f / segment[i];
-                float t1 = (min[i] - s[i]) * invDir;
-                float t2 = (max[i] - s[i]) * invDir;
-
-                if (t1 > t2) {
-                    std::swap(t1, t2);
-                }
-
-                tmin = std::max(tmin, t1);
-                tmax = std::min(tmax, t2);
-
-                if (tmin > tmax) 
-                {
-                    return -1.0f;
-                }
-            }
-        }
-
-        return tmin;
+float DistanceSegmentPoint(Vertex const& s, Vertex const& e, Vertex const& pt)
+{
+    const glm::vec3& sPos = s.m_Position;
+    const glm::vec3& ePos = e.m_Position;
+    const glm::vec3& ptPos = pt.m_Position;
+    
+    glm::vec3 segment = ePos - sPos;
+    glm::vec3 toPoint = ptPos - sPos;
+    
+    float segmentLengthSq = glm::dot(segment, segment);
+    if (segmentLengthSq < kEpsilon) {
+        return glm::length(toPoint);
     }
+    
+    float t = glm::clamp(glm::dot(toPoint, segment) / segmentLengthSq, 0.0f, 1.0f);
+    glm::vec3 closestPoint = sPos + t * segment;
+    
+    return glm::length(ptPos - closestPoint);
+}
 
-    float IntersectionTimeSegmentSphere(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& c, float r) 
-    {
-        glm::vec3 segment = e - s;
-        glm::vec3 centerToStart = s - c;
+glm::vec3 ClosestPointPlane(Vertex const& p, glm::vec3 const& n, float d)
+{
+    float distance = glm::dot(n, p.m_Position) - d;
+    return p.m_Position - distance * n;
+}
 
-        float a = glm::dot(segment, segment);
-        float b = 2.0f * dot(centerToStart, segment);
-        float cDiscrimnant = dot(centerToStart, centerToStart) - r * r;
-
-        float discriminant = b * b - 4.0f * a * cDiscrimnant;
-        if (discriminant < 0.0f) 
-        {
-            return -1.0f;
-        }
-
-        float sqrtDiscriminant = glm::sqrt(discriminant);
-        float t1 = (-b - sqrtDiscriminant) / (2.0f * a);
-        float t2 = (-b + sqrtDiscriminant) / (2.0f * a);
-
-        if (t1 >= 0.0f && t1 <= 1.0f) 
-        {
-            return t1;
-        }
-        else if (t2 >= 0.0f && t2 <= 1.0f) 
-        {
-            return t2;
-        }
-
-        return -1.0f;
-    }
-
-    bool AreCollinear(glm::vec3 const& a, glm::vec3 const& b, glm::vec3 const& c) 
-    {
-        glm::vec3 ab = b - a;
-        glm::vec3 ac = c - a;
-        glm::vec3 cross_product = cross(ab, ac);
-        return length(cross_product) < kEpsilon;
-    }
-
-    float DistancePointPlane(glm::vec3 const& p, glm::vec3 const& n, float d) 
-    {
-        return dot(n, p) - d;
-    }
-
-    float DistanceSegmentPoint(glm::vec3 const& s, glm::vec3 const& e, glm::vec3 const& pt) 
-    {
-        glm::vec3 segment = e - s;
-        glm::vec3 startToPoint = pt - s;
-        float t = dot(startToPoint, segment) / dot(segment, segment);
-        t = glm::clamp(t, 0.0f, 1.0f);
-        glm::vec3 projection = s + t * segment;
-        return length(pt - projection);
-    }
-
-    glm::vec3 ClosestPointPlane(glm::vec3 const& p, glm::vec3 const& n, float d) {
-        float distance = dot(n, p) - d;
-        return p - distance * n;
-    }
-
-    void ClosestSegmentSegment(glm::vec3 const& s1, glm::vec3 const& e1, glm::vec3 const& s2, glm::vec3 const& e2, glm::vec3* p1, glm::vec3* p2) 
-    {
-        glm::vec3 d1 = e1 - s1; // Direction vector of segment S1
-        glm::vec3 d2 = e2 - s2; // Direction vector of segment S2
-        glm::vec3 r = s1 - s2;
-        float a = dot(d1,d1); // Squared length of segment S1
-        float e = dot(d2,d2); // Squared length of segment S2
-        float f = dot(d2,r);
-        float c = dot(d1, r);
-        float b = dot(d1, d2);
-        float denom = a * e - b * b; // Always nonnegative
-
-        float s{};
-        float t{};
-
-        bool degenerateS1 = a <= kEpsilon;
-        bool degenerateS2 = e <= kEpsilon;
-
-        if (degenerateS1 && degenerateS2) 
-        {
-            *p1 = s1;
-            *p2 = s2;
-            if (glm::length(r) <= kEpsilon) 
-            {
-                *p1 = *p2 = s1;
-            }
-            return;
-        }
-
-        if (degenerateS1) 
-        {
-            t = glm::clamp(f / e, 0.0f, 1.0f);
-        }
-        else if (degenerateS2) {
-            s = glm::clamp(-c / a, 0.0f, 1.0f);
-        }
-        else 
-        {
-            if (glm::abs(denom) > kEpsilon)
-            {
-                s = glm::clamp((b * f - c * e) / denom, 0.0f, 1.0f);
-            }
-            t = (b * s + f) / e;
-        }
-
-        // If t in [0,1] done. Else clamp t, recompute s for the new value
-        // of t using s = Dot((P2 + D2*t) - P1,D1) / Dot(D1,D1)= (t*b - c) / a
-        // and clamp s to [0, 1]
-        if (t < 0.0f) 
-        {
+void ClosestSegmentSegment(Vertex const& s1, Vertex const& e1, Vertex const& s2, Vertex const& e2, Vertex* p1, Vertex* p2)
+{
+    const glm::vec3& s1Pos = s1.m_Position;
+    const glm::vec3& e1Pos = e1.m_Position;
+    const glm::vec3& s2Pos = s2.m_Position;
+    const glm::vec3& e2Pos = e2.m_Position;
+    
+    glm::vec3 d1 = e1Pos - s1Pos;
+    glm::vec3 d2 = e2Pos - s2Pos;
+    glm::vec3 r = s1Pos - s2Pos;
+    
+    float a = glm::dot(d1, d1);
+    float e = glm::dot(d2, d2);
+    float f = glm::dot(d2, r);
+    
+    float s = 0.0f, t = 0.0f;
+    
+    if (a <= kEpsilon && e <= kEpsilon) {
+        // Both segments are points
+        s = t = 0.0f;
+    } else if (a <= kEpsilon) {
+        // First segment is a point
+        s = 0.0f;
+        t = glm::clamp(f / e, 0.0f, 1.0f);
+    } else {
+        float c = glm::dot(d1, r);
+        if (e <= kEpsilon) {
+            // Second segment is a point
             t = 0.0f;
             s = glm::clamp(-c / a, 0.0f, 1.0f);
-        }
-        else if (t > 1.0f) 
-        {
-            t = 1.0f;
-            s = glm::clamp((b - c) / a, 0.0f, 1.0f);
-        }
-
-        *p1 = s1 + s * d1;
-        *p2 = s2 + t * d2;
-
-        if (glm::length(*p1 - *p2) <= kEpsilon && glm::length(s1 - e2) <= kEpsilon && glm::length(e1 - s2) <= kEpsilon) 
-        {
-            *p1 = e1;
-            *p2 = s2;
-        }
-    }
-
-    glm::vec3 IntersectionPlanePlanePlane(glm::vec3 const& n1, float d1, glm::vec3 const& n2, float d2, glm::vec3 const& n3, float d3) 
-    {
-        glm::mat3 A(n1, n2, n3);
-        glm::vec3 b(d1, d2, d3);
-        return glm::inverse(A) * b;
-    }
-
-    glm::vec3 TransformPoint(glm::mat4 const& transform, glm::vec3 const& point)
-    {
-        glm::vec4 homogeneous_point(point, 1.0f);
-        glm::vec4 transformed_point = transform * homogeneous_point;
-        return glm::vec3(transformed_point) / transformed_point.w;
-    }
-
-    glm::vec3 TransformVector(glm::mat4 const& m, glm::vec3 const& v)
-    {
-        glm::vec4 homogeneous_vector(v, 0.0f);
-        glm::vec4 transformed_vector = m * homogeneous_vector;
-        return glm::vec3(transformed_vector);
-    }
-
-    void TransformAabb(glm::vec3 const& min, glm::vec3 const& max, glm::mat4 const& transform, glm::vec3* out_min, glm::vec3* out_max) 
-    {
-        glm::vec3 vertices[8] = 
-        {
-            {min.x, min.y, min.z},
-            {max.x, min.y, min.z},
-            {min.x, max.y, min.z},
-            {max.x, max.y, min.z},
-            {min.x, min.y, max.z},
-            {max.x, min.y, max.z},
-            {min.x, max.y, max.z},
-            {max.x, max.y, max.z}
-        };
-
-        *out_min = TransformPoint(transform, vertices[0]);
-        *out_max = *out_min;
-
-        for (const glm::vec3& vertex : vertices) 
-        {
-            glm::vec3 transformedVertex = TransformPoint(transform, vertex);
-            *out_min = glm::min(*out_min, transformedVertex);
-            *out_max = glm::max(*out_max, transformedVertex);
+        } else {
+            // General case
+            float b = glm::dot(d1, d2);
+            float denom = a * e - b * b;
+            
+            if (denom != 0.0f) {
+                s = glm::clamp((b * f - c * e) / denom, 0.0f, 1.0f);
+            } else {
+                s = 0.0f;
+            }
+            
+            t = (b * s + f) / e;
+            
+            if (t < 0.0f) {
+                t = 0.0f;
+                s = glm::clamp(-c / a, 0.0f, 1.0f);
+            } else if (t > 1.0f) {
+                t = 1.0f;
+                s = glm::clamp((b - c) / a, 0.0f, 1.0f);
+            }
         }
     }
+    
+    if (p1) {
+        p1->m_Position = s1Pos + s * d1;
+        p1->m_Color = s1.m_Color;
+        p1->m_Normal = s1.m_Normal;
+        p1->m_UV = s1.m_UV;
+    }
+    
+    if (p2) {
+        p2->m_Position = s2Pos + t * d2;
+        p2->m_Color = s2.m_Color;
+        p2->m_Normal = s2.m_Normal;
+        p2->m_UV = s2.m_UV;
+    }
+}
 
-    void FrustumFromVp(glm::mat4 const& vp, glm::vec3 fn[6], float fd[6]) 
-    {
-        fn[0] = glm::vec3(vp[0][3] + vp[0][0], vp[1][3] + vp[1][0], vp[2][3] + vp[2][0]); // Left plane
-        fn[1] = glm::vec3(vp[0][3] - vp[0][0], vp[1][3] - vp[1][0], vp[2][3] - vp[2][0]); // Right plane
-        fn[2] = glm::vec3(vp[0][3] + vp[0][1], vp[1][3] + vp[1][1], vp[2][3] + vp[2][1]); // Bottom plane
-        fn[3] = glm::vec3(vp[0][3] - vp[0][1], vp[1][3] - vp[1][1], vp[2][3] - vp[2][1]); // Top plane
-        fn[4] = glm::vec3(vp[0][3] + vp[0][2], vp[1][3] + vp[1][2], vp[2][3] + vp[2][2]); // Near plane
-        fn[5] = glm::vec3(vp[0][3] - vp[0][2], vp[1][3] - vp[1][2], vp[2][3] - vp[2][2]); // Far plane
+glm::vec3 IntersectionPlanePlanePlane(glm::vec3 const& n1, float d1, glm::vec3 const& n2, float d2, glm::vec3 const& n3, float d3)
+{
+    glm::mat3 matrix(n1, n2, n3);
+    glm::vec3 rhs(d1, d2, d3);
+    
+    float det = glm::determinant(matrix);
+    if (glm::abs(det) < kEpsilon) {
+        return glm::vec3(0.0f); // Planes don't intersect at a single point
+    }
+    
+    return glm::inverse(matrix) * rhs;
+}
 
-        fd[0] = vp[3][3] + vp[3][0];
-        fd[1] = vp[3][3] - vp[3][0];
-        fd[2] = vp[3][3] + vp[3][1];
-        fd[3] = vp[3][3] - vp[3][1];
-        fd[4] = vp[3][3] + vp[3][2];
-        fd[5] = vp[3][3] - vp[3][2];
+Vertex TransformPoint(glm::mat4 const& transform, Vertex const& point)
+{
+    Vertex result = point;
+    glm::vec4 transformedPos = transform * glm::vec4(point.m_Position, 1.0f);
+    result.m_Position = glm::vec3(transformedPos);
+    
+    // Transform normal (use inverse transpose for proper normal transformation)
+    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+    result.m_Normal = glm::normalize(normalMatrix * point.m_Normal);
+    
+    return result;
+}
 
-        for (int i = 0; i < 6; ++i) 
-        {
-            float invLength = 1.0f / length(fn[i]);
-            fn[i] *= invLength;
-            fd[i] *= invLength;
+glm::vec3 TransformVector(glm::mat4 const& m, glm::vec3 const& v)
+{
+    return glm::vec3(m * glm::vec4(v, 0.0f));
+}
+
+void TransformAabb(glm::vec3& min, glm::vec3& max, glm::mat4 const& transform)
+{
+    const glm::vec3 minPos = min;
+    const glm::vec3 maxPos = max;
+    
+    // Generate all 8 corners of the AABB
+    glm::vec3 corners[8] = {
+        {minPos.x, minPos.y, minPos.z},
+        {maxPos.x, minPos.y, minPos.z},
+        {minPos.x, maxPos.y, minPos.z},
+        {maxPos.x, maxPos.y, minPos.z},
+        {minPos.x, minPos.y, maxPos.z},
+        {maxPos.x, minPos.y, maxPos.z},
+        {minPos.x, maxPos.y, maxPos.z},
+        {maxPos.x, maxPos.y, maxPos.z}
+    };
+    
+    // Transform first corner to initialize min/max
+    glm::vec4 transformedCorner = transform * glm::vec4(corners[0], 1.0f);
+    glm::vec3 newMin = glm::vec3(transformedCorner);
+    glm::vec3 newMax = newMin;
+    
+    // Transform remaining corners and update min/max
+    for (int i = 1; i < 8; ++i) {
+        transformedCorner = transform * glm::vec4(corners[i], 1.0f);
+        glm::vec3 corner = glm::vec3(transformedCorner);
+        
+        newMin = glm::min(newMin, corner);
+        newMax = glm::max(newMax, corner);
+    }
+}
+
+void FrustumFromVp(glm::mat4 const& vp, glm::vec3 fn[6], float fd[6])
+{
+    // Extract frustum planes from view-projection matrix
+    // Left plane
+    fn[0] = glm::vec3(vp[0][3] + vp[0][0], vp[1][3] + vp[1][0], vp[2][3] + vp[2][0]);
+    fd[0] = vp[3][3] + vp[3][0];
+    
+    // Right plane
+    fn[1] = glm::vec3(vp[0][3] - vp[0][0], vp[1][3] - vp[1][0], vp[2][3] - vp[2][0]);
+    fd[1] = vp[3][3] - vp[3][0];
+    
+    // Bottom plane
+    fn[2] = glm::vec3(vp[0][3] + vp[0][1], vp[1][3] + vp[1][1], vp[2][3] + vp[2][1]);
+    fd[2] = vp[3][3] + vp[3][1];
+    
+    // Top plane
+    fn[3] = glm::vec3(vp[0][3] - vp[0][1], vp[1][3] - vp[1][1], vp[2][3] - vp[2][1]);
+    fd[3] = vp[3][3] - vp[3][1];
+    
+    // Near plane
+    fn[4] = glm::vec3(vp[0][3] + vp[0][2], vp[1][3] + vp[1][2], vp[2][3] + vp[2][2]);
+    fd[4] = vp[3][3] + vp[3][2];
+    
+    // Far plane
+    fn[5] = glm::vec3(vp[0][3] - vp[0][2], vp[1][3] - vp[1][2], vp[2][3] - vp[2][2]);
+    fd[5] = vp[3][3] - vp[3][2];
+    
+    // Normalize planes
+    for (int i = 0; i < 6; ++i) {
+        float length = glm::length(fn[i]);
+        if (length > kEpsilon) {
+            fn[i] /= length;
+            fd[i] /= length;
         }
     }
+}
 
-    void CreateAabbBruteForce(glm::vec3 const* vertices, size_t count, glm::vec3* out_min, glm::vec3* out_max) {
-        *out_min = vertices[0];
-        *out_max = vertices[0];
+void CreateAabbBruteForce(Vertex const* vertices, size_t count, Vertex* out_min, Vertex* out_max)
+{
+    if (count == 0 || !vertices || !out_min || !out_max) return;
+    
+    glm::vec3 minPos = vertices[0].m_Position;
+    glm::vec3 maxPos = vertices[0].m_Position;
+    
+    for (size_t i = 1; i < count; ++i)
+     {
+        minPos = glm::min(minPos, vertices[i].m_Position);
+        maxPos = glm::max(maxPos, vertices[i].m_Position);
+    }
+    
+    out_min->m_Position = minPos;
+    out_min->m_Color = vertices[0].m_Color;
+    out_min->m_Normal = vertices[0].m_Normal;
+    out_min->m_UV = vertices[0].m_UV;
+    
+    out_max->m_Position = maxPos;
+    out_max->m_Color = vertices[0].m_Color;
+    out_max->m_Normal = vertices[0].m_Normal;
+    out_max->m_UV = vertices[0].m_UV;
+}
 
-        for (size_t i = 1; i < count; ++i) 
+void CreateSphereCentroid(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r)
+{
+    if (count == 0 || !vertices || !out_c || !out_r) return;
+    
+    // Calculate centroid
+    glm::vec3 centroid(0.0f);
+    for (size_t i = 0; i < count; ++i) {
+        centroid += vertices[i].m_Position;
+    }
+    centroid /= static_cast<float>(count);
+    
+    // Find maximum distance from centroid
+    float maxDistanceSq = 0.0f;
+    for (size_t i = 0; i < count; ++i) {
+        float distanceSq = glm::length2(vertices[i].m_Position - centroid);
+        maxDistanceSq = glm::max(maxDistanceSq, distanceSq);
+    }
+    
+    out_c->m_Position = centroid;
+    out_c->m_Color = vertices[0].m_Color;
+    out_c->m_Normal = vertices[0].m_Normal;
+    out_c->m_UV = vertices[0].m_UV;
+    *out_r = glm::sqrt(maxDistanceSq);
+}
+
+void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r)
+{
+    if (count == 0 || !vertices || !out_c || !out_r) return;
+    
+    // Find the most distant pair of points
+    size_t maxI = 0, maxJ = 1;
+    float maxDistanceSq = 0.0f;
+    
+    for (size_t i = 0; i < count; ++i) {
+        for (size_t j = i + 1; j < count; ++j) 
         {
-            *out_min = min(*out_min, vertices[i]);
-            *out_max = max(*out_max, vertices[i]);
+            float distanceSq = glm::length2(vertices[i].m_Position - vertices[j].m_Position);
+            if (distanceSq > maxDistanceSq) {
+                maxDistanceSq = distanceSq;
+                maxI = i;
+                maxJ = j;
+            }
         }
     }
-
-    void CreateSphereCentroid(glm::vec3 const* vertices, size_t count, glm::vec3* out_c, float* out_r) {
-        glm::vec3 centroid(0.0f);
-        for (size_t i = 0; i < count; ++i) 
-        {
-            centroid += vertices[i];
+    
+    // Initial sphere from most distant pair
+    glm::vec3 center = (vertices[maxI].m_Position + vertices[maxJ].m_Position) * 0.5f;
+    float radius = glm::length(vertices[maxI].m_Position - vertices[maxJ].m_Position) * 0.5f;
+    
+    // Expand sphere to include all points
+    for (size_t i = 0; i < count; ++i) {
+        glm::vec3 toPoint = vertices[i].m_Position - center;
+        float distance = glm::length(toPoint);
+        
+        if (distance > radius) {
+            float newRadius = (radius + distance) * 0.5f;
+            glm::vec3 direction = toPoint / distance;
+            center = center + direction * (newRadius - radius);
+            radius = newRadius;
         }
-        centroid /= static_cast<float>(count);
+    }
+    
+    out_c->m_Position = center;
+    out_c->m_Color = vertices[0].m_Color;
+    out_c->m_Normal = vertices[0].m_Normal;
+    out_c->m_UV = vertices[0].m_UV;
+    *out_r = radius;
+}
 
-        float maxDistanceSquared = 0.0f;
+void CreateSphereIterative(Vertex const* vertices, size_t count, int iteration_count, float shrink_ratio, Vertex* out_c, float* out_r)
+{
+    if (count == 0 || !vertices || !out_c || !out_r) return;
+    
+    // Start with Ritter's algorithm
+    CreateSphereRitters(vertices, count, out_c, out_r);
+    
+    glm::vec3 center = out_c->m_Position;
+    float radius = *out_r;
+    
+    // Iterative improvement
+    for (int iter = 0; iter < iteration_count; ++iter) {
+        glm::vec3 newCenter(0.0f);
+        float totalWeight = 0.0f;
+        
+        // Weighted centroid of points outside current sphere
         for (size_t i = 0; i < count; ++i) {
-            float distanceSquared = glm::length2(vertices[i] - centroid);
-            maxDistanceSquared = std::max(maxDistanceSquared, distanceSquared);
-        }
-
-        *out_c = centroid;
-        *out_r = glm::sqrt(maxDistanceSquared);
-    }
-
-    void CreateSphereRitters(glm::vec3 const* vertices, size_t count, glm::vec3* out_c, float* out_r) {
-        glm::vec3 min_point = vertices[0];
-        glm::vec3 max_point = vertices[0];
-
-        for (size_t i = 1; i < count; ++i) {
-            min_point = min(min_point, vertices[i]);
-            max_point = max(max_point, vertices[i]);
-        }
-
-        glm::vec3 center = (min_point + max_point) * 0.5f;
-        float radius = length(max_point - center);
-
-        for (size_t i = 0; i < count; ++i) {
-            float distance = length(vertices[i] - center);
+            float distance = glm::length(vertices[i].m_Position - center);
             if (distance > radius) {
-                glm::vec3 direction = normalize(vertices[i] - center);
-                glm::vec3 new_center = (center + vertices[i] - direction * radius) * 0.5f;
-                float new_radius = length(vertices[i] - new_center);
-                center = new_center;
-                radius = new_radius;
+                float weight = distance - radius;
+                newCenter += vertices[i].m_Position * weight;
+                totalWeight += weight;
             }
         }
-
-        *out_c = center;
-        *out_r = radius;
-    }
-
-    void CreateSphereIterative(glm::vec3 const* vertices, size_t count, int iteration_count, float shrink_ratio, glm::vec3* out_c, float* out_r) {
-        glm::vec3 center(0.0f);
-        float radius = 0.0f;
-
-        // Find the initial bounding sphere using Ritter's method
-        CreateSphereRitters(vertices, count, &center, &radius);
-
-        for (int iteration = 0; iteration < iteration_count; ++iteration) {
-            // Find the vertex furthest from the current center
-            glm::vec3 furthest_vertex = vertices[0];
-            float max_distance = glm::length2(vertices[0] - center);
-
-            for (size_t i = 1; i < count; ++i) {
-                float distance = length2(vertices[i] - center);
-                if (distance > max_distance) {
-                    max_distance = distance;
-                    furthest_vertex = vertices[i];
-                }
-            }
-
-            // Adjust the sphere's radius and center based on the furthest vertex
-            float new_radius = glm::sqrt(max_distance);
-            glm::vec3 direction = glm::normalize(furthest_vertex - center);
-            glm::vec3 new_center = center + direction * (new_radius - radius) * shrink_ratio;
-
-            center = new_center;
-            radius = new_radius;
-        }
-
-        *out_c = center;
-        *out_r = radius;
-    }
-
-    void CreateSpherePCA(glm::vec3 const* vertices, size_t count, glm::vec3* out_c, float* out_r) {
-        // Calculate centroid
-        glm::vec3 centroid(0.0f);
-        for (size_t i = 0; i < count; ++i) {
-            centroid += vertices[i];
-        }
-        centroid /= static_cast<float>(count);
-
-        // Calculate covariance matrix
-        glm::mat3 covariance(0.0f);
-        for (size_t i = 0; i < count; ++i) {
-            glm::vec3 diff = vertices[i] - centroid;
-            covariance[0][0] += diff.x * diff.x;
-            covariance[0][1] += diff.x * diff.y;
-            covariance[0][2] += diff.x * diff.z;
-            covariance[1][0] += diff.y * diff.x;
-            covariance[1][1] += diff.y * diff.y;
-            covariance[1][2] += diff.y * diff.z;
-            covariance[2][0] += diff.z * diff.x;
-            covariance[2][1] += diff.z * diff.y;
-            covariance[2][2] += diff.z * diff.z;
-        }
-        covariance /= static_cast<float>(count - 1);
-
-        // For simplicity, we'll use the largest eigenvalue direction
-        // In a full implementation, you'd want to compute all eigenvalues/eigenvectors
-        // Here we'll approximate by finding the direction of maximum variance
-        glm::vec3 eigenVector(1.0f, 0.0f, 0.0f);
         
-        // Power iteration to find dominant eigenvector (simplified)
-        for (int iter = 0; iter < 10; ++iter) {
-            glm::vec3 newVector = covariance * eigenVector;
-            float length = glm::length(newVector);
-            if (length > kEpsilon) {
-                eigenVector = newVector / length;
-            }
+        if (totalWeight > kEpsilon) {
+            newCenter /= totalWeight;
+            center = glm::mix(center, newCenter, shrink_ratio);
         }
-
-        // Project all points onto the dominant eigenvector to find extremes
-        float minProj = glm::dot(vertices[0] - centroid, eigenVector);
-        float maxProj = minProj;
         
-        for (size_t i = 1; i < count; ++i) {
-            float proj = glm::dot(vertices[i] - centroid, eigenVector);
-            minProj = std::min(minProj, proj);
-            maxProj = std::max(maxProj, proj);
-        }
-
-        // Calculate sphere center and radius based on PCA
-        glm::vec3 center = centroid + eigenVector * (minProj + maxProj) * 0.5f;
-        float radius = (maxProj - minProj) * 0.5f;
-
-        // Ensure all points are within the sphere
+        // Recalculate radius
+        radius = 0.0f;
         for (size_t i = 0; i < count; ++i) {
-            float distance = glm::length(vertices[i] - center);
-            radius = std::max(radius, distance);
+            float distance = glm::length(vertices[i].m_Position - center);
+            radius = glm::max(radius, distance);
         }
-
-        *out_c = center;
-        *out_r = radius;
     }
+    
+    out_c->m_Position = center;
+    *out_r = radius;
+}
 
-    bool OverlapSphereAabb(glm::vec3 const& sphere_center, float sphere_radius, glm::vec3 const& aabb_min, glm::vec3 const& aabb_max) {
-        // Find the closest point on the AABB to the sphere center
-        glm::vec3 closest_point;
-        closest_point.x = glm::clamp(sphere_center.x, aabb_min.x, aabb_max.x);
-        closest_point.y = glm::clamp(sphere_center.y, aabb_min.y, aabb_max.y);
-        closest_point.z = glm::clamp(sphere_center.z, aabb_min.z, aabb_max.z);
-
-        // Calculate the distance from the sphere center to this closest point
-        glm::vec3 distance_vec = sphere_center - closest_point;
-        float distance_squared = glm::dot(distance_vec, distance_vec);
-
-        // Check if the distance is within the sphere's radius
-        return distance_squared <= (sphere_radius * sphere_radius);
+void CreateSpherePCA(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r)
+{
+    if (count == 0 || !vertices || !out_c || !out_r) return;
+    
+    // Calculate centroid
+    glm::vec3 centroid(0.0f);
+    for (size_t i = 0; i < count; ++i) {
+        centroid += vertices[i].m_Position;
     }
+    centroid /= static_cast<float>(count);
+    
+    // Build covariance matrix
+    glm::mat3 covariance(0.0f);
+    for (size_t i = 0; i < count; ++i) {
+        glm::vec3 diff = vertices[i].m_Position - centroid;
+        covariance += glm::outerProduct(diff, diff);
+    }
+    covariance /= static_cast<float>(count);
+    
+    // Find principal component (largest eigenvalue's eigenvector)
+    // Simplified power iteration method
+    glm::vec3 direction(1.0f, 0.0f, 0.0f);
+    for (int iter = 0; iter < 10; ++iter) {
+        direction = covariance * direction;
+        direction = glm::normalize(direction);
+    }
+    
+    // Project all points onto the principal axis
+    float minProj = std::numeric_limits<float>::max();
+    float maxProj = -std::numeric_limits<float>::max();
+    
+    for (size_t i = 0; i < count; ++i) {
+        float proj = glm::dot(vertices[i].m_Position - centroid, direction);
+        minProj = glm::min(minProj, proj);
+        maxProj = glm::max(maxProj, proj);
+    }
+    
+    // Sphere center and radius from projection extremes
+    glm::vec3 center = centroid + direction * ((minProj + maxProj) * 0.5f);
+    float radius = (maxProj - minProj) * 0.5f;
+    
+    // Expand to include all points
+    for (size_t i = 0; i < count; ++i) {
+        float distance = glm::length(vertices[i].m_Position - center);
+        radius = glm::max(radius, distance);
+    }
+    
+    out_c->m_Position = center;
+    out_c->m_Color = vertices[0].m_Color;
+    out_c->m_Normal = vertices[0].m_Normal;
+    out_c->m_UV = vertices[0].m_UV;
+    *out_r = radius;
+}
+
+bool OverlapSphereAabb(Vertex const& sphere_center, float sphere_radius, Vertex const& aabb_min, Vertex const& aabb_max)
+{
+    const glm::vec3& center = sphere_center.m_Position;
+    const glm::vec3& minPos = aabb_min.m_Position;
+    const glm::vec3& maxPos = aabb_max.m_Position;
+    
+    glm::vec3 closestPoint = glm::clamp(center, minPos, maxPos);
+    glm::vec3 difference = center - closestPoint;
+    
+    return glm::dot(difference, difference) <= sphere_radius * sphere_radius;
+}
 
 

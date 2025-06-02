@@ -57,14 +57,6 @@ InputSystem::~InputSystem()
 void InputSystem::Update(float deltaTime)
 {
     m_PreviousKeysPressed = m_KeysPressed;
-    HandleRayRotation(deltaTime);
-}
-
-// Function to handle ray rotation with Q and E keys
-void InputSystem::HandleRayRotation(float deltaTime)
-{
-    // Ray rotation functionality removed - no collision components
-    // This function can be simplified or removed in the future
 }
 
 bool InputSystem::IsKeyPressed(int keyCode) const

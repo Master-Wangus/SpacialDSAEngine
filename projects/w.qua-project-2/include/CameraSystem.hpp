@@ -32,7 +32,8 @@ struct Projection
     Projection(float fov, float nearPlane, float farPlane)
         : m_Fov(fov), m_NearPlane(nearPlane), m_FarPlane(farPlane) {}
         
-    glm::mat4 GetProjectionMatrix(float aspectRatio) const {
+    glm::mat4 GetProjectionMatrix(float aspectRatio) const 
+    {
         return glm::perspective(glm::radians(m_Fov), aspectRatio, m_NearPlane, m_FarPlane);
     }
 };

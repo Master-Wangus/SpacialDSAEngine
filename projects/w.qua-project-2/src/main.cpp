@@ -55,6 +55,15 @@ int main()
                 }
             });
         
+        // Reset scene shortcut
+        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_R, 
+            [&registry, &window](int key, int scancode, int action, int mods) {
+                if (action == Keybinds::PRESS) {
+                    Systems::ResetCurrentScene(registry, window);
+                    std::cout << "Scene reset!" << std::endl;
+                }
+            });
+        
         // Game loop variables
         float lastFrame = 0.0f;
         

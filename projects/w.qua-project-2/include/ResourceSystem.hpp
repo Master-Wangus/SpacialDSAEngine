@@ -35,7 +35,7 @@ public:
     void SetVertices(const std::vector<Vertex>& vertices) { m_Vertices = vertices; }
     
     // Getter
-    const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+    const std::vector<Vertex>& GetVertexes() const { return m_Vertices; }
     
 private:
     std::vector<Vertex> m_Vertices;   // Vertex data
