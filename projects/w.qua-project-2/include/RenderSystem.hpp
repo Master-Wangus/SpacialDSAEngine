@@ -10,15 +10,16 @@
 
 #include "pch.h"
 
-// Forward declarations
 class Shader;
 class Window;
 
-// Forward declare components and registry
 struct RenderComponent;
 struct TransformComponent;
 struct CameraComponent;
 struct DirectionalLightComponent;
+struct BoundingComponent;
+struct Aabb;
+struct Sphere;
 
 class RenderSystem 
 {
@@ -37,6 +38,21 @@ public:
     bool IsDirectionalLightEnabled() const;
     void UpdateLightFromVisualization(); // Update light direction from visualization position
     Registry::Entity GetLightVisualizationEntity() const { return m_LightVisualizationEntity; }
+    
+    // Bounding volume visibility controls
+    void SetShowAABB(bool show);
+    void SetShowRitterSphere(bool show);
+    void SetShowLarsonSphere(bool show);
+    void SetShowPCASphere(bool show);
+    
+    bool IsAABBVisible() const;
+    bool IsRitterSphereVisible() const;
+    bool IsLarsonSphereVisible() const;
+    bool IsPCASphereVisible() const;
+    
+    // Main object visibility controls
+    void SetShowMainObjects(bool show);
+    bool IsShowMainObjects() const;
 
 private:
     void SetupLighting();
@@ -49,4 +65,13 @@ private:
     std::shared_ptr<Shader> m_Shader;
     Registry::Entity m_LightEntity = entt::null;
     Registry::Entity m_LightVisualizationEntity = entt::null;
+    
+    // Bounding volume visibility flags
+    bool m_ShowAABB = true;
+    bool m_ShowRitterSphere = true;
+    bool m_ShowLarsonSphere = true;
+    bool m_ShowPCASphere = true;
+    
+    // Main object display control
+    bool m_ShowMainObjects = true;
 }; 

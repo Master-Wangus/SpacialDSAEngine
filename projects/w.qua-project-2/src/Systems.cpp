@@ -39,7 +39,7 @@ namespace Systems
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
         
-        DemoScene::SetupScene(registry, window, shader, g_CurrentDemoScene);
+        DemoScene::SetupScene(registry, window, g_CurrentDemoScene);
         g_RenderSystem->Initialize();
     }
     
@@ -66,8 +66,7 @@ namespace Systems
     {
         if (g_RenderSystem)
         {
-            auto shader = g_RenderSystem->GetShader();
-            DemoScene::ResetScene(registry, window, shader);
+            DemoScene::ResetScene(registry, window);
         }
     }
 }

@@ -16,6 +16,7 @@ class MeshRenderer : public IRenderable
 public:
     explicit MeshRenderer(const ResourceHandle& meshHandle);
     MeshRenderer(const ResourceHandle& meshHandle, const glm::vec3& color);
+    MeshRenderer(const ResourceHandle& meshHandle, const glm::vec3& color, bool wireframe);
     ~MeshRenderer() override;
     
     // IRenderable interface implementation
@@ -28,10 +29,17 @@ public:
     void SetColor(const glm::vec3& color);
     glm::vec3 GetColor() const;
     
+    // Wireframe control
+    void SetWireframe(bool wireframe);
+    bool IsWireframe() const;
+    
 private:
     ResourceHandle m_MeshHandle;
     glm::vec3 m_Color = glm::vec3(1.0f);
     bool m_Initialized = false;
+    bool m_Wireframe = false;
+    int m_WireframeVertexCount = 0;
     
     void UpdateVertexColors();
+    std::vector<Vertex> CreateWireframeVertices(const std::vector<Vertex>& triangleVertices);
 }; 

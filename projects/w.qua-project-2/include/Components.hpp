@@ -72,13 +72,17 @@ enum class BoundingVolumeType
 
 struct BoundingComponent
 {
+    // Bounding volume data
     Aabb m_AABB;
-    Sphere m_RitterSphere;      // Ritter's Method
-    Sphere m_LarssonSphere;     // Modified Larsson's Method
-    Sphere m_PCASphere;         // PCA-based Method
+    Sphere m_RitterSphere;      
+    Sphere m_LarssonSphere;     
+    Sphere m_PCASphere;        
 
+    // Wireframe renderables for visualization
     std::shared_ptr<IRenderable> m_AABBRenderable;
-    std::shared_ptr<IRenderable> m_SphereRenderable;
+    std::shared_ptr<IRenderable> m_RitterRenderable;
+    std::shared_ptr<IRenderable> m_LarsonRenderable;
+    std::shared_ptr<IRenderable> m_PCARenderable;
 
     BoundingComponent() = default;
     BoundingComponent(const ResourceHandle& resourceHandle)
@@ -101,6 +105,9 @@ struct BoundingComponent
         CreateSpherePCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
         m_PCASphere = Sphere(center->m_Position, *radius);
     }
+    
+    void InitializeRenderables(const std::shared_ptr<Shader>& shader);
+    void CleanupRenderables();
 };
 
 // ==================== Camera Components ====================

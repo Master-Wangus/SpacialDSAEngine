@@ -119,6 +119,18 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
         RenderLightingControls(registry);
     }
     
+    // Bounding Volume Controls
+    if (ImGui::CollapsingHeader("Bounding Volume Controls", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        RenderBoundingVolumeControls(registry);
+    }
+    
+    // Object Visibility Controls
+    if (ImGui::CollapsingHeader("Object Visibility"))
+    {
+        RenderObjectVisibilityControls(registry);
+    }
+    
     // Debug statistics
     if (ImGui::CollapsingHeader("Debug Statistics")) 
     {
@@ -219,6 +231,72 @@ void ImGuiManager::RenderLightingControls(Registry& registry)
     }
 }
 
+void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
+{
+    if (!Systems::g_RenderSystem) {
+        ImGui::Text("Render system not available");
+        return;
+    }
+    
+    ImGui::Text("Toggle Bounding Volume Visibility:");
+    ImGui::Separator();
+    
+    // AABB Controls (Red)
+    bool showAABB = Systems::g_RenderSystem->IsAABBVisible();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red color
+    if (ImGui::Checkbox("AABB (Axis-Aligned Bounding Box)", &showAABB))
+    {
+        Systems::g_RenderSystem->SetShowAABB(showAABB);
+    }
+    ImGui::PopStyleColor();
+    
+    // Ritter Sphere Controls (Blue)
+    bool showRitter = Systems::g_RenderSystem->IsRitterSphereVisible();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.3f, 1.0f, 1.0f)); // Blue color
+    if (ImGui::Checkbox("Ritter Sphere", &showRitter))
+    {
+        Systems::g_RenderSystem->SetShowRitterSphere(showRitter);
+    }
+    ImGui::PopStyleColor();
+    
+    // Larsson Sphere Controls (Yellow)
+    bool showLarsson = Systems::g_RenderSystem->IsLarsonSphereVisible();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.3f, 1.0f)); // Yellow color
+    if (ImGui::Checkbox("Larsson Iterative Sphere", &showLarsson))
+    {
+        Systems::g_RenderSystem->SetShowLarsonSphere(showLarsson);
+    }
+    ImGui::PopStyleColor();
+    
+    // PCA Sphere Controls (Magenta)
+    bool showPCA = Systems::g_RenderSystem->IsPCASphereVisible();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 1.0f, 1.0f)); // Magenta color
+    if (ImGui::Checkbox("PCA Sphere", &showPCA))
+    {
+        Systems::g_RenderSystem->SetShowPCASphere(showPCA);
+    }
+    ImGui::PopStyleColor();
+    
+    ImGui::Separator();
+    
+    // Quick toggle buttons
+    if (ImGui::Button("Show All"))
+    {
+        Systems::g_RenderSystem->SetShowAABB(true);
+        Systems::g_RenderSystem->SetShowRitterSphere(true);
+        Systems::g_RenderSystem->SetShowLarsonSphere(true);
+        Systems::g_RenderSystem->SetShowPCASphere(true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Hide All"))
+    {
+        Systems::g_RenderSystem->SetShowAABB(false);
+        Systems::g_RenderSystem->SetShowRitterSphere(false);
+        Systems::g_RenderSystem->SetShowLarsonSphere(false);
+        Systems::g_RenderSystem->SetShowPCASphere(false);
+    }
+}
+
 void ImGuiManager::HelpMarker(const char* desc)
 {
     ImGui::TextDisabled("(?)");
@@ -246,4 +324,18 @@ void ImGuiManager::RenderStats()
     
     // Window info
     ImGui::Text("Window Size: %dx%d", m_Window.GetWidth(), m_Window.GetHeight());
+}
+
+void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
+{
+    ImGui::Text("Main Object Display Options:");
+    ImGui::Separator();
+    
+    bool showMainObjects = Systems::g_RenderSystem->IsShowMainObjects();
+    
+    // Object visibility toggle
+    if (ImGui::Checkbox("Show Main Objects", &showMainObjects))
+    {
+        Systems::g_RenderSystem->SetShowMainObjects(showMainObjects);
+    }
 } 

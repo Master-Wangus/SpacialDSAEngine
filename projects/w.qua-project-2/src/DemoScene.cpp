@@ -23,9 +23,9 @@
 
 namespace DemoScene 
 {
-    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType) 
+    void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType) 
     {
-        SetupMeshScene(registry, shader);
+        SetupMeshScene(registry);
     }
     
     void ClearScene(Registry& registry)
@@ -43,17 +43,19 @@ namespace DemoScene
         }
     }
 
-    void ResetScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
+    void ResetScene(Registry& registry, Window& window)
     {
         ClearScene(registry);        
-        SetupScene(registry, window, shader, Systems::g_CurrentDemoScene);
+        SetupScene(registry, window, Systems::g_CurrentDemoScene);
     }
 
-    void SetupMeshScene(Registry& registry, const std::shared_ptr<Shader>& shader)
+    void SetupMeshScene(Registry& registry)
     {
-                
         ResourceHandle meshHandleRhino = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/rhino.obj");
         ResourceHandle meshHandleCup = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/cup.obj");
+        
+        // Get the shader from the render system for initializing renderables
+        auto shader = Systems::g_RenderSystem->GetShader();
         
         // Rhino
         auto meshEntityRhino = registry.Create();
@@ -62,19 +64,33 @@ namespace DemoScene
                               glm::vec3(0.0f),
                               glm::vec3(1.0f)));
         
-        auto meshRendererRhino = std::make_shared<MeshRenderer>(meshHandleRhino, glm::vec3(0.0f, 1.0f, 0.0f));
-        meshRendererRhino->Initialize(shader);
+        auto meshRendererRhino = std::make_shared<MeshRenderer>(meshHandleRhino, glm::vec3(0.0f, 1.0f, 0.0f), true);
 
-        registry.AddComponent<RenderComponent>(meshEntityRhino, RenderComponent(meshRendererRhino));
+        // Create bounding component for rhino
+        auto boundingComponentRhino = BoundingComponent(meshHandleRhino);
+        boundingComponentRhino.InitializeRenderables(shader);
+        registry.AddComponent<BoundingComponent>(meshEntityRhino, boundingComponentRhino);
+        
+        // Create render component with main renderable only
+        RenderComponent renderCompRhino(meshRendererRhino);
+        registry.AddComponent<RenderComponent>(meshEntityRhino, renderCompRhino);
 
         // Cup
         auto meshEntityCup = registry.Create();
         registry.AddComponent<TransformComponent>(meshEntityCup,
             TransformComponent(glm::vec3(0.0f, 0.0f, 15.0f),
                 glm::vec3(0.0f),
-                glm::vec3(10.0f)));
-        auto meshRendererCup = std::make_shared<MeshRenderer>(meshHandleCup, glm::vec3(0.0f, 1.0f, 0.0f));
-        meshRendererCup->Initialize(shader);
-        registry.AddComponent<RenderComponent>(meshEntityCup, RenderComponent(meshRendererCup));
+                glm::vec3(1.0f)));
+        
+        auto meshRendererCup = std::make_shared<MeshRenderer>(meshHandleCup, glm::vec3(0.0f, 1.0f, 0.0f), true);
+        
+        // Create bounding component for cup
+        auto boundingComponentCup = BoundingComponent(meshHandleCup);
+        boundingComponentCup.InitializeRenderables(shader);
+        registry.AddComponent<BoundingComponent>(meshEntityCup, boundingComponentCup);
+        
+        // Create render component with main renderable only
+        RenderComponent renderCompCup(meshRendererCup);
+        registry.AddComponent<RenderComponent>(meshEntityCup, renderCompCup);
     }
 } 

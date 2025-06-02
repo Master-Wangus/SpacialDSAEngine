@@ -22,6 +22,11 @@ public:
                   float radius = 1.0f,
                   const glm::vec3& color = glm::vec3(1.0f, 0.0f, 0.0f));
     
+    SphereRenderer(const glm::vec3& center, 
+                  float radius,
+                  const glm::vec3& color,
+                  bool wireframe);
+    
     ~SphereRenderer();
     
     void Initialize(const std::shared_ptr<Shader>& shader) override;
@@ -40,10 +45,16 @@ public:
     void SetColor(const glm::vec3& color);
     glm::vec3 GetColor() const;
     
+    // Wireframe control
+    void SetWireframe(bool wireframe);
+    bool IsWireframe() const;
+    
 private:
     glm::vec3 m_Center;
     float m_Radius;
     glm::vec3 m_Color;
+    bool m_Wireframe = false;
 
     std::vector<Vertex> CreateVertices();
+    std::vector<Vertex> CreateWireframeVertices();
 }; 

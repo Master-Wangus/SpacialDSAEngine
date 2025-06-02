@@ -10,7 +10,6 @@
 
 #include "pch.h"
 
-// Forward declarations
 class Registry;
 class Window;
 struct CameraComponent;

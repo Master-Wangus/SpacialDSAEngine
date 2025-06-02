@@ -21,6 +21,11 @@ public:
                 const glm::vec3& size = glm::vec3(1.0f),
                 const glm::vec3& color = glm::vec3(1.0f));
     
+    CubeRenderer(const glm::vec3& center,
+                const glm::vec3& size,
+                const glm::vec3& color,
+                bool wireframe);
+    
     ~CubeRenderer();
     
     void Initialize(const std::shared_ptr<Shader>& shader) override;
@@ -39,10 +44,16 @@ public:
     void SetColor(const glm::vec3& color);
     glm::vec3 GetColor() const;
     
+    // Wireframe control
+    void SetWireframe(bool wireframe);
+    bool IsWireframe() const;
+    
 private:
     glm::vec3 m_Center;
     glm::vec3 m_Size;
     glm::vec3 m_Color;
+    bool m_Wireframe = false;
 
     std::vector<Vertex> CreateVertices();
+    std::vector<Vertex> CreateWireframeVertices();
 }; 

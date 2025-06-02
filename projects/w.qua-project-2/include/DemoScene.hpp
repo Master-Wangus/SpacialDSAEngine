@@ -11,7 +11,6 @@
 #include "pch.h"
 
 // Forward declarations
-class Shader;
 class Window;
 class Registry;
 
@@ -22,10 +21,10 @@ enum class DemoSceneType
 
 namespace DemoScene
 {
-    void SetupScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader, DemoSceneType sceneType = DemoSceneType::MeshScene);
+    void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType = DemoSceneType::MeshScene);
     void ClearScene(Registry& registry);
-    void ResetScene(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader);
+    void ResetScene(Registry& registry, Window& window);
     
-    void SetupMeshScene(Registry& registry, const std::shared_ptr<Shader>& shader);
+    void SetupMeshScene(Registry& registry);
     
 } 

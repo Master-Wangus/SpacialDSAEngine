@@ -31,6 +31,8 @@ public:
     void RenderSceneSelector(Registry& registry);
     void RenderLightingControls(Registry& registry);
     void RenderCameraControls(Registry& registry);
+    void RenderBoundingVolumeControls(Registry& registry);
+    void RenderObjectVisibilityControls(Registry& registry);
     void RenderStats();
     
     // Helper functions

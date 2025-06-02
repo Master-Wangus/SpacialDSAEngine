@@ -9,13 +9,13 @@
 #include "RenderSystem.hpp"
 #include "Shader.hpp"
 #include "SphereRenderer.hpp"
+#include "CubeRenderer.hpp"
 #include "Components.hpp"
+#include "Shapes.hpp"
 #include "Registry.hpp"
 #include "Window.hpp"
 #include "Buffer.hpp"
 #include "Lighting.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader)
@@ -34,10 +34,15 @@ void RenderSystem::Initialize()
     
     for (auto entity : m_Registry.View<RenderComponent>()) 
     {
-        m_Registry.GetComponent<RenderComponent>(entity).m_Renderable->Initialize(m_Shader);
+        auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
+        
+        if (renderComp.m_Renderable) 
+        {
+            renderComp.m_Renderable->Initialize(m_Shader);
+        }
     }
+
     SetupLighting();
-    
     SetupMaterial();
 }
 
@@ -60,13 +65,46 @@ void RenderSystem::Render()
     m_Shader->Use();
     m_Shader->SetVec3("viewPos", cameraPosition);
     
+    // Set polygon mode for main objects to always be wireframe
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    // Render entities with both transform and render components
     auto renderView = m_Registry.View<TransformComponent, RenderComponent>();
-    for (auto entity : renderView)
+    for (auto entity : renderView) 
     {
         auto& transform = m_Registry.GetComponent<TransformComponent>(entity);
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
-        renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+        // Only render main objects if they should be visible
+        if (m_ShowMainObjects && renderComp.m_Renderable) 
+        {
+            renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+        }
+        
+        // Render bounding volumes if enabled and entity has BoundingComponent
+        if (m_Registry.HasComponent<BoundingComponent>(entity))
+        {
+            // Reset to solid mode for bounding volume wireframes (they use line primitives)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            
+            auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
+            
+            if (m_ShowAABB && boundingComp.m_AABBRenderable) {
+                boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+            
+            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable) {
+                boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+            
+            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable) {
+                boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+            
+            if (m_ShowPCASphere && boundingComp.m_PCARenderable) {
+                boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+        }
     }
 }
 
@@ -74,8 +112,72 @@ void RenderSystem::Shutdown()
 {
     for (auto entity : m_Registry.View<RenderComponent>()) 
     {
-        m_Registry.GetComponent<RenderComponent>(entity).m_Renderable->CleanUp();
+        auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
+        
+        // Clean up main renderable
+        if (renderComp.m_Renderable) {
+            renderComp.m_Renderable->CleanUp();
+        }
     }
+    
+    // Clean up bounding component renderables
+    for (auto entity : m_Registry.View<BoundingComponent>()) 
+    {
+        auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
+        boundingComp.CleanupRenderables();
+    }
+}
+
+// Bounding volume visibility controls
+void RenderSystem::SetShowAABB(bool show)
+{
+    m_ShowAABB = show;
+}
+
+void RenderSystem::SetShowRitterSphere(bool show)
+{
+    m_ShowRitterSphere = show;
+}
+
+void RenderSystem::SetShowLarsonSphere(bool show)
+{
+    m_ShowLarsonSphere = show;
+}
+
+void RenderSystem::SetShowPCASphere(bool show)
+{
+    m_ShowPCASphere = show;
+}
+
+bool RenderSystem::IsAABBVisible() const
+{
+    return m_ShowAABB;
+}
+
+bool RenderSystem::IsRitterSphereVisible() const
+{
+    return m_ShowRitterSphere;
+}
+
+bool RenderSystem::IsLarsonSphereVisible() const
+{
+    return m_ShowLarsonSphere;
+}
+
+bool RenderSystem::IsPCASphereVisible() const
+{
+    return m_ShowPCASphere;
+}
+
+// Main object visibility controls
+void RenderSystem::SetShowMainObjects(bool show)
+{
+    m_ShowMainObjects = show;
+}
+
+bool RenderSystem::IsShowMainObjects() const
+{
+    return m_ShowMainObjects;
 }
 
 void RenderSystem::SetupLighting()
@@ -145,12 +247,10 @@ void RenderSystem::SetupMaterial()
     if (materialUBO == 0) 
     {
         materialUBO = Buffer::CreateUniformBuffer(sizeof(Material), 1);
-        Buffer::UpdateUniformBuffer(materialUBO, &material, sizeof(Material));
     } 
-    else 
-    {
-        Buffer::UpdateUniformBuffer(materialUBO, &material, sizeof(Material));
-    }
+
+    Buffer::UpdateUniformBuffer(materialUBO, &material, sizeof(Material));
+
 }
 
 void RenderSystem::UpdateLighting()
@@ -163,12 +263,9 @@ void RenderSystem::UpdateLighting()
         if (lightUBO == 0) 
         {
             lightUBO = Buffer::CreateUniformBuffer(sizeof(DirectionalLight), 0);
-            Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
         } 
-        else 
-        {
-            Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
-        }
+        Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
+
     }
 }
 
