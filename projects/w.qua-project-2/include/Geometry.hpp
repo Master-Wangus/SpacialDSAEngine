@@ -48,6 +48,7 @@ void CreateSphereCentroid(Vertex const* vertices, size_t count, Vertex* out_c, f
 void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r);
 void CreateSphereIterative(Vertex const* vertices, size_t count, int iteration_count, float shrink_ratio, Vertex* out_c, float* out_r);
 void CreateSpherePCA(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r);
+void CreateObbPCA(Vertex const* vertices, size_t count, glm::vec3* out_center, glm::vec3 out_axes[3], glm::vec3* out_halfExtents);
 
 // Sphere-AABB overlap test
 bool OverlapSphereAabb(Vertex const& sphere_center, float sphere_radius, Vertex const& aabb_min, Vertex const& aabb_max);

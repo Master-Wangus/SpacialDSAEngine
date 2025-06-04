@@ -104,6 +104,10 @@ void RenderSystem::Render()
             if (m_ShowPCASphere && boundingComp.m_PCARenderable) {
                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
             }
+            
+            if (m_ShowOBB && boundingComp.m_OBBRenderable) {
+                boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
         }
     }
 }
@@ -149,6 +153,11 @@ void RenderSystem::SetShowPCASphere(bool show)
     m_ShowPCASphere = show;
 }
 
+void RenderSystem::SetShowOBB(bool show)
+{
+    m_ShowOBB = show;
+}
+
 bool RenderSystem::IsAABBVisible() const
 {
     return m_ShowAABB;
@@ -167,6 +176,11 @@ bool RenderSystem::IsLarsonSphereVisible() const
 bool RenderSystem::IsPCASphereVisible() const
 {
     return m_ShowPCASphere;
+}
+
+bool RenderSystem::IsOBBVisible() const
+{
+    return m_ShowOBB;
 }
 
 // Main object visibility controls

@@ -8,6 +8,7 @@
 
 #pragma once
 
+// GLEW
 #include <GL/glew.h>
 
 // Standard library
@@ -42,6 +43,9 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+// Eigen
+#include <Eigen/Dense>
 
 // Engine includes
 #include "Registry.hpp"

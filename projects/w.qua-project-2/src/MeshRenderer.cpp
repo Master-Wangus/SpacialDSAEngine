@@ -72,18 +72,14 @@ void MeshRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMat
     if (!m_Initialized || !m_Shader)
         return;
     
-    // Use the shader
     m_Shader->Use();
     
-    // Set matrices
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    // Bind our vertex buffer
     m_Buffer.Bind();
     
-    // Draw the mesh
     if (m_Wireframe)
     {
         glDrawArrays(GL_LINES, 0, m_WireframeVertexCount);
@@ -93,14 +89,12 @@ void MeshRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMat
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
     }
     
-    // Unbind
     m_Buffer.Unbind();
 }
 
 void MeshRenderer::CleanUp()
 {
     m_Initialized = false;
-    // Buffer destructor will handle cleanup
 }
 
 void MeshRenderer::SetMesh(const ResourceHandle& meshHandle)
@@ -110,7 +104,6 @@ void MeshRenderer::SetMesh(const ResourceHandle& meshHandle)
     
     m_MeshHandle = meshHandle;
     
-    // If already initialized, re-initialize with the new mesh
     if (m_Initialized && m_Shader)
     {
         m_Initialized = false;
@@ -122,7 +115,6 @@ void MeshRenderer::SetColor(const glm::vec3& color)
 {
     m_Color = color;
     
-    // If already initialized, update the vertex colors
     if (m_Initialized)
     {
         UpdateVertexColors();
@@ -141,7 +133,6 @@ void MeshRenderer::SetWireframe(bool wireframe)
         
     m_Wireframe = wireframe;
     
-    // If already initialized, re-initialize with the new mode
     if (m_Initialized && m_Shader)
     {
         m_Initialized = false;
@@ -163,10 +154,8 @@ void MeshRenderer::UpdateVertexColors()
     if (!mesh)
         return;
     
-    // Get original vertices from the mesh resource
     auto vertices = mesh->GetVertexes();
     
-    // Apply our color to all vertices
     for (auto& vertex : vertices)
     {
         vertex.m_Color = m_Color;
@@ -191,7 +180,6 @@ std::vector<Vertex> MeshRenderer::CreateWireframeVertices(const std::vector<Vert
 {
     std::vector<Vertex> wireframeVertices;
     
-    // Convert triangles to lines (each triangle becomes 3 lines)
     for (size_t i = 0; i < triangleVertices.size(); i += 3)
     {
         if (i + 2 < triangleVertices.size())

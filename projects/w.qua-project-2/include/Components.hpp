@@ -76,13 +76,16 @@ struct BoundingComponent
     Aabb m_AABB;
     Sphere m_RitterSphere;      
     Sphere m_LarssonSphere;     
-    Sphere m_PCASphere;        
+    Sphere m_PCASphere;
+    // OBB data
+    Obb m_OBB;
 
     // Wireframe renderables for visualization
     std::shared_ptr<IRenderable> m_AABBRenderable;
     std::shared_ptr<IRenderable> m_RitterRenderable;
     std::shared_ptr<IRenderable> m_LarsonRenderable;
     std::shared_ptr<IRenderable> m_PCARenderable;
+    std::shared_ptr<IRenderable> m_OBBRenderable;
 
     BoundingComponent() = default;
     BoundingComponent(const ResourceHandle& resourceHandle)
@@ -104,6 +107,19 @@ struct BoundingComponent
 
         CreateSpherePCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
         m_PCASphere = Sphere(center->m_Position, *radius);
+        
+        // Create OBB using PCA
+        glm::vec3 obbCenter;
+        glm::vec3 obbAxes[3];
+        glm::vec3 obbHalfExtents;
+        CreateObbPCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), 
+                     &obbCenter, obbAxes, &obbHalfExtents);
+        m_OBB = Obb(obbCenter, obbAxes, obbHalfExtents);
+
+        delete min;
+        delete max;
+        delete center;
+        delete radius;
     }
     
     void InitializeRenderables(const std::shared_ptr<Shader>& shader);

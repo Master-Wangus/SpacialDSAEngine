@@ -8,8 +8,6 @@
 
 #include "SphereRenderer.hpp"
 #include "Shader.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <cmath>
 
 SphereRenderer::SphereRenderer(const glm::vec3& center, float radius, const glm::vec3& color)
     : m_Center(center), m_Radius(radius), m_Color(color), m_Wireframe(false)
@@ -149,17 +147,14 @@ std::vector<Vertex> SphereRenderer::CreateVertices()
 {
     std::vector<Vertex> vertices;
     
-    // Use the actual radius instead of unit sphere
     float radius = m_Radius;
     int sectors = 36;    // Horizontal divisions (longitude)
     int stacks = 18;     // Vertical divisions (latitude)
     
-    // Generate vertices and normals for a sphere
     std::vector<glm::vec3> sphereVertices;
     std::vector<glm::vec3> sphereNormals;
     std::vector<glm::vec2> sphereUVs;
     
-    // Generate sphere points using latitude/longitude approach
     for(int i = 0; i <= stacks; ++i) 
     {
         float V = i / (float)stacks;
@@ -170,12 +165,10 @@ std::vector<Vertex> SphereRenderer::CreateVertices()
             float U = j / (float)sectors;
             float theta = U * (glm::pi<float>() * 2); // Longitude angle from 0 to 2*PI
             
-            // Convert spherical to Cartesian coordinates
             float x = cosf(theta) * sinf(phi);
             float y = cosf(phi);
             float z = sinf(theta) * sinf(phi);
             
-            // Scale by actual radius and position at center
             glm::vec3 position = m_Center + glm::vec3(x, y, z) * radius;
             sphereVertices.push_back(position);
             // Normal is same as unit direction for spheres
@@ -222,12 +215,10 @@ std::vector<Vertex> SphereRenderer::CreateWireframeVertices()
 {
     std::vector<Vertex> vertices;
     
-    // Use the actual radius instead of unit sphere
     float radius = m_Radius;
     int sectors = 24;    // Horizontal divisions (longitude)
     int stacks = 12;     // Vertical divisions (latitude)
     
-    // Generate sphere points using latitude/longitude approach
     std::vector<glm::vec3> sphereVertices;
     std::vector<glm::vec3> sphereNormals;
     
@@ -246,9 +237,9 @@ std::vector<Vertex> SphereRenderer::CreateWireframeVertices()
             float y = cosf(phi);
             float z = sinf(theta) * sinf(phi);
             
-            // Scale by actual radius and position at center
             glm::vec3 position = m_Center + glm::vec3(x, y, z) * radius;
             sphereVertices.push_back(position);
+
             // Normal is same as unit direction for spheres
             sphereNormals.push_back(glm::normalize(glm::vec3(x, y, z)));
         }

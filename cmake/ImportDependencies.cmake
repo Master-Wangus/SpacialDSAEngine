@@ -120,6 +120,26 @@ macro(import_assimp)
     endif()
 endmacro()
 
+# Macro to import Eigen
+macro(import_eigen)
+    if(NOT TARGET Eigen3::Eigen)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            eigen
+            GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+            GIT_TAG master
+        )
+        
+        # Configure Eigen build options
+        set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+        set(EIGEN_BUILD_PKGCONFIG OFF CACHE BOOL "" FORCE)
+        set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+        
+        FetchContent_MakeAvailable(eigen)
+        
+        include_directories(${eigen_SOURCE_DIR})
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -147,6 +167,10 @@ macro(importDependencies)
     message(STATUS "Importing Assimp...")
     import_assimp()
     message(STATUS "Assimp imported successfully.")
+
+    message(STATUS "Importing Eigen...")
+    import_eigen()
+    message(STATUS "Eigen imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

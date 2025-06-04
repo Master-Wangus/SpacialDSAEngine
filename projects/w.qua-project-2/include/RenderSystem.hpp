@@ -44,11 +44,13 @@ public:
     void SetShowRitterSphere(bool show);
     void SetShowLarsonSphere(bool show);
     void SetShowPCASphere(bool show);
+    void SetShowOBB(bool show);
     
     bool IsAABBVisible() const;
     bool IsRitterSphereVisible() const;
     bool IsLarsonSphereVisible() const;
     bool IsPCASphereVisible() const;
+    bool IsOBBVisible() const;
     
     // Main object visibility controls
     void SetShowMainObjects(bool show);
@@ -71,6 +73,7 @@ private:
     bool m_ShowRitterSphere = true;
     bool m_ShowLarsonSphere = true;
     bool m_ShowPCASphere = true;
+    bool m_ShowOBB = true;
     
     // Main object display control
     bool m_ShowMainObjects = true;

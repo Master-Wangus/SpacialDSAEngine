@@ -163,7 +163,8 @@ void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
 void ImGuiManager::RenderCameraControls(Registry& registry)
 {
     auto cameraView = registry.View<CameraComponent>();
-    if (cameraView.empty()) {
+    if (cameraView.empty()) 
+    {
         ImGui::Text("No camera found");
         return;
     }
@@ -215,11 +216,7 @@ void ImGuiManager::RenderCameraControls(Registry& registry)
 }
 
 void ImGuiManager::RenderLightingControls(Registry& registry)
-{
-    static GLuint materialUBO = 1; // Index 1 as set in the SetupMaterial function
-    static float ambientIntensity = 0.5f;
-    static float ambientColor[3] = {1.0f, 1.0f, 1.0f};
-    
+{    
     if (Systems::g_RenderSystem)
     {
         bool lightEnabled = Systems::g_RenderSystem->IsDirectionalLightEnabled();
@@ -233,18 +230,18 @@ void ImGuiManager::RenderLightingControls(Registry& registry)
 
 void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
 {
-    if (!Systems::g_RenderSystem) {
+    if (!Systems::g_RenderSystem) 
+    {
         ImGui::Text("Render system not available");
         return;
     }
     
     ImGui::Text("Toggle Bounding Volume Visibility:");
-    ImGui::Separator();
-    
+
     // AABB Controls (Red)
     bool showAABB = Systems::g_RenderSystem->IsAABBVisible();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red color
-    if (ImGui::Checkbox("AABB (Axis-Aligned Bounding Box)", &showAABB))
+    if (ImGui::Checkbox("AABB", &showAABB))
     {
         Systems::g_RenderSystem->SetShowAABB(showAABB);
     }
@@ -277,38 +274,18 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
     }
     ImGui::PopStyleColor();
     
-    ImGui::Separator();
+    // OBB Controls (Cyan)
+    bool showOBB = Systems::g_RenderSystem->IsOBBVisible();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 1.0f, 1.0f)); // Cyan color
+    if (ImGui::Checkbox("PCA OBB", &showOBB))
+    {
+        Systems::g_RenderSystem->SetShowOBB(showOBB);
+    }
+    ImGui::PopStyleColor();
     
-    // Quick toggle buttons
-    if (ImGui::Button("Show All"))
-    {
-        Systems::g_RenderSystem->SetShowAABB(true);
-        Systems::g_RenderSystem->SetShowRitterSphere(true);
-        Systems::g_RenderSystem->SetShowLarsonSphere(true);
-        Systems::g_RenderSystem->SetShowPCASphere(true);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Hide All"))
-    {
-        Systems::g_RenderSystem->SetShowAABB(false);
-        Systems::g_RenderSystem->SetShowRitterSphere(false);
-        Systems::g_RenderSystem->SetShowLarsonSphere(false);
-        Systems::g_RenderSystem->SetShowPCASphere(false);
-    }
+    ImGui::Separator();
 }
 
-void ImGuiManager::HelpMarker(const char* desc)
-{
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
 
 void ImGuiManager::RenderStats()
 {
@@ -327,10 +304,7 @@ void ImGuiManager::RenderStats()
 }
 
 void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
-{
-    ImGui::Text("Main Object Display Options:");
-    ImGui::Separator();
-    
+{    
     bool showMainObjects = Systems::g_RenderSystem->IsShowMainObjects();
     
     // Object visibility toggle

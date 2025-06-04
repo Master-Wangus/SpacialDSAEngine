@@ -9,11 +9,11 @@
 #pragma once
 
 #include "pch.h"
-#include "Buffer.hpp"
-#include "Lighting.hpp"
 #include "IRenderable.hpp"
 
 class Shader;
+class Buffer;
+struct DirectionalLight;
 
 class SphereRenderer : public IRenderable
 {

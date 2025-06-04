@@ -25,3 +25,25 @@ struct Sphere
     float radius; 
 
 };
+
+struct Obb
+{
+    Obb() : center(0.0f), halfExtents(0.0f) 
+    {
+        axes[0] = glm::vec3(1.0f, 0.0f, 0.0f);
+        axes[1] = glm::vec3(0.0f, 1.0f, 0.0f);
+        axes[2] = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+    
+    Obb(const glm::vec3& center, const glm::vec3 axes[3], const glm::vec3& halfExtents)
+        : center(center), halfExtents(halfExtents)
+    {
+        this->axes[0] = axes[0];
+        this->axes[1] = axes[1];
+        this->axes[2] = axes[2];
+    }
+
+    glm::vec3 center;
+    glm::vec3 axes[3];
+    glm::vec3 halfExtents;
+};

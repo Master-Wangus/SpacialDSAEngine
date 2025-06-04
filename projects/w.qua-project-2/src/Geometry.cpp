@@ -1,4 +1,5 @@
 #include "Geometry.hpp"
+#include <Eigen/Dense>
 
 constexpr float kEpsilon = 1e-5f; // Custom epsilon for floating-point comparisons
 
@@ -670,7 +671,8 @@ void CreateSphereCentroid(Vertex const* vertices, size_t count, Vertex* out_c, f
     
     // Calculate centroid
     glm::vec3 centroid(0.0f);
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) 
+    {
         centroid += vertices[i].m_Position;
     }
     centroid /= static_cast<float>(count);
@@ -697,11 +699,13 @@ void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, fl
     size_t maxI = 0, maxJ = 1;
     float maxDistanceSq = 0.0f;
     
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) 
+    {
         for (size_t j = i + 1; j < count; ++j) 
         {
             float distanceSq = glm::length2(vertices[i].m_Position - vertices[j].m_Position);
-            if (distanceSq > maxDistanceSq) {
+            if (distanceSq > maxDistanceSq) 
+            {
                 maxDistanceSq = distanceSq;
                 maxI = i;
                 maxJ = j;
@@ -714,11 +718,13 @@ void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, fl
     float radius = glm::length(vertices[maxI].m_Position - vertices[maxJ].m_Position) * 0.5f;
     
     // Expand sphere to include all points
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count; ++i) 
+    {
         glm::vec3 toPoint = vertices[i].m_Position - center;
         float distance = glm::length(toPoint);
         
-        if (distance > radius) {
+        if (distance > radius) 
+        {
             float newRadius = (radius + distance) * 0.5f;
             glm::vec3 direction = toPoint / distance;
             center = center + direction * (newRadius - radius);
@@ -744,28 +750,33 @@ void CreateSphereIterative(Vertex const* vertices, size_t count, int iteration_c
     float radius = *out_r;
     
     // Iterative improvement
-    for (int iter = 0; iter < iteration_count; ++iter) {
+    for (int iter = 0; iter < iteration_count; ++iter) 
+    {
         glm::vec3 newCenter(0.0f);
         float totalWeight = 0.0f;
         
         // Weighted centroid of points outside current sphere
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i) 
+        {
             float distance = glm::length(vertices[i].m_Position - center);
-            if (distance > radius) {
+            if (distance > radius) 
+            {
                 float weight = distance - radius;
                 newCenter += vertices[i].m_Position * weight;
                 totalWeight += weight;
             }
         }
         
-        if (totalWeight > kEpsilon) {
+        if (totalWeight > kEpsilon) 
+        {
             newCenter /= totalWeight;
             center = glm::mix(center, newCenter, shrink_ratio);
         }
         
         // Recalculate radius
         radius = 0.0f;
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i) 
+        {
             float distance = glm::length(vertices[i].m_Position - center);
             radius = glm::max(radius, distance);
         }
@@ -779,50 +790,59 @@ void CreateSpherePCA(Vertex const* vertices, size_t count, Vertex* out_c, float*
 {
     if (count == 0 || !vertices || !out_c || !out_r) return;
     
-    // Calculate centroid
-    glm::vec3 centroid(0.0f);
+    // Create Eigen matrix from vertex data
+    Eigen::MatrixXf pointMatrix(count, 3);
     for (size_t i = 0; i < count; ++i) {
-        centroid += vertices[i].m_Position;
+        pointMatrix(i, 0) = vertices[i].m_Position.x;
+        pointMatrix(i, 1) = vertices[i].m_Position.y;
+        pointMatrix(i, 2) = vertices[i].m_Position.z;
     }
-    centroid /= static_cast<float>(count);
     
-    // Build covariance matrix
-    glm::mat3 covariance(0.0f);
+    // Step 1: Compute Centroid
+    Eigen::Vector3f centroid = pointMatrix.colwise().mean();
+    
+    // Step 2: Center the data
+    Eigen::MatrixXf centered = pointMatrix.rowwise() - centroid.transpose();
+    
+    // Step 3: Compute Covariance Matrix
+    Eigen::Matrix3f covariance = (centered.adjoint() * centered) / float(count);
+    
+    // Step 4: Eigen Decomposition
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigensolver(covariance);
+    Eigen::Vector3f eigenvalues = eigensolver.eigenvalues();
+    Eigen::Matrix3f eigenvectors = eigensolver.eigenvectors();
+    
+    // Step 5: Radius Estimation
+    // Find the extents along each principal axis
+    Eigen::Vector3f minExtents = Eigen::Vector3f::Constant(std::numeric_limits<float>::max());
+    Eigen::Vector3f maxExtents = Eigen::Vector3f::Constant(-std::numeric_limits<float>::max());
+    
     for (size_t i = 0; i < count; ++i) {
-        glm::vec3 diff = vertices[i].m_Position - centroid;
-        covariance += glm::outerProduct(diff, diff);
-    }
-    covariance /= static_cast<float>(count);
-    
-    // Find principal component (largest eigenvalue's eigenvector)
-    // Simplified power iteration method
-    glm::vec3 direction(1.0f, 0.0f, 0.0f);
-    for (int iter = 0; iter < 10; ++iter) {
-        direction = covariance * direction;
-        direction = glm::normalize(direction);
+        // Project centered point onto each eigenvector (principal axis)
+        Eigen::Vector3f point;
+        point << centered(i, 0), centered(i, 1), centered(i, 2);
+        Eigen::Vector3f projections = eigenvectors.transpose() * point;
+        
+        minExtents = minExtents.cwiseMin(projections);
+        maxExtents = maxExtents.cwiseMax(projections);
     }
     
-    // Project all points onto the principal axis
-    float minProj = std::numeric_limits<float>::max();
-    float maxProj = -std::numeric_limits<float>::max();
+    // Calculate the optimal sphere center in principal component space
+    Eigen::Vector3f centerInPCA = (minExtents + maxExtents) * 0.5f;
     
+    // Transform back to world space
+    Eigen::Vector3f optimalCenter = centroid + eigenvectors * centerInPCA;
+    
+    // Calculate radius - farthest point defines the radius
+    float radius = 0.0f;
     for (size_t i = 0; i < count; ++i) {
-        float proj = glm::dot(vertices[i].m_Position - centroid, direction);
-        minProj = glm::min(minProj, proj);
-        maxProj = glm::max(maxProj, proj);
+        Eigen::Vector3f pos;
+        pos << vertices[i].m_Position.x, vertices[i].m_Position.y, vertices[i].m_Position.z;
+        float distance = (pos - optimalCenter).norm();
+        radius = std::max(radius, distance);
     }
     
-    // Sphere center and radius from projection extremes
-    glm::vec3 center = centroid + direction * ((minProj + maxProj) * 0.5f);
-    float radius = (maxProj - minProj) * 0.5f;
-    
-    // Expand to include all points
-    for (size_t i = 0; i < count; ++i) {
-        float distance = glm::length(vertices[i].m_Position - center);
-        radius = glm::max(radius, distance);
-    }
-    
-    out_c->m_Position = center;
+    out_c->m_Position = glm::vec3(optimalCenter(0), optimalCenter(1), optimalCenter(2));
     out_c->m_Color = vertices[0].m_Color;
     out_c->m_Normal = vertices[0].m_Normal;
     out_c->m_UV = vertices[0].m_UV;
@@ -839,6 +859,57 @@ bool OverlapSphereAabb(Vertex const& sphere_center, float sphere_radius, Vertex 
     glm::vec3 difference = center - closestPoint;
     
     return glm::dot(difference, difference) <= sphere_radius * sphere_radius;
+}
+
+void CreateObbPCA(Vertex const* vertices, size_t count, glm::vec3* out_center, glm::vec3 out_axes[3], glm::vec3* out_halfExtents)
+{
+    if (count == 0 || !vertices || !out_center || !out_axes || !out_halfExtents) return;
+    
+    // Step 1: Convert vertices to a matrix for computation
+    Eigen::MatrixXf points(count, 3);
+    for (size_t i = 0; i < count; ++i) {
+        points(i, 0) = vertices[i].m_Position.x;
+        points(i, 1) = vertices[i].m_Position.y;
+        points(i, 2) = vertices[i].m_Position.z;
+    }
+    
+    // Step 2: Compute the centroid (mean position)
+    Eigen::Vector3f centroid = points.colwise().mean();
+    
+    // Step 3: Center the data by subtracting the centroid
+    Eigen::MatrixXf centered = points.rowwise() - centroid.transpose();
+    
+    // Step 4: Compute the covariance matrix
+    Eigen::Matrix3f covariance = (centered.adjoint() * centered) / float(count);
+    
+    // Step 5: Compute eigenvalues and eigenvectors of the covariance matrix
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(covariance);
+    
+    Eigen::Matrix3f eigenVectors = solver.eigenvectors();
+        
+    // Step 6: Set OBB axes (principal directions)
+    for (int i = 0; i < 3; ++i) 
+    {
+        Eigen::Vector3f axis = eigenVectors.col(i);
+        out_axes[i] = glm::normalize(glm::vec3(axis(0), axis(1), axis(2)));
+    }
+        
+    // Step 7: Rotate points into the PCA-aligned frame
+    Eigen::MatrixXf rotated = centered * eigenVectors;
+        
+    // Step 8: Compute extents in the PCA-aligned space
+    Eigen::Vector3f minExtents = rotated.colwise().minCoeff();
+    Eigen::Vector3f maxExtents = rotated.colwise().maxCoeff();
+    Eigen::Vector3f halfExtents = (maxExtents - minExtents) * 0.5f;
+        
+    // Step 9: Set half-extents
+    *out_halfExtents = glm::vec3(halfExtents(0), halfExtents(1), halfExtents(2));
+        
+    // Step 10: Compute OBB center in world space
+    Eigen::Vector3f centerOffset = eigenVectors * (minExtents + halfExtents);
+    Eigen::Vector3f obbCenter = centroid + centerOffset;
+    *out_center = glm::vec3(obbCenter(0), obbCenter(1), obbCenter(2));
+    
 }
 
 

@@ -26,6 +26,13 @@ public:
                 const glm::vec3& color,
                 bool wireframe);
     
+    // Constructor for oriented bounding boxes
+    CubeRenderer(const glm::vec3& center,
+                const glm::vec3 axes[3],
+                const glm::vec3& halfExtents,
+                const glm::vec3& color,
+                bool wireframe = true);
+    
     ~CubeRenderer();
     
     void Initialize(const std::shared_ptr<Shader>& shader) override;
@@ -48,12 +55,24 @@ public:
     void SetWireframe(bool wireframe);
     bool IsWireframe() const;
     
+    // Orientation control
+    void SetOrientation(const glm::vec3 axes[3]);
+    void SetHalfExtents(const glm::vec3& halfExtents);
+    
 private:
     glm::vec3 m_Center;
     glm::vec3 m_Size;
     glm::vec3 m_Color;
     bool m_Wireframe = false;
+    bool m_IsOriented = false;
+    glm::vec3 m_Axes[3] = {
+        glm::vec3(1.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    };
+    glm::vec3 m_HalfExtents = glm::vec3(0.5f);
 
     std::vector<Vertex> CreateVertices();
     std::vector<Vertex> CreateWireframeVertices();
+    std::vector<Vertex> CreateOrientedWireframeVertices();
 }; 

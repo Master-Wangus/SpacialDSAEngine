@@ -24,6 +24,7 @@ set(ALL_LIBS
   EnTT::EnTT
   PRIVATE imgui
   PRIVATE assimp
+  PRIVATE Eigen3::Eigen
 )
 
 # Include path for GLM (optional if not using FetchContent)

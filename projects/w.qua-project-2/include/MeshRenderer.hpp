@@ -19,17 +19,14 @@ public:
     MeshRenderer(const ResourceHandle& meshHandle, const glm::vec3& color, bool wireframe);
     ~MeshRenderer() override;
     
-    // IRenderable interface implementation
     void Initialize(const std::shared_ptr<Shader>& shader) override;
     void Render(const glm::mat4& modelMatrix, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) override;
     void CleanUp() override;
     
-    // Setters and getters
     void SetMesh(const ResourceHandle& meshHandle);
     void SetColor(const glm::vec3& color);
     glm::vec3 GetColor() const;
     
-    // Wireframe control
     void SetWireframe(bool wireframe);
     bool IsWireframe() const;
     

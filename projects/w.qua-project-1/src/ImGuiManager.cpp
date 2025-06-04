@@ -262,15 +262,6 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
     }
 }
 
-void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
-{
-    // Update current scene type in Systems namespace
-    Systems::g_CurrentDemoScene = sceneType;
-    
-    // Use DemoScene namespace to switch scenes
-    DemoScene::SwitchScene(registry, m_Window, Systems::g_RenderSystem->GetShader(), sceneType);
-}
-
 void ImGuiManager::RenderCameraControls(Registry& registry)
 {
     auto cameraView = registry.View<CameraComponent>();
