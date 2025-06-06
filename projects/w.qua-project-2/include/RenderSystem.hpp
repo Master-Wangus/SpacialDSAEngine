@@ -12,6 +12,7 @@
 
 class Shader;
 class Window;
+class CameraSystem;
 
 struct RenderComponent;
 struct TransformComponent;
@@ -55,6 +56,11 @@ public:
     // Main object visibility controls
     void SetShowMainObjects(bool show);
     bool IsShowMainObjects() const;
+    
+    // Frustum culling controls
+    void EnableFrustumCulling(bool enable);
+    bool IsFrustumCullingEnabled() const;
+    void SetCameraSystem(CameraSystem* cameraSystem);
 
 private:
     void SetupLighting();
@@ -77,4 +83,8 @@ private:
     
     // Main object display control
     bool m_ShowMainObjects = true;
+    
+    // Frustum culling control
+    bool m_EnableFrustumCulling = false;
+    CameraSystem* m_CameraSystem = nullptr;
 }; 

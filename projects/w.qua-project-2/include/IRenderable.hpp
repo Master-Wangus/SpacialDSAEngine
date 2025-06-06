@@ -24,9 +24,9 @@ public:
                        const glm::mat4& projectionMatrix) = 0;
     virtual void CleanUp() = 0;
     
-    // Material methods
     virtual void SetMaterial(const Material& material) { m_Material = material; }
     virtual Material GetMaterial() const { return m_Material; }
+    virtual Material& GetMaterialEditable() { return m_Material; }
 
 protected:
     Buffer m_Buffer;

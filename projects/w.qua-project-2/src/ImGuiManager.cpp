@@ -131,6 +131,12 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
         RenderObjectVisibilityControls(registry);
     }
     
+    // Frustum Culling Controls
+    if (ImGui::CollapsingHeader("Frustum Culling", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        RenderFrustumCullingControls(registry);
+    }
+    
     // Debug statistics
     if (ImGui::CollapsingHeader("Debug Statistics")) 
     {
@@ -286,6 +292,52 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
     ImGui::Separator();
 }
 
+void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
+{    
+    bool showMainObjects = Systems::g_RenderSystem->IsShowMainObjects();
+    
+    // Object visibility toggle
+    if (ImGui::Checkbox("Show Main Objects", &showMainObjects))
+    {
+        Systems::g_RenderSystem->SetShowMainObjects(showMainObjects);
+    }
+}
+
+void ImGuiManager::RenderFrustumCullingControls(Registry& registry)
+{
+    if (!Systems::g_RenderSystem || !Systems::g_CameraSystem) 
+    {
+        ImGui::Text("Required systems not available");
+        return;
+    }
+    
+    // Frustum Culling toggle
+    bool enableFrustumCulling = Systems::g_RenderSystem->IsFrustumCullingEnabled();
+    if (ImGui::Checkbox("Enable Frustum Culling", &enableFrustumCulling))
+    {
+        Systems::g_RenderSystem->EnableFrustumCulling(enableFrustumCulling);
+    }
+    
+    if (enableFrustumCulling)
+    {
+        ImGui::Separator();
+        ImGui::Text("Color Legend:");
+        
+        // Inside color (Green)
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green - Inside Frustum");
+        
+        // Outside color (Red)
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red - Outside Frustum");
+        
+        // Intersecting color (Yellow)
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow - Intersecting Frustum");
+        
+        ImGui::Separator();
+        ImGui::Text("Note: Objects outside the frustum may still be");
+        ImGui::Text("visible if their bounding volumes are larger than");
+        ImGui::Text("the actual object geometry.");
+    }
+}
 
 void ImGuiManager::RenderStats()
 {
@@ -301,15 +353,4 @@ void ImGuiManager::RenderStats()
     
     // Window info
     ImGui::Text("Window Size: %dx%d", m_Window.GetWidth(), m_Window.GetHeight());
-}
-
-void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
-{    
-    bool showMainObjects = Systems::g_RenderSystem->IsShowMainObjects();
-    
-    // Object visibility toggle
-    if (ImGui::Checkbox("Show Main Objects", &showMainObjects))
-    {
-        Systems::g_RenderSystem->SetShowMainObjects(showMainObjects);
-    }
 } 

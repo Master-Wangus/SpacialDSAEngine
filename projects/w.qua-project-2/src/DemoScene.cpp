@@ -53,8 +53,8 @@ namespace DemoScene
     {
         ResourceHandle meshHandleRhino = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/rhino.obj");
         ResourceHandle meshHandleCup = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/cup.obj");
+        ResourceHandle meshHandleBunny = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/bunny.obj");
         
-        // Get the shader from the render system for initializing renderables
         auto shader = Systems::g_RenderSystem->GetShader();
         
         // Rhino
@@ -92,5 +92,102 @@ namespace DemoScene
         // Create render component with main renderable only
         RenderComponent renderCompCup(meshRendererCup);
         registry.AddComponent<RenderComponent>(meshEntityCup, renderCompCup);
+        
+        // Bunny
+        auto meshEntityBunny = registry.Create();
+        registry.AddComponent<TransformComponent>(meshEntityBunny,
+            TransformComponent(glm::vec3(10.0f, 5.0f, 10.0f),
+                glm::vec3(45.0f, 30.0f, 0.0f),  // Rotated
+                glm::vec3(1.5f)));              // Scaled up
+        
+        auto meshRendererBunny = std::make_shared<MeshRenderer>(meshHandleBunny, glm::vec3(1.0f, 0.5f, 0.0f), true); // Orange color
+        
+        // Create bounding component for bunny
+        auto boundingComponentBunny = BoundingComponent(meshHandleBunny);
+        boundingComponentBunny.InitializeRenderables(shader);
+        registry.AddComponent<BoundingComponent>(meshEntityBunny, boundingComponentBunny);
+        
+        // Create render component for bunny
+        RenderComponent renderCompBunny(meshRendererBunny);
+        registry.AddComponent<RenderComponent>(meshEntityBunny, renderCompBunny);
+        
+        // Simple Cube
+        auto cubeEntity = registry.Create();
+        registry.AddComponent<TransformComponent>(cubeEntity,
+            TransformComponent(glm::vec3(-10.0f, 0.0f, 10.0f),
+                glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(1.0f)));  // No scaling
+        
+        // Create cube renderer
+        auto cubeRenderer = std::make_shared<CubeRenderer>(
+            glm::vec3(0.0f),          // Center (will be positioned by transform)
+            glm::vec3(1.0f),          // Size 
+            glm::vec3(0.7f, 0.0f, 0.7f), // Purple color
+            true                      // Wireframe
+        );
+        cubeRenderer->Initialize(shader);
+        
+        // Create render component for cube
+        RenderComponent renderCompCube(cubeRenderer);
+        registry.AddComponent<RenderComponent>(cubeEntity, renderCompCube);
+        
+        // Create vertices for the cube's bounding volumes
+        std::vector<Vertex> cubeVertices;
+        // 8 corners of a unit cube
+        glm::vec3 positions[8] = {
+            glm::vec3(-0.5f, -0.5f, -0.5f),
+            glm::vec3(0.5f, -0.5f, -0.5f),
+            glm::vec3(0.5f, 0.5f, -0.5f),
+            glm::vec3(-0.5f, 0.5f, -0.5f),
+            glm::vec3(-0.5f, -0.5f, 0.5f),
+            glm::vec3(0.5f, -0.5f, 0.5f),
+            glm::vec3(0.5f, 0.5f, 0.5f),
+            glm::vec3(-0.5f, 0.5f, 0.5f)
+        };
+        
+        // Create Vertex objects for each corner
+        for (int i = 0; i < 8; i++) {
+            Vertex v;
+            v.m_Position = positions[i];
+            v.m_Color = glm::vec3(0.7f, 0.0f, 0.7f);
+            v.m_Normal = glm::normalize(positions[i]); // Approximate normal
+            v.m_UV = glm::vec2(0.0f);
+            cubeVertices.push_back(v);
+        }
+        
+        // Create bounding component for cube
+        BoundingComponent boundingComponentCube;
+        
+        // Manually compute AABB
+        Vertex min, max;
+        CreateAabbBruteForce(cubeVertices.data(), cubeVertices.size(), &min, &max);
+        boundingComponentCube.m_AABB = Aabb(min.m_Position, max.m_Position);
+        
+        // Manually compute spheres
+        Vertex center;
+        float radius;
+        
+        // Ritter sphere
+        CreateSphereRitters(cubeVertices.data(), cubeVertices.size(), &center, &radius);
+        boundingComponentCube.m_RitterSphere = Sphere(center.m_Position, radius);
+        
+        // Larsson sphere
+        CreateSphereIterative(cubeVertices.data(), cubeVertices.size(), 2, 0.5f, &center, &radius);
+        boundingComponentCube.m_LarssonSphere = Sphere(center.m_Position, radius);
+        
+        // PCA sphere
+        CreateSpherePCA(cubeVertices.data(), cubeVertices.size(), &center, &radius);
+        boundingComponentCube.m_PCASphere = Sphere(center.m_Position, radius);
+        
+        // PCA OBB
+        glm::vec3 obbCenter;
+        glm::vec3 obbAxes[3];
+        glm::vec3 obbHalfExtents;
+        CreateObbPCA(cubeVertices.data(), cubeVertices.size(), &obbCenter, obbAxes, &obbHalfExtents);
+        boundingComponentCube.m_OBB = Obb(obbCenter, obbAxes, obbHalfExtents);
+        
+        // Initialize renderables
+        boundingComponentCube.InitializeRenderables(shader);
+        registry.AddComponent<BoundingComponent>(cubeEntity, boundingComponentCube);
     }
 } 

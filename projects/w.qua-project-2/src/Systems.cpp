@@ -38,6 +38,9 @@ namespace Systems
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
         
+        // Connect CameraSystem to RenderSystem for frustum culling
+        g_RenderSystem->SetCameraSystem(g_CameraSystem.get());
+        
         DemoScene::SetupScene(registry, window, g_CurrentDemoScene);
         g_RenderSystem->Initialize();
     }

@@ -33,6 +33,7 @@ public:
     void RenderCameraControls(Registry& registry);
     void RenderBoundingVolumeControls(Registry& registry);
     void RenderObjectVisibilityControls(Registry& registry);
+    void RenderFrustumCullingControls(Registry& registry);
     void RenderStats();
     
     // Helper functions

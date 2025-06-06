@@ -9,10 +9,18 @@
 #pragma once
 
 #include "pch.h"
+#include "Shapes.hpp" // Added for bounding volume testing
+#include "Geometry.hpp" // Include for SideResult enum
 
 class Registry;
 class Window;
 struct CameraComponent;
+enum class SideResult;
+
+// Frustum culling result colors
+const glm::vec3 FRUSTUM_INSIDE_COLOR = glm::vec3(0.0f, 1.0f, 0.0f);      // Green
+const glm::vec3 FRUSTUM_OUTSIDE_COLOR = glm::vec3(1.0f, 0.0f, 0.0f);     // Red
+const glm::vec3 FRUSTUM_INTERSECT_COLOR = glm::vec3(1.0f, 1.0f, 0.0f);   // Yellow
 
 enum class CameraType 
 {
@@ -155,10 +163,20 @@ class CameraSystem
 {
 public:
     CameraSystem(Registry& registry, Window& window);
+    ~CameraSystem();
     
     void OnRun(float deltaTime);
     
     glm::mat4 GetViewMatrix(const CameraComponent& camera);
+    
+    // Frustum culling methods
+    void UpdateFrustumPlanes(const CameraComponent& camera, float aspectRatio);
+    SideResult TestSphereAgainstFrustum(const Sphere& sphere) const;
+    SideResult TestAabbAgainstFrustum(const Aabb& aabb) const;
+    SideResult TestObbAgainstFrustum(const Obb& obb) const;
+    
+    // Get appropriate color based on frustum test result
+    glm::vec3 GetFrustumTestColor(SideResult result) const;
 
 private:
     void SetupInputCallbacks();
@@ -172,4 +190,9 @@ private:
     
     // Camera switching state
     bool m_CKeyPressed = false;
+    
+    // Frustum culling data
+    glm::vec3 m_FrustumNormals[6]; // Normals for 6 frustum planes
+    float m_FrustumDistances[6];   // Distances for 6 frustum planes
+    bool m_FrustumUpdated = false; // Flag to track if frustum needs updating
 }; 

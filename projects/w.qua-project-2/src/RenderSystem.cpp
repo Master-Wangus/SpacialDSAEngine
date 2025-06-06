@@ -16,6 +16,7 @@
 #include "Window.hpp"
 #include "Buffer.hpp"
 #include "Lighting.hpp"
+#include "CameraSystem.hpp"
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader)
@@ -65,6 +66,11 @@ void RenderSystem::Render()
     m_Shader->Use();
     m_Shader->SetVec3("viewPos", cameraPosition);
     
+    // Update frustum planes if culling is enabled
+    if (m_EnableFrustumCulling && m_CameraSystem) {
+        m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
+    }
+    
     // Set polygon mode for main objects to always be wireframe
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
@@ -75,38 +81,112 @@ void RenderSystem::Render()
         auto& transform = m_Registry.GetComponent<TransformComponent>(entity);
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
-        // Only render main objects if they should be visible
-        if (m_ShowMainObjects && renderComp.m_Renderable) 
+        // Skip light entity for frustum culling
+        if (entity == m_LightVisualizationEntity) {
+            // Always render the light visualization
+            if (m_ShowMainObjects && renderComp.m_Renderable) {
+                renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+            continue;
+        }
+        
+        // Apply frustum culling if enabled
+        bool isVisible = true;
+        SideResult frustumResult = SideResult::eINSIDE;
+        
+        if (m_EnableFrustumCulling && m_CameraSystem && m_Registry.HasComponent<BoundingComponent>(entity)) 
         {
-            renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
+            
+            // Use sphere for quick frustum culling first
+            frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
+            
+            // If sphere is completely outside, skip rendering
+            if (frustumResult == SideResult::eOUTSIDE) {
+                isVisible = false;
+            }
+            
+            // For objects that might be partially visible, do more accurate AABB test
+            if (frustumResult == SideResult::eOVERLAPPING) {
+                frustumResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.m_AABB);
+            }
+        }
+        
+        // Only render if visible (or culling is disabled)
+        if (isVisible && m_ShowMainObjects && renderComp.m_Renderable) 
+        {
+            if (m_EnableFrustumCulling && m_CameraSystem)
+            {
+                // Get material and store original diffuse color
+                Material& material = renderComp.m_Renderable->GetMaterialEditable();
+                glm::vec3 originalColor = material.m_DiffuseColor;
+                
+                // Change diffuse color based on frustum test result
+                material.m_DiffuseColor = m_CameraSystem->GetFrustumTestColor(frustumResult);
+                
+                // Render with modified material
+                renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                
+                // Restore original diffuse color
+                material.m_DiffuseColor = originalColor;
+            } 
+            else 
+            {
+                renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
         }
         
         // Render bounding volumes if enabled and entity has BoundingComponent
-        if (m_Registry.HasComponent<BoundingComponent>(entity))
+        if (isVisible && m_Registry.HasComponent<BoundingComponent>(entity))
         {
-            // Reset to solid mode for bounding volume wireframes (they use line primitives)
+            // Reset to solid mode for bounding volume wireframes 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
             
+            // Set color based on frustum culling result
+            glm::vec3 boundingColor = m_EnableFrustumCulling && m_CameraSystem ? 
+                                     m_CameraSystem->GetFrustumTestColor(frustumResult) : 
+                                     glm::vec3(1.0f);
+            
             if (m_ShowAABB && boundingComp.m_AABBRenderable) {
+                Material& aabbMaterial = boundingComp.m_AABBRenderable->GetMaterialEditable();
+                glm::vec3 originalColor = aabbMaterial.m_DiffuseColor;
+                aabbMaterial.m_DiffuseColor = boundingColor;
                 boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                aabbMaterial.m_DiffuseColor = originalColor;
             }
             
             if (m_ShowRitterSphere && boundingComp.m_RitterRenderable) {
+                Material& ritterMaterial = boundingComp.m_RitterRenderable->GetMaterialEditable();
+                glm::vec3 originalColor = ritterMaterial.m_DiffuseColor;
+                ritterMaterial.m_DiffuseColor = boundingColor;
                 boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                ritterMaterial.m_DiffuseColor = originalColor;
             }
             
             if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable) {
+                Material& larsonMaterial = boundingComp.m_LarsonRenderable->GetMaterialEditable();
+                glm::vec3 originalColor = larsonMaterial.m_DiffuseColor;
+                larsonMaterial.m_DiffuseColor = boundingColor;
                 boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                larsonMaterial.m_DiffuseColor = originalColor;
             }
             
             if (m_ShowPCASphere && boundingComp.m_PCARenderable) {
+                Material& pcaMaterial = boundingComp.m_PCARenderable->GetMaterialEditable();
+                glm::vec3 originalColor = pcaMaterial.m_DiffuseColor;
+                pcaMaterial.m_DiffuseColor = boundingColor;
                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                pcaMaterial.m_DiffuseColor = originalColor;
             }
             
             if (m_ShowOBB && boundingComp.m_OBBRenderable) {
+                Material& obbMaterial = boundingComp.m_OBBRenderable->GetMaterialEditable();
+                glm::vec3 originalColor = obbMaterial.m_DiffuseColor;
+                obbMaterial.m_DiffuseColor = boundingColor;
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+                obbMaterial.m_DiffuseColor = originalColor;
             }
         }
     }
@@ -323,4 +403,19 @@ void RenderSystem::UpdateLightFromVisualization()
         
         UpdateLighting();
     }
+}
+
+void RenderSystem::EnableFrustumCulling(bool enable)
+{
+    m_EnableFrustumCulling = enable;
+}
+
+bool RenderSystem::IsFrustumCullingEnabled() const
+{
+    return m_EnableFrustumCulling;
+}
+
+void RenderSystem::SetCameraSystem(CameraSystem* cameraSystem)
+{
+    m_CameraSystem = cameraSystem;
 } 
