@@ -34,11 +34,9 @@ public:
     void RenderBoundingVolumeControls(Registry& registry);
     void RenderObjectVisibilityControls(Registry& registry);
     void RenderModelSelectionControls(Registry& registry);
+    void RenderFrustumControls(Registry& registry);
     void RenderStats();
-    
-    // Helper functions
-    void HelpMarker(const char* desc);
-    void SwitchScene(Registry& registry, DemoSceneType sceneType);
+
 
 private:
     Window& m_Window;

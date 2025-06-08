@@ -126,6 +126,12 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     ImGui::Text("Object Visibility:");
     RenderObjectVisibilityControls(registry);
     
+    ImGui::Separator();
+    
+    // Frustum visualization controls
+    ImGui::Text("Frustum Visualization:");
+    RenderFrustumControls(registry);
+    
     // Add color legend for frustum culling
     ImGui::Separator();
     ImGui::Text("Frustum Culling Color Legend:");
@@ -300,6 +306,64 @@ void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
     if (ImGui::Checkbox("Show Main Objects", &showMainObjects))
     {
         Systems::g_RenderSystem->SetShowMainObjects(showMainObjects);
+    }
+}
+
+void ImGuiManager::RenderFrustumControls(Registry& registry)
+{
+    if (!Systems::g_RenderSystem) 
+    {
+        ImGui::Text("Render system not available");
+        return;
+    }
+    
+    // Frustum visualization toggle
+    bool showFrustum = Systems::g_RenderSystem->IsShowFrustum();
+    if (ImGui::Checkbox("Show View Frustum", &showFrustum))
+    {
+        Systems::g_RenderSystem->SetShowFrustum(showFrustum);
+    }
+    
+    // Get reference camera projection for frustum visualization (separate from main camera)
+    if (Systems::g_CameraSystem) 
+    {
+        Projection referenceProjection = Systems::g_CameraSystem->GetReferenceCameraProjection();
+        
+        ImGui::Separator();
+        ImGui::Text("Reference Frustum Parameters:");
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "(These control the visualized frustum, not the main camera)");
+        
+        // Field of View control
+        float fov = referenceProjection.m_Fov;
+        if (ImGui::SliderFloat("Field of View (degrees)", &fov, 10.0f, 170.0f, "%.1f")) {
+            referenceProjection.m_Fov = fov;
+            Systems::g_CameraSystem->SetReferenceCameraProjection(referenceProjection);
+        }
+        
+        // Display current values for reference
+        ImGui::Separator();
+        ImGui::Text("Reference Camera Values:");
+        ImGui::Text("FOV: %.1f degrees", referenceProjection.m_Fov);
+        ImGui::Text("Near Plane: %.3f", referenceProjection.m_NearPlane);
+        ImGui::Text("Far Plane: %.1f", referenceProjection.m_FarPlane);
+        
+        // Show main camera values for comparison
+        auto cameraView = registry.View<CameraComponent>();
+        if (!cameraView.empty()) 
+        {
+            auto cameraEntity = *cameraView.begin();
+            auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
+            
+            ImGui::Separator();
+            ImGui::Text("Main Camera Values (for comparison):");
+            ImGui::Text("FOV: %.1f degrees", camera.m_Projection.m_Fov);
+            ImGui::Text("Near Plane: %.3f", camera.m_Projection.m_NearPlane);
+            ImGui::Text("Far Plane: %.1f", camera.m_Projection.m_FarPlane);
+        }
+    }
+    else 
+    {
+        ImGui::Text("Camera system not available");
     }
 }
 

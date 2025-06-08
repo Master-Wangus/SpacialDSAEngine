@@ -62,6 +62,9 @@ CameraSystem::CameraSystem(Registry& registry, Window& window)
         m_FrustumDistances[i] = 0.0f;
     }
     
+    // Initialize reference camera projection with default values
+    m_ReferenceCameraProjection = Projection(60.0f, 0.5f, 1000.0f);
+    
     // Set up input callbacks for this system
     SetupInputCallbacks();
 }
@@ -227,9 +230,9 @@ void CameraSystem::SwitchCameraType()
 
 void CameraSystem::UpdateFrustumPlanes(const CameraComponent& camera, float aspectRatio)
 {
-    // Calculate view-projection matrix
+    // Calculate view-projection matrix using the reference camera projection (not the main camera's projection)
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 projection = camera.GetProjectionMatrix(aspectRatio);
+    glm::mat4 projection = m_ReferenceCameraProjection.GetProjectionMatrix(aspectRatio);
     glm::mat4 viewProjection = projection * view;
     
     // Extract frustum planes from the view-projection matrix
@@ -317,4 +320,12 @@ glm::vec3 CameraSystem::GetFrustumTestColor(SideResult result) const
         default:
             return glm::vec3(1.0f); // White as fallback
     }
+}
+
+glm::mat4 CameraSystem::GetVisualizationViewProjectionMatrix(const CameraComponent& camera, float aspectRatio) const
+{
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = m_ReferenceCameraProjection.GetProjectionMatrix(aspectRatio);
+    
+    return projection * view;
 } 

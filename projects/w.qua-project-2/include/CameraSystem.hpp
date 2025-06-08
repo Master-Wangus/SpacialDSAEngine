@@ -177,6 +177,13 @@ public:
     
     // Get appropriate color based on frustum test result
     glm::vec3 GetFrustumTestColor(SideResult result) const;
+    
+    // Frustum visualization
+    glm::mat4 GetVisualizationViewProjectionMatrix(const CameraComponent& camera, float aspectRatio) const;
+    
+    // Reference camera for frustum visualization and culling (separate from main camera)
+    void SetReferenceCameraProjection(const Projection& projection) { m_ReferenceCameraProjection = projection; }
+    const Projection& GetReferenceCameraProjection() const { return m_ReferenceCameraProjection; }
 
 private:
     void SetupInputCallbacks();
@@ -195,4 +202,6 @@ private:
     glm::vec3 m_FrustumNormals[6]; // Normals for 6 frustum planes
     float m_FrustumDistances[6];   // Distances for 6 frustum planes
     bool m_FrustumUpdated = false; // Flag to track if frustum needs updating
+    
+    Projection m_ReferenceCameraProjection;
 }; 

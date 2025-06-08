@@ -10,6 +10,7 @@
 #include "Shader.hpp"
 #include "SphereRenderer.hpp"
 #include "CubeRenderer.hpp"
+#include "FrustumRenderer.hpp"
 #include "Components.hpp"
 #include "Shapes.hpp"
 #include "Registry.hpp"
@@ -42,6 +43,10 @@ void RenderSystem::Initialize()
             renderComp.m_Renderable->Initialize(m_Shader);
         }
     }
+
+    // Initialize frustum renderer
+    m_FrustumRenderer = std::make_shared<FrustumRenderer>(glm::vec3(1.0f, 0.0f, 1.0f)); // Magenta color
+    m_FrustumRenderer->Initialize(m_Shader);
 
     SetupLighting();
     SetupMaterial();
@@ -280,6 +285,21 @@ void RenderSystem::Render()
                 UpdateMaterialUBO(obbMaterial);
             }
         }
+    }
+    
+    // Render frustum visualization if enabled
+    if (m_ShowFrustum && m_FrustumRenderer && m_CameraSystem) {
+        // Get the inverse view-projection matrix for frustum visualization
+        float aspectRatio = static_cast<float>(m_Window.GetWidth()) / static_cast<float>(m_Window.GetHeight());
+        glm::mat4 viewProjection = m_CameraSystem->GetVisualizationViewProjectionMatrix(camera, aspectRatio);
+        glm::mat4 invViewProjection = glm::inverse(viewProjection);
+        
+        // Update frustum geometry
+        m_FrustumRenderer->UpdateFrustum(invViewProjection);
+        
+        // Render frustum
+        glm::mat4 identity(1.0f);
+        m_FrustumRenderer->Render(identity, viewMatrix, projectionMatrix);
     }
 }
 
@@ -530,4 +550,15 @@ bool RenderSystem::IsFrustumCullingEnabled() const
 void RenderSystem::SetCameraSystem(CameraSystem* cameraSystem)
 {
     m_CameraSystem = cameraSystem;
+}
+
+// Frustum visualization controls
+void RenderSystem::SetShowFrustum(bool show)
+{
+    m_ShowFrustum = show;
+}
+
+bool RenderSystem::IsShowFrustum() const
+{
+    return m_ShowFrustum;
 } 
