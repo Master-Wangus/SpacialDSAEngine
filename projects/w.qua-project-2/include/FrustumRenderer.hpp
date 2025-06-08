@@ -28,10 +28,7 @@ public:
     
     void CleanUp() override;
     
-    // Update frustum geometry based on camera parameters
     void UpdateFrustum(const glm::mat4& invViewProjection);
-    void SetColor(const glm::vec3& color);
-    glm::vec3 GetColor() const;
     
 private:
     glm::vec3 m_Color;

@@ -10,7 +10,6 @@
 
 #include "pch.h"
 #include "Buffer.hpp"
-#include "Lighting.hpp"
 #include "IRenderable.hpp"
 
 class Shader;

@@ -67,19 +67,6 @@ void FrustumRenderer::UpdateFrustum(const glm::mat4& invViewProjection)
     m_FrustumDirty = true;
 }
 
-void FrustumRenderer::SetColor(const glm::vec3& color)
-{
-    m_Color = color;
-    m_Material.m_DiffuseColor = color;
-    m_Material.m_AmbientColor = color * 0.2f;
-    m_FrustumDirty = true;
-}
-
-glm::vec3 FrustumRenderer::GetColor() const
-{
-    return m_Color;
-}
-
 std::vector<Vertex> FrustumRenderer::CreateFrustumVertices()
 {
     std::vector<Vertex> vertices;

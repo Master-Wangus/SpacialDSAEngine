@@ -78,7 +78,6 @@ struct FPSCamera
 
     void UpdateVectors() 
     {
-        // Calculate front vector from yaw and pitch
         glm::vec3 front;
         front.x = cos(glm::radians(m_YawAngle)) * cos(glm::radians(m_PitchAngle));
         front.y = sin(glm::radians(m_PitchAngle));
@@ -119,14 +118,12 @@ struct OrbitalCamera
           m_OrbitSpeed(1.0f),
           m_MouseSensitivity(0.5f)
     {
-        // Clamp pitch to prevent flipping
         m_Pitch = glm::clamp(m_Pitch, -89.0f, 89.0f);
         m_Distance = glm::clamp(m_Distance, m_MinDistance, m_MaxDistance);
     }
 
     glm::vec3 GetCameraPosition() const 
     {
-        // Convert spherical coordinates to cartesian
         float x = m_Distance * cos(glm::radians(m_Pitch)) * cos(glm::radians(m_Yaw));
         float y = m_Distance * sin(glm::radians(m_Pitch));
         float z = m_Distance * cos(glm::radians(m_Pitch)) * sin(glm::radians(m_Yaw));

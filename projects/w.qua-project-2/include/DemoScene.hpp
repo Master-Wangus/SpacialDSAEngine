@@ -10,7 +10,6 @@
 
 #include "pch.h"
 
-// Forward declarations
 class Window;
 class Registry;
 
@@ -19,14 +18,13 @@ enum class DemoSceneType
     MeshScene  
 };
 
-// Add enum for different model types
 enum class ModelType
 {
     Rhino,
     Cup,
     Bunny,
     Cube,
-    Count  // Used to cycle through models
+    Count  
 };
 
 namespace DemoScene
@@ -37,7 +35,6 @@ namespace DemoScene
     
     void SetupMeshScene(Registry& registry);
     
-    // Add functions for model switching
     void SwitchToModel(Registry& registry, ModelType modelType);
     ModelType GetCurrentModel();
     void CycleToNextModel(Registry& registry);
