@@ -22,10 +22,8 @@
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader)
 {
-    // Set up framebuffer resize callback
     window.SetFramebufferSizeCallback([](int width, int height)
         {
-        // Update viewport when window is resized
         glViewport(0, 0, width, height);
     });
 }
@@ -44,7 +42,6 @@ void RenderSystem::Initialize()
         }
     }
 
-    // Initialize frustum renderer
     m_FrustumRenderer = std::make_shared<FrustumRenderer>(glm::vec3(1.0f, 0.0f, 1.0f)); // Magenta color
     m_FrustumRenderer->Initialize(m_Shader);
 
@@ -54,7 +51,6 @@ void RenderSystem::Initialize()
 
 void RenderSystem::Render()
 {
-    // Find the camera to use for rendering
     auto cameraView = m_Registry.View<CameraComponent>();
     if (cameraView.empty()) return;
     
@@ -67,40 +63,35 @@ void RenderSystem::Render()
     
     glm::vec3 cameraPosition = camera.GetPosition();
     
-    // Set the camera position uniform for lighting calculations
     m_Shader->Use();
     m_Shader->SetVec3("viewPos", cameraPosition);
     
     // Update frustum planes for culling
-    if (m_CameraSystem) {
+    if (m_CameraSystem) 
+    {
         m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
     }
     
-    // Set polygon mode for main objects to always be wireframe
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
-    // Render entities with both transform and render components
     auto renderView = m_Registry.View<TransformComponent, RenderComponent>();
     for (auto entity : renderView) 
     {
         auto& transform = m_Registry.GetComponent<TransformComponent>(entity);
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
-        // Skip if not visible
         if (!renderComp.m_IsVisible)
             continue;
             
-        // Skip light entity for frustum culling
-        if (entity == m_LightVisualizationEntity) {
-            // Always render the light visualization
-            if (m_ShowMainObjects && renderComp.m_Renderable) {
+        if (entity == m_LightVisualizationEntity) 
+        {
+            if (m_ShowMainObjects && renderComp.m_Renderable) 
+            {
                 renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
             }
             continue;
         }
         
-        // Apply frustum culling if enabled
-        bool isVisible = true;
         SideResult frustumResult = SideResult::eINSIDE;
         
         if (m_CameraSystem && m_Registry.HasComponent<BoundingComponent>(entity)) 
@@ -129,23 +120,16 @@ void RenderSystem::Render()
             }
         }
         
-        // Only render if visible (or culling is disabled)
         if (m_ShowMainObjects && renderComp.m_Renderable) 
         {
-            // Disable lighting for wireframe main objects to show pure colors
-            m_Shader->SetBool("disableLighting", true);
-            
-            // Render with original material - no color changes based on intersection
+            m_Shader->SetBool("disableLighting", true);            
             renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
         }
         
-        // Render bounding volumes if enabled and entity has BoundingComponent
         if (m_Registry.HasComponent<BoundingComponent>(entity))
         {
-            // Reset to solid mode for bounding volume wireframes 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             
-            // Enable lighting for bounding volume objects (they are not wireframes)
             m_Shader->SetBool("disableLighting", false);
             
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
@@ -163,17 +147,14 @@ void RenderSystem::Render()
                 aabbMaterial.m_AmbientColor = aabbTestColor;
                 aabbMaterial.m_SpecularColor = aabbTestColor;
                 
-                // Update the material UBO with modified values
                 UpdateMaterialUBO(aabbMaterial);
                 
                 boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
                 
-                // Restore original colors
                 aabbMaterial.m_DiffuseColor = originalAabbDiffuse;
                 aabbMaterial.m_AmbientColor = originalAabbAmbient;
                 aabbMaterial.m_SpecularColor = originalAabbSpecular;
                 
-                // Restore original material UBO
                 UpdateMaterialUBO(aabbMaterial);
             }
             
@@ -190,17 +171,14 @@ void RenderSystem::Render()
                 ritterMaterial.m_AmbientColor = ritterTestColor;
                 ritterMaterial.m_SpecularColor = ritterTestColor;
                 
-                // Update the material UBO with modified values
                 UpdateMaterialUBO(ritterMaterial);
                 
                 boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
                 
-                // Restore original colors
                 ritterMaterial.m_DiffuseColor = originalRitterDiffuse;
                 ritterMaterial.m_AmbientColor = originalRitterAmbient;
                 ritterMaterial.m_SpecularColor = originalRitterSpecular;
                 
-                // Restore original material UBO
                 UpdateMaterialUBO(ritterMaterial);
             }
             
@@ -217,17 +195,14 @@ void RenderSystem::Render()
                 larsonMaterial.m_AmbientColor = larsonTestColor;
                 larsonMaterial.m_SpecularColor = larsonTestColor;
                 
-                // Update the material UBO with modified values
                 UpdateMaterialUBO(larsonMaterial);
                 
                 boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
                 
-                // Restore original colors
                 larsonMaterial.m_DiffuseColor = originalLarsonDiffuse;
                 larsonMaterial.m_AmbientColor = originalLarsonAmbient;
                 larsonMaterial.m_SpecularColor = originalLarsonSpecular;
                 
-                // Restore original material UBO
                 UpdateMaterialUBO(larsonMaterial);
             }
             
@@ -244,17 +219,14 @@ void RenderSystem::Render()
                 pcaMaterial.m_AmbientColor = pcaTestColor;
                 pcaMaterial.m_SpecularColor = pcaTestColor;
                 
-                // Update the material UBO with modified values
                 UpdateMaterialUBO(pcaMaterial);
                 
                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
                 
-                // Restore original colors
                 pcaMaterial.m_DiffuseColor = originalPcaDiffuse;
                 pcaMaterial.m_AmbientColor = originalPcaAmbient;
                 pcaMaterial.m_SpecularColor = originalPcaSpecular;
                 
-                // Restore original material UBO
                 UpdateMaterialUBO(pcaMaterial);
             }
             
@@ -271,26 +243,21 @@ void RenderSystem::Render()
                 obbMaterial.m_AmbientColor = obbTestColor;
                 obbMaterial.m_SpecularColor = obbTestColor;
                 
-                // Update the material UBO with modified values
                 UpdateMaterialUBO(obbMaterial);
                 
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
                 
-                // Restore original colors
                 obbMaterial.m_DiffuseColor = originalObbDiffuse;
                 obbMaterial.m_AmbientColor = originalObbAmbient;
                 obbMaterial.m_SpecularColor = originalObbSpecular;
                 
-                // Restore original material UBO
                 UpdateMaterialUBO(obbMaterial);
             }
         }
     }
     
-    // Render frustum visualization if enabled
-    if (m_ShowFrustum && m_FrustumRenderer && m_CameraSystem) {
-        // Get the inverse view-projection matrix for frustum visualization
-        float aspectRatio = static_cast<float>(m_Window.GetWidth()) / static_cast<float>(m_Window.GetHeight());
+    if (m_ShowFrustum && m_FrustumRenderer && m_CameraSystem) 
+    {
         glm::mat4 viewProjection = m_CameraSystem->GetVisualizationViewProjectionMatrix(camera, aspectRatio);
         glm::mat4 invViewProjection = glm::inverse(viewProjection);
         
@@ -310,7 +277,8 @@ void RenderSystem::Shutdown()
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
         // Clean up main renderable
-        if (renderComp.m_Renderable) {
+        if (renderComp.m_Renderable) 
+        {
             renderComp.m_Renderable->CleanUp();
         }
     }
@@ -413,7 +381,6 @@ void RenderSystem::SetupLighting()
 void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
 {
 
-    // Calculate position for the light source visualization
     // Place it in the opposite direction of the light direction
     glm::vec3 lightDirection = glm::normalize(glm::vec3(light.m_Direction));
     glm::vec3 lightPosition = -lightDirection * 5.0f; // Place 5 units away

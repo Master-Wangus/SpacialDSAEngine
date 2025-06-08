@@ -1,17 +1,15 @@
 ===========================================================
-CSD3150/CS350 Geometry Toolbox - Project 1
+CSD3150/CS350 Geometry Toolbox - Project 2
 ===========================================================
 
 UI USAGE INSTRUCTIONS:
 ---------------------
-- Use the Geometry Toolbox Controls ImGui popup to control select the testscenes.
-- You can also drag the light source (represented by the yellow sphere at the top).
+- Use the Assignemnt 2 ImGui popup to select the models and bounding volumes.
+- You can also control the FOV to determine culling checks.
 - WASD: Move the camera (FPS mode) or move target point (Orbital mode)
 - Mouse Hold Right Click: Look around (FPS mode) or orbit around target (Orbital mode)
 - Mouse Scroll Wheel: Zoom in/out (Orbital mode only)
 - C Key: Switch between FPS and Orbital camera modes
-- R Key: Reset scene to initial state (also available as button in ImGui)
-- Mouse Hold Left Click on Object: Drag object around to test collision.
 - Color of entities:
   - Red: Collision
   - Green and Blue: Non-Collision
@@ -36,62 +34,99 @@ ASSUMPTIONS AND REQUIREMENTS:
 - Requires OpenGL 4.6 compatible GPU and drivers
 - Requires GLFW, GLEW, GLM, EnTT libraries and ImGui (automatically downloaded via CMake)
 - Shader files must be in the correct location (w.qua-project-1/shaders/)
+- Assumed right-handed coordinate system
+- Assumed counter-clockwise winding order for triangles
+- AABB stored as center and half-extents for easier transformations 
+
+BUGS
+------
+- The rendering of frustrum detection with bounding volumes is buggy:
+ + It will display red for Aabbs even though the edge of the bounds of the fustrum is clearly intersecting and likewise for intersection,
+   even when the Aabb is inside the fustrum it still renders yellow instead of green. The same can be observed for spheres however this is more
+   of a rendering issue because the actual fustrum is actually offset to the right. This can get worse when done in fullscreen. I am unable to figure out
+   the cause of the issue for rendering (I suspect its because of an aspect ratio issue). 
+- The lines of the rendered fustrum will flicker, this is a floating point issue that I tried to resolve in FustrumRenderer::UpdateFrustum dosent seem to work...
 
 COMPONENT EVALUATION:
-------------------
-Task Components (25%):
-1. Window class (5%) - Complete
-   - All GLFW functionality encapsulated in Window class
-   - Input handling, events, and window state management
-   - Error handling for GLFW calls
+===================
 
-2. Buffer class (5%) - Complete
-   - Centralized VBO management with VAO creation and binding
-   - Supports vertex attributes: Position, Color, Normal, and Texture Coordinates
+🧱 Scene Setup (10%)
+-------------------
+✅ Load a scene with at least 4 objects (e.g. bunny, cube, cup, rhino)
+   - Implementation: DemoScene.hpp/cpp - Manages multiple 3D models
+   - Uses Assimp library integration through ResourceSystem for .obj file loading
+   - Supports dynamic model switching and scene management
 
-3. ECS (5%) - Complete
-   - Uses EnTT library for Entity Component System architecture
-   - Components: Transform, Mesh, Material, AABB, BoundingSphere, DirectionalLight
-   - Systems: Transform update, Rendering, Collision detection
+✅ Use Assimp (or similar library) to load .obj files (ignore .mtl)
+   - Implementation: ResourceSystem.hpp/cpp - Asset loading and management system
+   - Mesh loading functionality in MeshRenderer.hpp/cpp
+   - Models stored in models/ directory, loaded at runtime
 
-4. Lighting (5%) - Complete
-   - Implemented directional light
-   - Phong lighting model with ambient, diffuse, and specular components
-   - Per-fragment lighting calculations
+✅ Implement:
+   🔸 A First-Person Camera (WASD)
+     - Implementation: CameraSystem.hpp/cpp - FPS camera with WASD movement
+     - Mouse look controls with right-click and hold
+     - Smooth movement and rotation handling
+   
+   🔸 A Top-Down Debug Camera Or Orbital Camera
+     - Implementation: CameraSystem.hpp/cpp - Orbital camera system
+     - Mouse orbit controls around target point
+     - Scroll wheel zoom with distance constraints
+     - WASD target point movement for scene exploration
 
-5. Camera (5%) - Complete
-   - Dual camera system: First-person (FPS) and Orbital camera modes
-   - FPS mode: WASD movement and mouse look controls
-   - Orbital mode: Mouse orbit around target, scroll wheel zoom, WASD target movement
-   - Seamless switching between modes with 'C' key
-   - View and projection matrix generation for both camera types
+📦 Bounding Volume Calculations (60%)
+-----------------------------------
+✅ Compute and implement:
+   🔸 AABB (Axis-Aligned Bounding Box)
+     - Implementation: Geometry.hpp/cpp - AABB calculation functions
+     - Components.hpp - Bounding component for entities
+     - Efficient min/max vertex computation for mesh data
+   
+   🔸 Bounding Spheres (BSphere) using:
+     • Ritter's Method
+       - Implementation: Geometry.hpp/cpp - CreateSphereRitters()
+       - Finds initial sphere, then expands to encompass all points
+       - Fast algorithm with good average-case performance
+     
+     • Modified Larsson's Method
+       - Implementation: Geometry.hpp/cpp - CreateSphereIterative()
+       - Iterative improvement of sphere bounds
+       - Better sphere fit than basic methods
+     
+     • PCA-based Method (using covariance and eigen vectors)
+       - Implementation: Geometry.hpp/cpp - CreateSpherePCA()
+       - Uses Principal Component Analysis for optimal sphere placement
+       - Computes covariance matrix and eigenvectors for best fit
+   
+   🔸 OBB (Oriented Bounding Box) using PCA
+     - Implementation: Geometry.hpp/cpp - CreateObbPCA()
+     - Uses Principal Component Analysis to find optimal orientation
+     - Computes eigenvectors as OBB axes for minimal volume enclosure
 
-Collision Tests (70%) - Complete
-- Point3D, Plane, Triangle, Ray, BoundingSphere, AABB primitives
-- All required intersection tests:
-  - Sphere vs Sphere, AABB vs AABB, Sphere vs AABB, AABB vs Sphere
-  - Point vs Sphere/AABB/Plane/Triangle
-  - Ray vs Plane/AABB/Sphere/Triangle
-  - Plane vs AABB/Sphere
+🔍 Bounding Volume Display (25%)
+-------------------------------
+✅ Wireframe rendering of bounding volumes
+   - Implementation: CubeRenderer.hpp/cpp - AABB/OBB wireframe rendering
+   - SphereRenderer.hpp/cpp - Bounding sphere wireframe rendering
+   - Dedicated wireframe rendering modes for all volume types
 
-EXTRA CREDIT ACHIEVEMENTS (30%):
-------------------------------
-High-Quality Implementation (+20%):
-- All tasks completed on time
-- Thoughtful design with clean, well-structured code architecture
-- Comprehensive error handling and edge case management
-- Detailed documentation and intuitive user interface
-- Attention to detail in all system components
+✅ Toggle visibility of actual object (wireframe or hidden)
+   - Implementation: RenderSystem.hpp/cpp - Visibility toggle controls
+   - ImGuiManager.hpp/cpp - UI controls for object visibility
+   - Support for wireframe, solid, and hidden rendering modes
 
-Orbital Camera System (+10%):
-- Implemented orbital camera with full 3D rotation around target point
-- Mouse-controlled orbital movement with intuitive controls
-- Scroll wheel zoom with configurable min/max distance constraints
-- WASD target point movement for dynamic scene exploration
-- Seamless camera mode switching with 'C' key
-- Real-time camera state display in ImGui interface
-- Smooth transitions between FPS and Orbital modes
-- Comprehensive camera controls documentation in UI
+✅ Allow switching between volume types
+   - Implementation: ImGuiManager.hpp/cpp - Bounding volume type selection
+   - Runtime switching between AABB, BSphere (all methods), and OBB
+   - Dynamic bounding volume computation and display
+
+✅ Use distinct colors for:
+   🔸 Inside frustum - GREEN
+   🔸 Outside frustum - RED
+   🔸 Intersecting frustum - YELLOW
+   - Implementation: Geometry.hpp/cpp - Frustum intersection testing
+   - RenderSystem.hpp/cpp - Color-coded rendering based on frustum state
+
 
 FILE PATHS AND IMPLEMENTATION DETAILS:
 -----------------------------------
@@ -145,8 +180,8 @@ Source Files (src/):
 - Window.cpp - Implementation of window management
 
 Shader Files (shaders/):
-- my-project-1.vert - Vertex shader for 3D object rendering
-- my-project-1.frag - Fragment shader for directional lighting
+- my-project-2.vert - Vertex shader for 3D object rendering
+- my-project-2.frag - Fragment shader for directional lighting
 
 TEST PLATFORM DETAILS:
 -------------------
@@ -162,10 +197,3 @@ WEEKLY TIME BREAKDOWN:
 - Week 3: 20 hours - ECS, lighting, camera, and final integration
 Total: 45 hours
 
-ASSUMPTIONS:
-----------
-- Assumed right-handed coordinate system
-- Assumed counter-clockwise winding order for triangles
-- AABB stored as center and half-extents for easier transformations 
-- File header is documented. Function names and parameters are explicitly written over function
-  documentation and it is easier to read

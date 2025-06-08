@@ -20,32 +20,34 @@ CameraSystem::CameraSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
 {
     auto cameraView = registry.View<CameraComponent>();
-    if (!cameraView.empty()) {
+
+    FPSCamera fpsCamera(
+        glm::vec3(0.0f, 0.0f, 3.0f),  // position
+        glm::vec3(0.0f, 0.0f, -1.0f), // front
+        glm::vec3(0.0f, 1.0f, 0.0f)   // up
+    );
+
+    OrbitalCamera orbitalCamera(
+        glm::vec3(0.0f, 0.0f, 0.0f),  // target
+        5.0f,                          // distance
+        45.0f,                         // yaw
+        30.0f                          // pitch
+    );
+
+    Projection projection(
+        45.0f,  // fov
+        0.1f,   // near plane
+        100.0f  // far plane
+    );
+
+    if (!cameraView.empty()) 
+    {
         m_CameraEntity = *cameraView.begin();
     } 
     else 
     {
         
         m_CameraEntity = registry.Create();
-        
-        FPSCamera fpsCamera(
-            glm::vec3(0.0f, 0.0f, 3.0f),  // position
-            glm::vec3(0.0f, 0.0f, -1.0f), // front
-            glm::vec3(0.0f, 1.0f, 0.0f)   // up
-        );
-        
-        OrbitalCamera orbitalCamera(
-            glm::vec3(0.0f, 0.0f, 0.0f),  // target
-            5.0f,                          // distance
-            45.0f,                         // yaw
-            30.0f                          // pitch
-        );
-        
-        Projection projection(
-            45.0f,  // fov
-            0.1f,   // near plane
-            100.0f  // far plane
-        );
         
         CameraComponent camera;
         camera.m_FPS = fpsCamera;
@@ -57,14 +59,15 @@ CameraSystem::CameraSystem(Registry& registry, Window& window)
     }
     
     // Initialize frustum planes
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 6; ++i) 
+    {
         m_FrustumNormals[i] = glm::vec3(0.0f);
         m_FrustumDistances[i] = 0.0f;
     }
     
-    // Initialize reference camera projection with default values
-    m_ReferenceCameraProjection = Projection(60.0f, 0.5f, 1000.0f);
-    
+    auto& camera = registry.GetComponent<CameraComponent>(m_CameraEntity);
+    m_ReferenceCameraProjection = projection;
+
     // Set up input callbacks for this system
     SetupInputCallbacks();
 }
@@ -243,7 +246,8 @@ void CameraSystem::UpdateFrustumPlanes(const CameraComponent& camera, float aspe
 
 SideResult CameraSystem::TestSphereAgainstFrustum(const Sphere& sphere) const
 {
-    if (!m_FrustumUpdated) {
+    if (!m_FrustumUpdated) 
+    {
         return SideResult::eINSIDE; // Default to inside if frustum not updated
     }
     
@@ -257,7 +261,8 @@ SideResult CameraSystem::TestSphereAgainstFrustum(const Sphere& sphere) const
 
 SideResult CameraSystem::TestAabbAgainstFrustum(const Aabb& aabb) const
 {
-    if (!m_FrustumUpdated) {
+    if (!m_FrustumUpdated) 
+    {
         return SideResult::eINSIDE; // Default to inside if frustum not updated
     }
     

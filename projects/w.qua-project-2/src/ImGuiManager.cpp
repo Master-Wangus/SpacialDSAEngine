@@ -81,8 +81,13 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 {
     ImGui::Begin("Geometry Toolbox Controls");
     
+    // Calculate delta time for FPS counter
+    float currentTime = static_cast<float>(m_Window.GetTime());
+    float deltaTime = currentTime - m_LastFrameTime;
+    m_LastFrameTime = currentTime;
+    
     // Display FPS
-    UpdateFrameRate(m_Window.GetTime());
+    UpdateFrameRate(deltaTime);
     ImGui::Text("FPS: %.1f", m_FrameRate);
     
     ImGui::Separator();
@@ -344,22 +349,6 @@ void ImGuiManager::RenderFrustumControls(Registry& registry)
         ImGui::Separator();
         ImGui::Text("Reference Camera Values:");
         ImGui::Text("FOV: %.1f degrees", referenceProjection.m_Fov);
-        ImGui::Text("Near Plane: %.3f", referenceProjection.m_NearPlane);
-        ImGui::Text("Far Plane: %.1f", referenceProjection.m_FarPlane);
-        
-        // Show main camera values for comparison
-        auto cameraView = registry.View<CameraComponent>();
-        if (!cameraView.empty()) 
-        {
-            auto cameraEntity = *cameraView.begin();
-            auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
-            
-            ImGui::Separator();
-            ImGui::Text("Main Camera Values (for comparison):");
-            ImGui::Text("FOV: %.1f degrees", camera.m_Projection.m_Fov);
-            ImGui::Text("Near Plane: %.3f", camera.m_Projection.m_NearPlane);
-            ImGui::Text("Far Plane: %.1f", camera.m_Projection.m_FarPlane);
-        }
     }
     else 
     {
@@ -367,7 +356,6 @@ void ImGuiManager::RenderFrustumControls(Registry& registry)
     }
 }
 
-// Removed RenderFrustumCullingControls function as it's no longer needed
 
 void ImGuiManager::RenderStats()
 {

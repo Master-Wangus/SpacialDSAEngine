@@ -6,6 +6,7 @@
 #include "FrustumRenderer.hpp"
 #include "Shader.hpp"
 #include "Buffer.hpp"
+#include <cmath>
 
 FrustumRenderer::FrustumRenderer(const glm::vec3& color)
     : m_Color(color), m_InvViewProjection(1.0f)
@@ -39,18 +40,14 @@ void FrustumRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& view
 
     m_Shader->Use();
     
-    // Set transformation matrices
     m_Shader->SetMat4("model", modelMatrix);
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    // Disable lighting for wireframe visualization
     m_Shader->SetBool("disableLighting", true);
     
-    // Bind and render
     m_Buffer.Bind();
     
-    // Render as lines for wireframe
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
     
     m_Buffer.Unbind();
@@ -63,8 +60,26 @@ void FrustumRenderer::CleanUp()
 
 void FrustumRenderer::UpdateFrustum(const glm::mat4& invViewProjection)
 {
-    m_InvViewProjection = invViewProjection;
-    m_FrustumDirty = true;
+    // Only update if the matrix has significantly changed (use tolerance for floating-point comparison)
+    // Dosen't affect the flickering issues that much...
+    const float epsilon = 1e-6f; // Tolerance for matrix comparison
+    bool matricesEqual = true;
+    
+    for (int i = 0; i < 4 && matricesEqual; ++i) 
+    {
+        for (int j = 0; j < 4 && matricesEqual; ++j) 
+        {
+            if (std::abs(m_InvViewProjection[i][j] - invViewProjection[i][j]) > epsilon) {
+                matricesEqual = false;
+            }
+        }
+    }
+    
+    if (!matricesEqual)
+    {
+        m_InvViewProjection = invViewProjection;
+        m_FrustumDirty = true;
+    }
 }
 
 std::vector<Vertex> FrustumRenderer::CreateFrustumVertices()
@@ -72,7 +87,8 @@ std::vector<Vertex> FrustumRenderer::CreateFrustumVertices()
     std::vector<Vertex> vertices;
     
     // Define the 8 corners of the NDC cube [-1,1] in each axis
-    glm::vec4 ndcCorners[8] = {
+    glm::vec4 ndcCorners[8] = 
+    {
         // Near plane (z = -1)
         glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), // Bottom-left-near
         glm::vec4( 1.0f, -1.0f, -1.0f, 1.0f), // Bottom-right-near
@@ -96,7 +112,8 @@ std::vector<Vertex> FrustumRenderer::CreateFrustumVertices()
     
     // Create line segments for the 12 edges of the frustum
     // Near plane edges (0,1,2,3)
-    int edges[24] = {
+    int edges[24] =
+    {
         // Near plane rectangle
         0, 1,  1, 2,  2, 3,  3, 0,
         // Far plane rectangle  
@@ -106,7 +123,8 @@ std::vector<Vertex> FrustumRenderer::CreateFrustumVertices()
     };
     
     // Create vertex data for all edges
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 24; i++) 
+    {
         Vertex vertex;
         vertex.m_Position = worldCorners[edges[i]];
         vertex.m_Color = m_Color;

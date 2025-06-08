@@ -17,6 +17,9 @@ struct DirectionalLight
     float m_Enabled;           ///< Whether light is enabled (1.0f = enabled, 0.0f = disabled)
     glm::vec3 m_Padding;       ///< Padding for std140 layout
     
+    /**
+     * @brief Default constructor for directional light.
+     */
     DirectionalLight()
         : m_Direction(0.0f, -1.0f, 0.0f, 0.0f),
           m_Color(1.0f, 1.0f, 1.0f, 1.0f),
@@ -24,6 +27,11 @@ struct DirectionalLight
           m_Padding(0.0f)
           {}
 
+    /**
+     * @brief Constructs a directional light with direction and color.
+     * @param dir Light direction vector
+     * @param col Light color and intensity
+     */
     DirectionalLight(const glm::vec3& dir, const glm::vec4& col)
         : m_Direction(glm::normalize(dir), 0.0f),
           m_Color(col),
@@ -31,6 +39,13 @@ struct DirectionalLight
           m_Padding(0.0f)
           {}
     
+    /**
+     * @brief Constructs a directional light with direction and color components.
+     * @param dir Light direction vector
+     * @param amb Ambient color component
+     * @param diff Diffuse color component
+     * @param spec Specular color component
+     */
     DirectionalLight(const glm::vec3& dir, const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec)
         : m_Direction(glm::normalize(dir), 0.0f),
           m_Color(1.0f), // Default color is white
@@ -55,6 +70,9 @@ struct Material
     float m_Shininess;            
     glm::vec3 m_Padding;            
     
+    /**
+     * @brief Default constructor for material with white properties.
+     */
     Material()
         : m_AmbientColor(1.0f),
           m_AmbientIntensity(1.0f),
@@ -66,6 +84,13 @@ struct Material
           m_Padding(0.0f)
     {}
     
+    /**
+     * @brief Constructs a material with specified properties.
+     * @param amb Ambient color
+     * @param diff Diffuse color
+     * @param spec Specular color
+     * @param shin Shininess value
+     */
     Material(const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec, float shin)
         : m_AmbientColor(amb),
           m_AmbientIntensity(1.0f),

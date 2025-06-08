@@ -8,7 +8,6 @@
 #include "Buffer.hpp"
 #include <random>
 
-// ResourceSystem implementation
 ResourceSystem& ResourceSystem::GetInstance() 
 {
     static ResourceSystem instance;
@@ -17,10 +16,7 @@ ResourceSystem& ResourceSystem::GetInstance()
 
 ResourceSystem::ResourceSystem() 
 {
-    // Initialize random seed
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
-    
-    // Create Assimp importer
     m_Loader = std::make_unique<Assimp::Importer>();
 }
 
@@ -88,7 +84,6 @@ void ResourceSystem::ClearUnused()
 uint64_t ResourceSystem::GenerateRandomUUID() 
 {
     // Generate a random 64-bit UUID
-    // Use a better random generator than the basic rand()
     std::random_device rd;
     std::mt19937_64 gen(rd());
     std::uniform_int_distribution<uint64_t> dis(1, UINT64_MAX); // Start from 1, 0 is reserved for invalid handles

@@ -18,23 +18,89 @@ enum class DemoSceneType;
 class ImGuiManager 
 {
 public:
+    /**
+     * @brief Constructs the ImGui manager with a window reference.
+     * @param window Window to integrate ImGui with
+     */
     ImGuiManager(Window& window);
+    
+    /**
+     * @brief Destructor for the ImGui manager.
+     */
     ~ImGuiManager();
 
+    /**
+     * @brief Initializes the ImGui system.
+     */
     void Init();
+    
+    /**
+     * @brief Begins a new ImGui frame.
+     */
     void NewFrame();
+    
+    /**
+     * @brief Renders all ImGui elements.
+     */
     void Render();
+    
+    /**
+     * @brief Shuts down the ImGui system.
+     */
     void Shutdown();
 
     // Rendering various ImGui windows
+    /**
+     * @brief Renders the main control window.
+     * @param registry Entity registry reference
+     */
     void RenderMainWindow(Registry& registry);
+    
+    /**
+     * @brief Renders the scene selection window.
+     * @param registry Entity registry reference
+     */
     void RenderSceneSelector(Registry& registry);
+    
+    /**
+     * @brief Renders lighting control interface.
+     * @param registry Entity registry reference
+     */
     void RenderLightingControls(Registry& registry);
+    
+    /**
+     * @brief Renders camera control interface.
+     * @param registry Entity registry reference
+     */
     void RenderCameraControls(Registry& registry);
+    
+    /**
+     * @brief Renders bounding volume visibility controls.
+     * @param registry Entity registry reference
+     */
     void RenderBoundingVolumeControls(Registry& registry);
+    
+    /**
+     * @brief Renders object visibility controls.
+     * @param registry Entity registry reference
+     */
     void RenderObjectVisibilityControls(Registry& registry);
+    
+    /**
+     * @brief Renders model selection controls.
+     * @param registry Entity registry reference
+     */
     void RenderModelSelectionControls(Registry& registry);
+    
+    /**
+     * @brief Renders frustum culling controls.
+     * @param registry Entity registry reference
+     */
     void RenderFrustumControls(Registry& registry);
+    
+    /**
+     * @brief Renders performance statistics.
+     */
     void RenderStats();
 
 
@@ -46,5 +112,9 @@ private:
     float m_FrameRate = 0.0f;
     float m_FrameTimeAccumulator = 0.0f;
     
+    /**
+     * @brief Updates frame rate calculation.
+     * @param deltaTime Time elapsed since last frame
+     */
     void UpdateFrameRate(float deltaTime);
 }; 

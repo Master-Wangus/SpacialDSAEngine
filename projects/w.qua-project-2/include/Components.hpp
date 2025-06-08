@@ -28,6 +28,12 @@ struct TransformComponent
     glm::vec3 m_Scale;
     glm::mat4 m_Model;
     
+    /**
+     * @brief Constructs a transform component with position, rotation, and scale.
+     * @param pos Initial position vector
+     * @param rot Initial rotation vector (in degrees)
+     * @param scl Initial scale vector
+     */
     TransformComponent(
         const glm::vec3& pos = glm::vec3(0.0f),
         const glm::vec3& rot = glm::vec3(0.0f),
@@ -37,6 +43,9 @@ struct TransformComponent
         UpdateModelMatrix();
     }
     
+    /**
+     * @brief Updates the model matrix from position, rotation, and scale.
+     */
     void UpdateModelMatrix();
 };
 
@@ -48,6 +57,11 @@ struct RenderComponent
     bool m_IsVisible = true;  // Flag to control visibility
     
     RenderComponent() = default;
+    
+    /**
+     * @brief Constructs a render component with a renderable object.
+     * @param r Shared pointer to a renderable object
+     */
     explicit RenderComponent(std::shared_ptr<IRenderable> r) : m_Renderable(std::move(r)), m_IsVisible(true) {}
 };
 
@@ -58,6 +72,11 @@ struct DirectionalLightComponent
     DirectionalLight m_Light;
     
     DirectionalLightComponent() = default;
+    
+    /**
+     * @brief Constructs a directional light component.
+     * @param l Directional light parameters
+     */
     DirectionalLightComponent(const DirectionalLight& l) : m_Light(l) {}
 };
 
@@ -89,6 +108,11 @@ struct BoundingComponent
     std::shared_ptr<IRenderable> m_OBBRenderable;
 
     BoundingComponent() = default;
+    
+    /**
+     * @brief Constructs a bounding component from a mesh resource.
+     * @param resourceHandle Handle to the mesh resource for bounding volume calculation
+     */
     BoundingComponent(const ResourceHandle& resourceHandle)
     {
         const auto& meshResource = ResourceSystem::GetInstance().GetMesh(resourceHandle);
@@ -123,7 +147,15 @@ struct BoundingComponent
         delete radius;
     }
     
+    /**
+     * @brief Initializes renderable objects for visualizing bounding volumes.
+     * @param shader Shader to use for rendering the bounding volumes
+     */
     void InitializeRenderables(const std::shared_ptr<Shader>& shader);
+    
+    /**
+     * @brief Cleans up all renderable objects for bounding volume visualization.
+     */
     void CleanupRenderables();
 };
 
@@ -137,6 +169,14 @@ struct CameraComponent
     CameraType m_ActiveCameraType = CameraType::FPS;
     
     CameraComponent() = default;
+    
+    /**
+     * @brief Constructs a camera component with specified parameters.
+     * @param proj Projection parameters
+     * @param fpsCamera FPS camera configuration
+     * @param orbitalCamera Orbital camera configuration
+     * @param type Active camera type
+     */
     CameraComponent(
         const Projection& proj,
         const FPSCamera& fpsCamera,
@@ -144,6 +184,10 @@ struct CameraComponent
         CameraType type = CameraType::FPS)
         : m_Projection(proj), m_FPS(fpsCamera), m_Orbital(orbitalCamera), m_ActiveCameraType(type) {}
     
+    /**
+     * @brief Gets the view matrix for the currently active camera.
+     * @return 4x4 view matrix
+     */
     glm::mat4 GetViewMatrix() const 
     {
         switch (m_ActiveCameraType) 
@@ -157,11 +201,20 @@ struct CameraComponent
         }
     }
     
+    /**
+     * @brief Gets the projection matrix for the given aspect ratio.
+     * @param aspectRatio Viewport aspect ratio (width/height)
+     * @return 4x4 projection matrix
+     */
     glm::mat4 GetProjectionMatrix(float aspectRatio) const 
     {
         return m_Projection.GetProjectionMatrix(aspectRatio);
     }
     
+    /**
+     * @brief Gets the position of the currently active camera.
+     * @return Camera position in world space
+     */
     glm::vec3 GetPosition() const 
     {
         switch (m_ActiveCameraType) 
