@@ -66,8 +66,8 @@ void RenderSystem::Render()
     m_Shader->Use();
     m_Shader->SetVec3("viewPos", cameraPosition);
     
-    // Update frustum planes if culling is enabled
-    if (m_EnableFrustumCulling && m_CameraSystem) {
+    // Update frustum planes for culling
+    if (m_CameraSystem) {
         m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
     }
     
@@ -81,6 +81,10 @@ void RenderSystem::Render()
         auto& transform = m_Registry.GetComponent<TransformComponent>(entity);
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
+        // Skip if not visible
+        if (!renderComp.m_IsVisible)
+            continue;
+            
         // Skip light entity for frustum culling
         if (entity == m_LightVisualizationEntity) {
             // Always render the light visualization
@@ -94,99 +98,186 @@ void RenderSystem::Render()
         bool isVisible = true;
         SideResult frustumResult = SideResult::eINSIDE;
         
-        if (m_EnableFrustumCulling && m_CameraSystem && m_Registry.HasComponent<BoundingComponent>(entity)) 
+        if (m_CameraSystem && m_Registry.HasComponent<BoundingComponent>(entity)) 
         {
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
             
-            // Use sphere for quick frustum culling first
-            frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
-            
-            // If sphere is completely outside, skip rendering
-            if (frustumResult == SideResult::eOUTSIDE) {
-                isVisible = false;
-            }
-            
-            // For objects that might be partially visible, do more accurate AABB test
-            if (frustumResult == SideResult::eOVERLAPPING) {
+            if (m_ShowAABB) 
+            {
                 frustumResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.m_AABB);
+            }
+            else if (m_ShowOBB) 
+            {
+                frustumResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.m_OBB);
+            }
+            else if (m_ShowRitterSphere) 
+            {
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
+            }
+            else if (m_ShowLarsonSphere) 
+            {
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_LarssonSphere);
+            }
+            else if (m_ShowPCASphere) 
+            {
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_PCASphere);
             }
         }
         
         // Only render if visible (or culling is disabled)
-        if (isVisible && m_ShowMainObjects && renderComp.m_Renderable) 
+        if (m_ShowMainObjects && renderComp.m_Renderable) 
         {
-            if (m_EnableFrustumCulling && m_CameraSystem)
-            {
-                // Get material and store original diffuse color
-                Material& material = renderComp.m_Renderable->GetMaterialEditable();
-                glm::vec3 originalColor = material.m_DiffuseColor;
-                
-                // Change diffuse color based on frustum test result
-                material.m_DiffuseColor = m_CameraSystem->GetFrustumTestColor(frustumResult);
-                
-                // Render with modified material
-                renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                // Restore original diffuse color
-                material.m_DiffuseColor = originalColor;
-            } 
-            else 
-            {
-                renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-            }
+            // Disable lighting for wireframe main objects to show pure colors
+            m_Shader->SetBool("disableLighting", true);
+            
+            // Render with original material - no color changes based on intersection
+            renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
         }
         
         // Render bounding volumes if enabled and entity has BoundingComponent
-        if (isVisible && m_Registry.HasComponent<BoundingComponent>(entity))
+        if (m_Registry.HasComponent<BoundingComponent>(entity))
         {
             // Reset to solid mode for bounding volume wireframes 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             
+            // Enable lighting for bounding volume objects (they are not wireframes)
+            m_Shader->SetBool("disableLighting", false);
+            
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
-            
-            // Set color based on frustum culling result
-            glm::vec3 boundingColor = m_EnableFrustumCulling && m_CameraSystem ? 
-                                     m_CameraSystem->GetFrustumTestColor(frustumResult) : 
-                                     glm::vec3(1.0f);
-            
-            if (m_ShowAABB && boundingComp.m_AABBRenderable) {
+                        
+            if (m_ShowAABB && boundingComp.m_AABBRenderable && m_CameraSystem) 
+            {
+                SideResult aabbResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.m_AABB);
                 Material& aabbMaterial = boundingComp.m_AABBRenderable->GetMaterialEditable();
-                glm::vec3 originalColor = aabbMaterial.m_DiffuseColor;
-                aabbMaterial.m_DiffuseColor = boundingColor;
+                glm::vec3 originalAabbDiffuse = aabbMaterial.m_DiffuseColor;
+                glm::vec3 originalAabbAmbient = aabbMaterial.m_AmbientColor;
+                glm::vec3 originalAabbSpecular = aabbMaterial.m_SpecularColor;
+                
+                glm::vec3 aabbTestColor = m_CameraSystem->GetFrustumTestColor(aabbResult);
+                aabbMaterial.m_DiffuseColor = aabbTestColor;
+                aabbMaterial.m_AmbientColor = aabbTestColor;
+                aabbMaterial.m_SpecularColor = aabbTestColor;
+                
+                // Update the material UBO with modified values
+                UpdateMaterialUBO(aabbMaterial);
+                
                 boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                aabbMaterial.m_DiffuseColor = originalColor;
+                
+                // Restore original colors
+                aabbMaterial.m_DiffuseColor = originalAabbDiffuse;
+                aabbMaterial.m_AmbientColor = originalAabbAmbient;
+                aabbMaterial.m_SpecularColor = originalAabbSpecular;
+                
+                // Restore original material UBO
+                UpdateMaterialUBO(aabbMaterial);
             }
             
-            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable) {
+            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable && m_CameraSystem) 
+            {
+                SideResult ritterResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
                 Material& ritterMaterial = boundingComp.m_RitterRenderable->GetMaterialEditable();
-                glm::vec3 originalColor = ritterMaterial.m_DiffuseColor;
-                ritterMaterial.m_DiffuseColor = boundingColor;
+                glm::vec3 originalRitterDiffuse = ritterMaterial.m_DiffuseColor;
+                glm::vec3 originalRitterAmbient = ritterMaterial.m_AmbientColor;
+                glm::vec3 originalRitterSpecular = ritterMaterial.m_SpecularColor;
+                
+                glm::vec3 ritterTestColor = m_CameraSystem->GetFrustumTestColor(ritterResult);
+                ritterMaterial.m_DiffuseColor = ritterTestColor;
+                ritterMaterial.m_AmbientColor = ritterTestColor;
+                ritterMaterial.m_SpecularColor = ritterTestColor;
+                
+                // Update the material UBO with modified values
+                UpdateMaterialUBO(ritterMaterial);
+                
                 boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                ritterMaterial.m_DiffuseColor = originalColor;
+                
+                // Restore original colors
+                ritterMaterial.m_DiffuseColor = originalRitterDiffuse;
+                ritterMaterial.m_AmbientColor = originalRitterAmbient;
+                ritterMaterial.m_SpecularColor = originalRitterSpecular;
+                
+                // Restore original material UBO
+                UpdateMaterialUBO(ritterMaterial);
             }
             
-            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable) {
+            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable && m_CameraSystem) 
+            {
+                SideResult larsonResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_LarssonSphere);
                 Material& larsonMaterial = boundingComp.m_LarsonRenderable->GetMaterialEditable();
-                glm::vec3 originalColor = larsonMaterial.m_DiffuseColor;
-                larsonMaterial.m_DiffuseColor = boundingColor;
+                glm::vec3 originalLarsonDiffuse = larsonMaterial.m_DiffuseColor;
+                glm::vec3 originalLarsonAmbient = larsonMaterial.m_AmbientColor;
+                glm::vec3 originalLarsonSpecular = larsonMaterial.m_SpecularColor;
+                
+                glm::vec3 larsonTestColor = m_CameraSystem->GetFrustumTestColor(larsonResult);
+                larsonMaterial.m_DiffuseColor = larsonTestColor;
+                larsonMaterial.m_AmbientColor = larsonTestColor;
+                larsonMaterial.m_SpecularColor = larsonTestColor;
+                
+                // Update the material UBO with modified values
+                UpdateMaterialUBO(larsonMaterial);
+                
                 boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                larsonMaterial.m_DiffuseColor = originalColor;
+                
+                // Restore original colors
+                larsonMaterial.m_DiffuseColor = originalLarsonDiffuse;
+                larsonMaterial.m_AmbientColor = originalLarsonAmbient;
+                larsonMaterial.m_SpecularColor = originalLarsonSpecular;
+                
+                // Restore original material UBO
+                UpdateMaterialUBO(larsonMaterial);
             }
             
-            if (m_ShowPCASphere && boundingComp.m_PCARenderable) {
+            if (m_ShowPCASphere && boundingComp.m_PCARenderable && m_CameraSystem) 
+            {
+                SideResult pcaResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_PCASphere);
                 Material& pcaMaterial = boundingComp.m_PCARenderable->GetMaterialEditable();
-                glm::vec3 originalColor = pcaMaterial.m_DiffuseColor;
-                pcaMaterial.m_DiffuseColor = boundingColor;
+                glm::vec3 originalPcaDiffuse = pcaMaterial.m_DiffuseColor;
+                glm::vec3 originalPcaAmbient = pcaMaterial.m_AmbientColor;
+                glm::vec3 originalPcaSpecular = pcaMaterial.m_SpecularColor;
+                
+                glm::vec3 pcaTestColor = m_CameraSystem->GetFrustumTestColor(pcaResult);
+                pcaMaterial.m_DiffuseColor = pcaTestColor;
+                pcaMaterial.m_AmbientColor = pcaTestColor;
+                pcaMaterial.m_SpecularColor = pcaTestColor;
+                
+                // Update the material UBO with modified values
+                UpdateMaterialUBO(pcaMaterial);
+                
                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                pcaMaterial.m_DiffuseColor = originalColor;
+                
+                // Restore original colors
+                pcaMaterial.m_DiffuseColor = originalPcaDiffuse;
+                pcaMaterial.m_AmbientColor = originalPcaAmbient;
+                pcaMaterial.m_SpecularColor = originalPcaSpecular;
+                
+                // Restore original material UBO
+                UpdateMaterialUBO(pcaMaterial);
             }
             
-            if (m_ShowOBB && boundingComp.m_OBBRenderable) {
+            if (m_ShowOBB && boundingComp.m_OBBRenderable && m_CameraSystem) 
+            {
+                SideResult obbResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.m_OBB);
                 Material& obbMaterial = boundingComp.m_OBBRenderable->GetMaterialEditable();
-                glm::vec3 originalColor = obbMaterial.m_DiffuseColor;
-                obbMaterial.m_DiffuseColor = boundingColor;
+                glm::vec3 originalObbDiffuse = obbMaterial.m_DiffuseColor;
+                glm::vec3 originalObbAmbient = obbMaterial.m_AmbientColor;
+                glm::vec3 originalObbSpecular = obbMaterial.m_SpecularColor;
+                
+                glm::vec3 obbTestColor = m_CameraSystem->GetFrustumTestColor(obbResult);
+                obbMaterial.m_DiffuseColor = obbTestColor;
+                obbMaterial.m_AmbientColor = obbTestColor;
+                obbMaterial.m_SpecularColor = obbTestColor;
+                
+                // Update the material UBO with modified values
+                UpdateMaterialUBO(obbMaterial);
+                
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                obbMaterial.m_DiffuseColor = originalColor;
+                
+                // Restore original colors
+                obbMaterial.m_DiffuseColor = originalObbDiffuse;
+                obbMaterial.m_AmbientColor = originalObbAmbient;
+                obbMaterial.m_SpecularColor = originalObbSpecular;
+                
+                // Restore original material UBO
+                UpdateMaterialUBO(obbMaterial);
             }
         }
     }
@@ -337,14 +428,27 @@ void RenderSystem::SetupMaterial()
     material.m_SpecularIntensity = 0.5f;
     material.m_Shininess = 32.0f;
     
-    static GLuint materialUBO = 0;
-    if (materialUBO == 0) 
+    if (m_MaterialUBO == 0) 
     {
-        materialUBO = Buffer::CreateUniformBuffer(sizeof(Material), 1);
+        m_MaterialUBO = Buffer::CreateUniformBuffer(sizeof(Material), 1);
+        
+        // Bind the Material uniform block to binding point 1
+        GLuint materialBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "Material");
+        if (materialBlockIndex != GL_INVALID_INDEX) {
+            glUniformBlockBinding(m_Shader->GetID(), materialBlockIndex, 1);
+        } else {
+            std::cerr << "ERROR: Material uniform block not found in shader!" << std::endl;
+        }
     } 
 
-    Buffer::UpdateUniformBuffer(materialUBO, &material, sizeof(Material));
+    Buffer::UpdateUniformBuffer(m_MaterialUBO, &material, sizeof(Material));
+}
 
+void RenderSystem::UpdateMaterialUBO(const Material& material)
+{
+    if (m_MaterialUBO != 0) {
+        Buffer::UpdateUniformBuffer(m_MaterialUBO, &material, sizeof(Material));
+    }
 }
 
 void RenderSystem::UpdateLighting()
@@ -357,6 +461,14 @@ void RenderSystem::UpdateLighting()
         if (lightUBO == 0) 
         {
             lightUBO = Buffer::CreateUniformBuffer(sizeof(DirectionalLight), 0);
+            
+            // Bind the DirectionalLight uniform block to binding point 0
+            GLuint lightBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "DirectionalLight");
+            if (lightBlockIndex != GL_INVALID_INDEX) {
+                glUniformBlockBinding(m_Shader->GetID(), lightBlockIndex, 0);
+            } else {
+                std::cerr << "ERROR: DirectionalLight uniform block not found in shader!" << std::endl;
+            }
         } 
         Buffer::UpdateUniformBuffer(lightUBO, &light, sizeof(DirectionalLight));
 

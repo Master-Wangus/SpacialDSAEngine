@@ -45,9 +45,10 @@ struct TransformComponent
 struct RenderComponent 
 {
     std::shared_ptr<IRenderable> m_Renderable;
+    bool m_IsVisible = true;  // Flag to control visibility
     
     RenderComponent() = default;
-    explicit RenderComponent(std::shared_ptr<IRenderable> r) : m_Renderable(std::move(r)) {}
+    explicit RenderComponent(std::shared_ptr<IRenderable> r) : m_Renderable(std::move(r)), m_IsVisible(true) {}
 };
 
 // ==================== Lighting Components ====================

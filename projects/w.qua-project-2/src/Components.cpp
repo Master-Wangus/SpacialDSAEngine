@@ -23,10 +23,13 @@ void TransformComponent::UpdateModelMatrix()
 
 void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& shader)
 {
+    // Using white color for all renderables so frustum culling colors will show properly
+    glm::vec3 neutralColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    
     m_AABBRenderable = std::make_shared<CubeRenderer>(
         m_AABB.GetCenter(),
         m_AABB.GetExtents() * 2.0f, 
-        glm::vec3(1.0f, 0.0f, 0.0f), // Red color
+        neutralColor,
         true // Wireframe mode
     );
     m_AABBRenderable->Initialize(shader);
@@ -34,7 +37,7 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
     m_RitterRenderable = std::make_shared<SphereRenderer>(
         m_RitterSphere.center, 
         m_RitterSphere.radius,
-        glm::vec3(0.0f, 0.0f, 1.0f), // Blue color
+        neutralColor,
         true 
     );
     m_RitterRenderable->Initialize(shader);
@@ -42,7 +45,7 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
     m_LarsonRenderable = std::make_shared<SphereRenderer>(
         m_LarssonSphere.center,
         m_LarssonSphere.radius,
-        glm::vec3(1.0f, 1.0f, 0.0f), // Yellow color
+        neutralColor,
         true 
     );
     m_LarsonRenderable->Initialize(shader);
@@ -50,7 +53,7 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
     m_PCARenderable = std::make_shared<SphereRenderer>(
         m_PCASphere.center, 
         m_PCASphere.radius,
-        glm::vec3(1.0f, 0.0f, 1.0f), // Magenta color
+        neutralColor,
         true 
     );
     m_PCARenderable->Initialize(shader);
@@ -60,7 +63,7 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
         m_OBB.center,
         m_OBB.axes,
         m_OBB.halfExtents,
-        glm::vec3(0.0f, 1.0f, 1.0f), // Cyan color
+        neutralColor,
         true // Wireframe mode
     );
     m_OBBRenderable->Initialize(shader);

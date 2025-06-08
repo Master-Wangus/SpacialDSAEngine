@@ -40,4 +40,10 @@ namespace Keybinds
     static const int KEY_RIGHT_SHIFT = 344;
     static const int KEY_LEFT_CONTROL = 341;
     static const int KEY_RIGHT_CONTROL = 345;
+    
+    // Arrow keys
+    static const int KEY_LEFT = 263;
+    static const int KEY_RIGHT = 262;
+    static const int KEY_UP = 265;
+    static const int KEY_DOWN = 264;
 } 

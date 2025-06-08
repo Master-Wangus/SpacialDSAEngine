@@ -42,6 +42,7 @@ layout(std140) uniform DirectionalLight
 
 // Uniforms
 uniform vec3 viewPos;
+uniform bool disableLighting; // Per-object lighting control
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir);
 
@@ -51,15 +52,16 @@ void main()
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     
-    // Check if directional lighting is enabled
+    // Check if lighting should be applied for this object
     vec3 result;
-    if (light.enabled > 0.5) 
+    if (light.enabled > 0.5 && !disableLighting) 
     {
         // Directional lighting
         result = CalcDirLight(norm, viewDir);
     } else 
     {
-        result = Color;
+        // Use material diffuse color when lighting is disabled (for wireframes)
+        result = material.diffuseColor * material.diffuseIntensity;
     }
     
     // Final color

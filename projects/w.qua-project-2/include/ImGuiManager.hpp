@@ -33,7 +33,7 @@ public:
     void RenderCameraControls(Registry& registry);
     void RenderBoundingVolumeControls(Registry& registry);
     void RenderObjectVisibilityControls(Registry& registry);
-    void RenderFrustumCullingControls(Registry& registry);
+    void RenderModelSelectionControls(Registry& registry);
     void RenderStats();
     
     // Helper functions
@@ -47,4 +47,6 @@ private:
     int m_FrameCount = 0;
     float m_FrameRate = 0.0f;
     float m_FrameTimeAccumulator = 0.0f;
+    
+    void UpdateFrameRate(float deltaTime);
 }; 

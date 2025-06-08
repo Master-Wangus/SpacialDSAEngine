@@ -32,10 +32,7 @@ public:
     void RenderLightingControls(Registry& registry);
     void RenderCameraControls(Registry& registry);
     void RenderStats();
-    
-    // Helper functions
-    void HelpMarker(const char* desc);
-    void SwitchScene(Registry& registry, DemoSceneType sceneType);
+
 
 private:
     Window& m_Window;

@@ -81,89 +81,99 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 {
     ImGui::Begin("Geometry Toolbox Controls");
     
-    // FPS counter and performance stats
-    float currentTime = static_cast<float>(m_Window.GetTime());
-    float deltaTime = currentTime - m_LastFrameTime;
-    m_LastFrameTime = currentTime;
-    
-    m_FrameCount++;
-    m_FrameTimeAccumulator += deltaTime;
-    
-    if (m_FrameTimeAccumulator >= 1.0f) 
-    {
-        m_FrameRate = static_cast<float>(m_FrameCount) / m_FrameTimeAccumulator;
-        m_FrameCount = 0;
-        m_FrameTimeAccumulator = 0.0f;
-    }
-    
+    // Display FPS
+    UpdateFrameRate(m_Window.GetTime());
     ImGui::Text("FPS: %.1f", m_FrameRate);
-    ImGui::Text("Frame time: %.3f ms", deltaTime * 1000.0f);
     
     ImGui::Separator();
     
-    // Demo scene selection
-    if (ImGui::CollapsingHeader("Demo Scenes", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        RenderSceneSelector(registry);
+    if (ImGui::Button("Reset Scene")) {
+        Systems::ResetCurrentScene(registry, m_Window);
     }
     
-    // Camera controls
-    if (ImGui::CollapsingHeader("Camera Controls"))
-    {
+    ImGui::Separator();
+    
+    // Add collapsing headers for different control categories
+    if (ImGui::CollapsingHeader("Camera Controls", ImGuiTreeNodeFlags_DefaultOpen)) {
         RenderCameraControls(registry);
     }
     
-    // Lighting settings
-    if (ImGui::CollapsingHeader("Lighting Settings"))
-    {
+    if (ImGui::CollapsingHeader("Lighting Controls")) {
         RenderLightingControls(registry);
     }
     
-    // Bounding Volume Controls
-    if (ImGui::CollapsingHeader("Bounding Volume Controls", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        RenderBoundingVolumeControls(registry);
-    }
-    
-    // Object Visibility Controls
-    if (ImGui::CollapsingHeader("Object Visibility"))
-    {
-        RenderObjectVisibilityControls(registry);
-    }
-    
-    // Frustum Culling Controls
-    if (ImGui::CollapsingHeader("Frustum Culling", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        RenderFrustumCullingControls(registry);
-    }
-    
-    // Debug statistics
-    if (ImGui::CollapsingHeader("Debug Statistics")) 
-    {
+    if (ImGui::CollapsingHeader("System Information")) {
         RenderStats();
     }
     
     ImGui::End();
+    
+    // Create a separate widget for Assignment 2 controls
+    ImGui::Begin("Assignment 2");
+    
+    // Model selection controls (without the buttons)
+    RenderModelSelectionControls(registry);
+    
+    ImGui::Separator();
+    
+    // Bounding volume controls
+    ImGui::Text("Bounding Volume Controls:");
+    RenderBoundingVolumeControls(registry);
+    
+    ImGui::Separator();
+    
+    // Object visibility
+    ImGui::Text("Object Visibility:");
+    RenderObjectVisibilityControls(registry);
+    
+    // Add color legend for frustum culling
+    ImGui::Separator();
+    ImGui::Text("Frustum Culling Color Legend:");
+    
+    // Inside color (Green)
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green - Inside Frustum");
+    
+    // Outside color (Red)
+    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red - Outside Frustum");
+    
+    // Intersecting color (Yellow)
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow - Intersecting Frustum");
+    
+    ImGui::End();
 }
 
-void ImGuiManager::RenderSceneSelector(Registry& registry)
+void ImGuiManager::RenderModelSelectionControls(Registry& registry)
 {
-    static const char* currentScene = "Demo Scene with Bounding Volumes";
-    static int selectedScene = static_cast<int>(Systems::g_CurrentDemoScene);
-    
-    static const char* sceneNames[] = 
+    if (!Systems::g_RenderSystem) 
     {
-        "Demo Scene",
+        ImGui::Text("Render system not available");
+        return;
+    }
+    
+    // Get current model
+    ModelType currentModel = DemoScene::GetCurrentModel();
+    
+    // Display current model name
+    const char* modelNames[] = {
+        "Rhino",
+        "Cup",
+        "Bunny",
+        "Cube"
     };
     
-    ImGui::Text("Current Scene: %s", sceneNames[selectedScene]);
-    ImGui::Separator();
-   
-}
-
-void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
-{
-    Systems::g_CurrentDemoScene = sceneType;
+    // Display the current model
+    ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Current Model: %s", 
+                      modelNames[static_cast<int>(currentModel)]);
+    
+    ImGui::Text("Use Left/Right Arrow Keys to switch models");
+    
+    // Radio buttons for direct model selection
+    int selectedModel = static_cast<int>(currentModel);
+    for (int i = 0; i < static_cast<int>(ModelType::Count); i++) {
+        if (ImGui::RadioButton(modelNames[i], &selectedModel, i)) {
+            DemoScene::SwitchToModel(registry, static_cast<ModelType>(i));
+        }
+    }
 }
 
 void ImGuiManager::RenderCameraControls(Registry& registry)
@@ -244,50 +254,40 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
     
     ImGui::Text("Toggle Bounding Volume Visibility:");
 
-    // AABB Controls (Red)
+    // AABB Controls
     bool showAABB = Systems::g_RenderSystem->IsAABBVisible();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f)); // Red color
     if (ImGui::Checkbox("AABB", &showAABB))
     {
         Systems::g_RenderSystem->SetShowAABB(showAABB);
     }
-    ImGui::PopStyleColor();
     
-    // Ritter Sphere Controls (Blue)
+    // Ritter Sphere Controls
     bool showRitter = Systems::g_RenderSystem->IsRitterSphereVisible();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.3f, 1.0f, 1.0f)); // Blue color
     if (ImGui::Checkbox("Ritter Sphere", &showRitter))
     {
         Systems::g_RenderSystem->SetShowRitterSphere(showRitter);
     }
-    ImGui::PopStyleColor();
     
-    // Larsson Sphere Controls (Yellow)
+    // Larsson Sphere Controls
     bool showLarsson = Systems::g_RenderSystem->IsLarsonSphereVisible();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.3f, 1.0f)); // Yellow color
     if (ImGui::Checkbox("Larsson Iterative Sphere", &showLarsson))
     {
         Systems::g_RenderSystem->SetShowLarsonSphere(showLarsson);
     }
-    ImGui::PopStyleColor();
     
-    // PCA Sphere Controls (Magenta)
+    // PCA Sphere Controls
     bool showPCA = Systems::g_RenderSystem->IsPCASphereVisible();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 1.0f, 1.0f)); // Magenta color
     if (ImGui::Checkbox("PCA Sphere", &showPCA))
     {
         Systems::g_RenderSystem->SetShowPCASphere(showPCA);
     }
-    ImGui::PopStyleColor();
     
-    // OBB Controls (Cyan)
+    // OBB Controls
     bool showOBB = Systems::g_RenderSystem->IsOBBVisible();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 1.0f, 1.0f)); // Cyan color
     if (ImGui::Checkbox("PCA OBB", &showOBB))
     {
         Systems::g_RenderSystem->SetShowOBB(showOBB);
     }
-    ImGui::PopStyleColor();
     
     ImGui::Separator();
 }
@@ -303,41 +303,7 @@ void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
     }
 }
 
-void ImGuiManager::RenderFrustumCullingControls(Registry& registry)
-{
-    if (!Systems::g_RenderSystem || !Systems::g_CameraSystem) 
-    {
-        ImGui::Text("Required systems not available");
-        return;
-    }
-    
-    // Frustum Culling toggle
-    bool enableFrustumCulling = Systems::g_RenderSystem->IsFrustumCullingEnabled();
-    if (ImGui::Checkbox("Enable Frustum Culling", &enableFrustumCulling))
-    {
-        Systems::g_RenderSystem->EnableFrustumCulling(enableFrustumCulling);
-    }
-    
-    if (enableFrustumCulling)
-    {
-        ImGui::Separator();
-        ImGui::Text("Color Legend:");
-        
-        // Inside color (Green)
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green - Inside Frustum");
-        
-        // Outside color (Red)
-        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red - Outside Frustum");
-        
-        // Intersecting color (Yellow)
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow - Intersecting Frustum");
-        
-        ImGui::Separator();
-        ImGui::Text("Note: Objects outside the frustum may still be");
-        ImGui::Text("visible if their bounding volumes are larger than");
-        ImGui::Text("the actual object geometry.");
-    }
-}
+// Removed RenderFrustumCullingControls function as it's no longer needed
 
 void ImGuiManager::RenderStats()
 {
@@ -353,4 +319,17 @@ void ImGuiManager::RenderStats()
     
     // Window info
     ImGui::Text("Window Size: %dx%d", m_Window.GetWidth(), m_Window.GetHeight());
+}
+
+void ImGuiManager::UpdateFrameRate(float deltaTime)
+{
+    m_FrameCount++;
+    m_FrameTimeAccumulator += deltaTime;
+    
+    if (m_FrameTimeAccumulator >= 1.0f) 
+    {
+        m_FrameRate = static_cast<float>(m_FrameCount) / m_FrameTimeAccumulator;
+        m_FrameCount = 0;
+        m_FrameTimeAccumulator = 0.0f;
+    }
 } 

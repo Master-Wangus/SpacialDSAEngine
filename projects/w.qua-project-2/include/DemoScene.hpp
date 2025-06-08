@@ -19,6 +19,16 @@ enum class DemoSceneType
     MeshScene  
 };
 
+// Add enum for different model types
+enum class ModelType
+{
+    Rhino,
+    Cup,
+    Bunny,
+    Cube,
+    Count  // Used to cycle through models
+};
+
 namespace DemoScene
 {
     void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType = DemoSceneType::MeshScene);
@@ -27,4 +37,9 @@ namespace DemoScene
     
     void SetupMeshScene(Registry& registry);
     
+    // Add functions for model switching
+    void SwitchToModel(Registry& registry, ModelType modelType);
+    ModelType GetCurrentModel();
+    void CycleToNextModel(Registry& registry);
+    void CycleToPreviousModel(Registry& registry);
 } 

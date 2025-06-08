@@ -20,12 +20,35 @@
 #include "RayRenderer.hpp"
 #include "MeshRenderer.hpp"
 #include "ResourceSystem.hpp"
+#include "InputSystem.hpp"
+#include "Keybinds.hpp"
 
 namespace DemoScene 
 {
+    // Store the current model being displayed
+    static ModelType s_CurrentModel = ModelType::Rhino;
+    
+    // Entities for each model type
+    static Registry::Entity s_ModelEntities[static_cast<int>(ModelType::Count)];
+
     void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType) 
     {
         SetupMeshScene(registry);
+        
+        // Setup arrow key input for model switching
+        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_RIGHT, 
+            [&registry](int key, int scancode, int action, int mods) {
+                if (action == Keybinds::PRESS) {
+                    CycleToNextModel(registry);
+                }
+            });
+            
+        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_LEFT, 
+            [&registry](int key, int scancode, int action, int mods) {
+                if (action == Keybinds::PRESS) {
+                    CycleToPreviousModel(registry);
+                }
+            });
     }
     
     void ClearScene(Registry& registry)
@@ -41,6 +64,11 @@ namespace DemoScene
                 
             registry.Destroy(entity);
         }
+        
+        // Reset entity references
+        for (int i = 0; i < static_cast<int>(ModelType::Count); ++i) {
+            s_ModelEntities[i] = entt::null;
+        }
     }
 
     void ResetScene(Registry& registry, Window& window)
@@ -51,16 +79,21 @@ namespace DemoScene
 
     void SetupMeshScene(Registry& registry)
     {
+        // Load all meshes
         ResourceHandle meshHandleRhino = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/rhino.obj");
         ResourceHandle meshHandleCup = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/cup.obj");
         ResourceHandle meshHandleBunny = ResourceSystem::GetInstance().LoadMesh("../projects/w.qua-project-2/models/bunny.obj");
         
         auto shader = Systems::g_RenderSystem->GetShader();
         
+        // Common position for all models
+        glm::vec3 modelPosition(0.0f, 0.0f, 0.0f);
+        
         // Rhino
         auto meshEntityRhino = registry.Create();
+        s_ModelEntities[static_cast<int>(ModelType::Rhino)] = meshEntityRhino;
         registry.AddComponent<TransformComponent>(meshEntityRhino,
-            TransformComponent(glm::vec3(0.0f, 0.0f, 0.0f),
+            TransformComponent(modelPosition,
                               glm::vec3(0.0f),
                               glm::vec3(1.0f)));
         
@@ -77,8 +110,9 @@ namespace DemoScene
 
         // Cup
         auto meshEntityCup = registry.Create();
+        s_ModelEntities[static_cast<int>(ModelType::Cup)] = meshEntityCup;
         registry.AddComponent<TransformComponent>(meshEntityCup,
-            TransformComponent(glm::vec3(0.0f, 0.0f, 15.0f),
+            TransformComponent(modelPosition,
                 glm::vec3(0.0f),
                 glm::vec3(1.0f)));
         
@@ -95,12 +129,13 @@ namespace DemoScene
         
         // Bunny
         auto meshEntityBunny = registry.Create();
+        s_ModelEntities[static_cast<int>(ModelType::Bunny)] = meshEntityBunny;
         registry.AddComponent<TransformComponent>(meshEntityBunny,
-            TransformComponent(glm::vec3(10.0f, 5.0f, 10.0f),
-                glm::vec3(45.0f, 30.0f, 0.0f),  // Rotated
-                glm::vec3(1.5f)));              // Scaled up
+            TransformComponent(modelPosition,
+                glm::vec3(0.0f),
+                glm::vec3(1.5f)));  // Scaled up for better visibility
         
-        auto meshRendererBunny = std::make_shared<MeshRenderer>(meshHandleBunny, glm::vec3(1.0f, 0.5f, 0.0f), true); // Orange color
+        auto meshRendererBunny = std::make_shared<MeshRenderer>(meshHandleBunny, glm::vec3(0.0f, 1.0f, 0.0f), true);
         
         // Create bounding component for bunny
         auto boundingComponentBunny = BoundingComponent(meshHandleBunny);
@@ -113,16 +148,17 @@ namespace DemoScene
         
         // Simple Cube
         auto cubeEntity = registry.Create();
+        s_ModelEntities[static_cast<int>(ModelType::Cube)] = cubeEntity;
         registry.AddComponent<TransformComponent>(cubeEntity,
-            TransformComponent(glm::vec3(-10.0f, 0.0f, 10.0f),
+            TransformComponent(modelPosition,
                 glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(1.0f)));  // No scaling
+                glm::vec3(1.0f)));
         
         // Create cube renderer
         auto cubeRenderer = std::make_shared<CubeRenderer>(
             glm::vec3(0.0f),          // Center (will be positioned by transform)
             glm::vec3(1.0f),          // Size 
-            glm::vec3(0.7f, 0.0f, 0.7f), // Purple color
+            glm::vec3(0.0f, 1.0f, 0.0f), // Green color (consistent with other models)
             true                      // Wireframe
         );
         cubeRenderer->Initialize(shader);
@@ -149,7 +185,7 @@ namespace DemoScene
         for (int i = 0; i < 8; i++) {
             Vertex v;
             v.m_Position = positions[i];
-            v.m_Color = glm::vec3(0.7f, 0.0f, 0.7f);
+            v.m_Color = glm::vec3(0.0f, 1.0f, 0.0f);  // Green color (consistent with other models)
             v.m_Normal = glm::normalize(positions[i]); // Approximate normal
             v.m_UV = glm::vec2(0.0f);
             cubeVertices.push_back(v);
@@ -189,5 +225,50 @@ namespace DemoScene
         // Initialize renderables
         boundingComponentCube.InitializeRenderables(shader);
         registry.AddComponent<BoundingComponent>(cubeEntity, boundingComponentCube);
+        
+        // Set initial model visibility
+        SwitchToModel(registry, s_CurrentModel);
+    }
+    
+    // Implementation of model switching functions
+    void SwitchToModel(Registry& registry, ModelType modelType)
+    {
+        s_CurrentModel = modelType;
+        
+        // Hide all models first
+        for (int i = 0; i < static_cast<int>(ModelType::Count); ++i) {
+            auto entity = s_ModelEntities[i];
+            if (entity != entt::null)
+            {
+                auto& renderComp = registry.GetComponent<RenderComponent>(entity);
+                renderComp.m_IsVisible = false;
+            }
+        }
+        
+        // Show only the selected model
+        auto selectedEntity = s_ModelEntities[static_cast<int>(modelType)];
+        if (selectedEntity != entt::null)
+        {
+            auto& renderComp = registry.GetComponent<RenderComponent>(selectedEntity);
+            renderComp.m_IsVisible = true;
+        }
+    }
+    
+    ModelType GetCurrentModel()
+    {
+        return s_CurrentModel;
+    }
+    
+    void CycleToNextModel(Registry& registry)
+    {
+        int nextModel = (static_cast<int>(s_CurrentModel) + 1) % static_cast<int>(ModelType::Count);
+        SwitchToModel(registry, static_cast<ModelType>(nextModel));
+    }
+    
+    void CycleToPreviousModel(Registry& registry)
+    {
+        int prevModel = static_cast<int>(s_CurrentModel) - 1;
+        if (prevModel < 0) prevModel = static_cast<int>(ModelType::Count) - 1;
+        SwitchToModel(registry, static_cast<ModelType>(prevModel));
     }
 } 

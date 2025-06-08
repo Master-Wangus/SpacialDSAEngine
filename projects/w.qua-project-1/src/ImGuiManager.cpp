@@ -262,15 +262,6 @@ void ImGuiManager::RenderSceneSelector(Registry& registry)
     }
 }
 
-void ImGuiManager::SwitchScene(Registry& registry, DemoSceneType sceneType)
-{
-    // Update current scene type in Systems namespace
-    Systems::g_CurrentDemoScene = sceneType;
-    
-    // Use DemoScene namespace to switch scenes
-    DemoScene::SwitchScene(registry, m_Window, Systems::g_RenderSystem->GetShader(), sceneType);
-}
-
 void ImGuiManager::RenderCameraControls(Registry& registry)
 {
     auto cameraView = registry.View<CameraComponent>();
@@ -339,19 +330,6 @@ void ImGuiManager::RenderLightingControls(Registry& registry)
         {
             Systems::g_RenderSystem->ToggleDirectionalLight(lightEnabled);
         }
-    }
-}
-
-void ImGuiManager::HelpMarker(const char* desc)
-{
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
     }
 }
 

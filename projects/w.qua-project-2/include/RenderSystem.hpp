@@ -9,7 +9,7 @@
 #pragma once
 
 #include "pch.h"
-
+#include "Lighting.hpp"
 class Shader;
 class Window;
 class CameraSystem;
@@ -66,6 +66,7 @@ private:
     void SetupLighting();
     void UpdateLighting();
     void SetupMaterial();
+    void UpdateMaterialUBO(const Material& material);
     void CreateLightSourceVisualization(const struct DirectionalLight& light);
     
     Registry& m_Registry;
@@ -76,10 +77,10 @@ private:
     
     // Bounding volume visibility flags
     bool m_ShowAABB = true;
-    bool m_ShowRitterSphere = true;
-    bool m_ShowLarsonSphere = true;
-    bool m_ShowPCASphere = true;
-    bool m_ShowOBB = true;
+    bool m_ShowRitterSphere = false;
+    bool m_ShowLarsonSphere = false;
+    bool m_ShowPCASphere = false;
+    bool m_ShowOBB = false;
     
     // Main object display control
     bool m_ShowMainObjects = true;
@@ -87,4 +88,7 @@ private:
     // Frustum culling control
     bool m_EnableFrustumCulling = false;
     CameraSystem* m_CameraSystem = nullptr;
+    
+    // OpenGL buffer IDs
+    GLuint m_MaterialUBO = 0;
 }; 
