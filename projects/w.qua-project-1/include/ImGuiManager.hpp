@@ -9,13 +9,13 @@
 #pragma once
 #include "pch.h"
 
-// Forward declarations
+ // Forward declarations
 class Registry;
 class Shader;
 class Window;
 enum class DemoSceneType;
 
-class ImGuiManager 
+class ImGuiManager
 {
 public:
     ImGuiManager(Window& window);
@@ -33,6 +33,9 @@ public:
     void RenderCameraControls(Registry& registry);
     void RenderStats();
 
+    // Helper functions
+    void HelpMarker(const char* desc);
+    void SwitchScene(Registry& registry, DemoSceneType sceneType);
 
 private:
     Window& m_Window;
@@ -41,4 +44,4 @@ private:
     int m_FrameCount = 0;
     float m_FrameRate = 0.0f;
     float m_FrameTimeAccumulator = 0.0f;
-}; 
+};
