@@ -100,23 +100,23 @@ void RenderSystem::Render()
             
             if (m_ShowAABB) 
             {
-                frustumResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.m_AABB);
+                frustumResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.GetAABB());
             }
             else if (m_ShowOBB) 
             {
-                frustumResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.m_OBB);
+                frustumResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.GetOBB());
             }
             else if (m_ShowRitterSphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetRitterSphere());
             }
             else if (m_ShowLarsonSphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_LarssonSphere);
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetLarssonSphere());
             }
             else if (m_ShowPCASphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_PCASphere);
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetPCASphere());
             }
         }
         
@@ -136,7 +136,7 @@ void RenderSystem::Render()
                         
             if (m_ShowAABB && boundingComp.m_AABBRenderable && m_CameraSystem) 
             {
-                SideResult aabbResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.m_AABB);
+                SideResult aabbResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.GetAABB());
                 Material& aabbMaterial = boundingComp.m_AABBRenderable->GetMaterialEditable();
                 glm::vec3 originalAabbDiffuse = aabbMaterial.m_DiffuseColor;
                 glm::vec3 originalAabbAmbient = aabbMaterial.m_AmbientColor;
@@ -160,7 +160,7 @@ void RenderSystem::Render()
             
             if (m_ShowRitterSphere && boundingComp.m_RitterRenderable && m_CameraSystem) 
             {
-                SideResult ritterResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_RitterSphere);
+                SideResult ritterResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetRitterSphere());
                 Material& ritterMaterial = boundingComp.m_RitterRenderable->GetMaterialEditable();
                 glm::vec3 originalRitterDiffuse = ritterMaterial.m_DiffuseColor;
                 glm::vec3 originalRitterAmbient = ritterMaterial.m_AmbientColor;
@@ -184,7 +184,7 @@ void RenderSystem::Render()
             
             if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable && m_CameraSystem) 
             {
-                SideResult larsonResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_LarssonSphere);
+                SideResult larsonResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetLarssonSphere());
                 Material& larsonMaterial = boundingComp.m_LarsonRenderable->GetMaterialEditable();
                 glm::vec3 originalLarsonDiffuse = larsonMaterial.m_DiffuseColor;
                 glm::vec3 originalLarsonAmbient = larsonMaterial.m_AmbientColor;
@@ -208,7 +208,7 @@ void RenderSystem::Render()
             
             if (m_ShowPCASphere && boundingComp.m_PCARenderable && m_CameraSystem) 
             {
-                SideResult pcaResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.m_PCASphere);
+                SideResult pcaResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetPCASphere());
                 Material& pcaMaterial = boundingComp.m_PCARenderable->GetMaterialEditable();
                 glm::vec3 originalPcaDiffuse = pcaMaterial.m_DiffuseColor;
                 glm::vec3 originalPcaAmbient = pcaMaterial.m_AmbientColor;
@@ -232,7 +232,7 @@ void RenderSystem::Render()
             
             if (m_ShowOBB && boundingComp.m_OBBRenderable && m_CameraSystem) 
             {
-                SideResult obbResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.m_OBB);
+                SideResult obbResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.GetOBB());
                 Material& obbMaterial = boundingComp.m_OBBRenderable->GetMaterialEditable();
                 glm::vec3 originalObbDiffuse = obbMaterial.m_DiffuseColor;
                 glm::vec3 originalObbAmbient = obbMaterial.m_AmbientColor;

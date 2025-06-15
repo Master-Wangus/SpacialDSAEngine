@@ -36,25 +36,35 @@ void MeshRenderer::Initialize(const std::shared_ptr<Shader>& shader)
     
     if (mesh)
     {
-        // Make a copy of the mesh vertices with our custom color
-        auto vertices = mesh->GetVertexes();
-        
-        // Apply the color to all vertices
-        for (auto& vertex : vertices)
-        {
-            vertex.m_Color = m_Color;
-        }
+        // Get vertices and reserve space to avoid reallocations
+        const auto& meshVertices = mesh->GetVertexes();
         
         if (m_Wireframe)
         {
-            // Convert triangles to lines for wireframe rendering
-            auto wireframeVertices = CreateWireframeVertices(vertices);
+            // For wireframe, we need to create line vertices
+            auto wireframeVertices = CreateWireframeVertices(meshVertices);
+            
+            // Apply color to wireframe vertices in-place
+            for (auto& vertex : wireframeVertices)
+            {
+                vertex.m_Color = m_Color;
+            }
+            
             m_Buffer.Setup(wireframeVertices);
             m_WireframeVertexCount = static_cast<int>(wireframeVertices.size());
         }
         else
         {
-            // Initialize buffer with our colored vertices
+            // For solid rendering, make a copy and apply color
+            std::vector<Vertex> vertices;
+            vertices.reserve(meshVertices.size()); // Pre-allocate
+            
+            // Copy and apply color in one pass
+            for (const auto& vertex : meshVertices)
+            {
+                vertices.emplace_back(vertex.m_Position, m_Color, vertex.m_Normal, vertex.m_UV);
+            }
+            
             m_Buffer.Setup(vertices);
             m_WireframeVertexCount = 0;
         }

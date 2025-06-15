@@ -38,6 +38,12 @@ public:
     void SetVertices(const std::vector<Vertex>& vertices) { m_Vertices = vertices; }
     
     /**
+     * @brief Sets the vertex data for this mesh resource (move version).
+     * @param vertices Vector of vertex data to move
+     */
+    void SetVertices(std::vector<Vertex>&& vertices) { m_Vertices = std::move(vertices); }
+    
+    /**
      * @brief Gets the vertex data for this mesh resource.
      * @return Const reference to the vertex data
      */

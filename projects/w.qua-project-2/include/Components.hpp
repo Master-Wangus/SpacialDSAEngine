@@ -106,45 +106,73 @@ struct BoundingComponent
     std::shared_ptr<IRenderable> m_LarsonRenderable;
     std::shared_ptr<IRenderable> m_PCARenderable;
     std::shared_ptr<IRenderable> m_OBBRenderable;
+    
+    // Lazy computation flags
+    bool m_AABBComputed = false;
+    bool m_RitterComputed = false;
+    bool m_LarssonComputed = false;
+    bool m_PCAComputed = false;
+    bool m_OBBComputed = false;
+    
+    // Store mesh handle for lazy computation
+    ResourceHandle m_MeshHandle = INVALID_RESOURCE_HANDLE;
 
     BoundingComponent() = default;
     
     /**
-     * @brief Constructs a bounding component from a mesh resource.
+     * @brief Constructs a bounding component from a mesh resource with lazy computation.
      * @param resourceHandle Handle to the mesh resource for bounding volume calculation
      */
     BoundingComponent(const ResourceHandle& resourceHandle)
+        : m_MeshHandle(resourceHandle)
     {
-        const auto& meshResource = ResourceSystem::GetInstance().GetMesh(resourceHandle);
-
-        Vertex* min = new Vertex();
-        Vertex* max = new Vertex();
-        CreateAabbBruteForce(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), min, max);
-        m_AABB = Aabb(min->m_Position, max->m_Position);
-
-        Vertex* center = new Vertex();
-        float* radius = new float();
-        CreateSphereRitters(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
-        m_RitterSphere = Sphere(center->m_Position, *radius);
-
-        CreateSphereIterative(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), 2, 0.5f, center, radius);
-        m_LarssonSphere = Sphere(center->m_Position, *radius);
-
-        CreateSpherePCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), center, radius);
-        m_PCASphere = Sphere(center->m_Position, *radius);
-        
-        // Create OBB using PCA
-        glm::vec3 obbCenter;
-        glm::vec3 obbAxes[3];
-        glm::vec3 obbHalfExtents;
-        CreateObbPCA(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), 
-                     &obbCenter, obbAxes, &obbHalfExtents);
-        m_OBB = Obb(obbCenter, obbAxes, obbHalfExtents);
-
-        delete min;
-        delete max;
-        delete center;
-        delete radius;
+        // Only compute AABB immediately (it's fast and often needed)
+        ComputeAABB();
+    }
+    
+    /**
+     * @brief Gets the AABB, computing it if necessary.
+     */
+    const Aabb& GetAABB() 
+    {
+        if (!m_AABBComputed) ComputeAABB();
+        return m_AABB;
+    }
+    
+    /**
+     * @brief Gets the Ritter sphere, computing it if necessary.
+     */
+    const Sphere& GetRitterSphere() 
+    {
+        if (!m_RitterComputed) ComputeRitterSphere();
+        return m_RitterSphere;
+    }
+    
+    /**
+     * @brief Gets the Larsson sphere, computing it if necessary.
+     */
+    const Sphere& GetLarssonSphere() 
+    {
+        if (!m_LarssonComputed) ComputeLarssonSphere();
+        return m_LarssonSphere;
+    }
+    
+    /**
+     * @brief Gets the PCA sphere, computing it if necessary.
+     */
+    const Sphere& GetPCASphere() 
+    {
+        if (!m_PCAComputed) ComputePCASphere();
+        return m_PCASphere;
+    }
+    
+    /**
+     * @brief Gets the OBB, computing it if necessary.
+     */
+    const Obb& GetOBB() 
+    {
+        if (!m_OBBComputed) ComputeOBB();
+        return m_OBB;
     }
     
     /**
@@ -157,6 +185,13 @@ struct BoundingComponent
      * @brief Cleans up all renderable objects for bounding volume visualization.
      */
     void CleanupRenderables();
+
+private:
+    void ComputeAABB();
+    void ComputeRitterSphere();
+    void ComputeLarssonSphere();
+    void ComputePCASphere();
+    void ComputeOBB();
 };
 
 // ==================== Camera Components ====================

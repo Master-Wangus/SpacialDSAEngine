@@ -101,12 +101,15 @@ uint64_t ResourceSystem::GenerateRandomUUID()
 
 std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& path) 
 {
-    // Post-processing flags
-    unsigned int flags = aiProcess_Triangulate |        // Ensure all faces are triangles
-                        aiProcess_GenSmoothNormals |   // Generate normals if not present
-                        aiProcess_FlipUVs |            // Flip UV coordinates
-                        aiProcess_JoinIdenticalVertices;  // Optimize mesh    
-    // Load the OBJ file
+    // Optimized post-processing flags - removed expensive operations
+    unsigned int flags = aiProcess_Triangulate |            // Ensure all faces are triangles (necessary)
+                        aiProcess_JoinIdenticalVertices |   // Optimize mesh (good for performance)
+                        aiProcess_ValidateDataStructure;    // Fast validation
+    
+    // Only add these flags if really needed:
+    // aiProcess_GenSmoothNormals - expensive, only if normals missing
+    // aiProcess_FlipUVs - only if UV coordinates are flipped
+    
     const aiScene* scene = m_Loader->ReadFile(path, flags);
     
     // Check for errors
@@ -120,12 +123,21 @@ std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& pat
     auto meshResource = std::make_shared<MeshResource>();
     std::vector<Vertex> vertices;
     
+    // Pre-allocate total vertex count for better performance
+    size_t totalVertices = 0;
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        totalVertices += scene->mMeshes[i]->mNumFaces * 3; // 3 vertices per triangle
+    }
+    vertices.reserve(totalVertices);
+    
     // Process all meshes in the scene
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) 
     {
         const aiMesh* mesh = scene->mMeshes[i];
         auto meshVertices = ProcessAssimpMesh(mesh);
-        vertices.insert(vertices.end(), meshVertices.begin(), meshVertices.end());
+        vertices.insert(vertices.end(), 
+                       std::make_move_iterator(meshVertices.begin()), 
+                       std::make_move_iterator(meshVertices.end()));
     }
     
     if (vertices.empty()) 
@@ -135,7 +147,7 @@ std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& pat
     }
     
     // Store vertices in the mesh resource
-    meshResource->SetVertices(vertices);
+    meshResource->SetVertices(std::move(vertices)); // Use move to avoid copy
     
     return meshResource;
 }
@@ -143,61 +155,68 @@ std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& pat
 std::vector<Vertex> ResourceSystem::ProcessAssimpMesh(const aiMesh* mesh) 
 {
     std::vector<Vertex> vertices;
+    vertices.reserve(mesh->mNumVertices); // Pre-allocate for better performance
     
-    // Process each face (triangle)
+    // Process unique vertices once
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) 
+    {
+        // Get vertex position
+        glm::vec3 position(
+            mesh->mVertices[i].x,
+            mesh->mVertices[i].y,
+            mesh->mVertices[i].z
+        );
+        
+        // Get vertex normal (if available)
+        glm::vec3 normal(0.0f, 1.0f, 0.0f); // Default normal
+        if (mesh->HasNormals()) 
+        {
+            normal = glm::vec3(
+                mesh->mNormals[i].x,
+                mesh->mNormals[i].y,
+                mesh->mNormals[i].z
+            );
+        }
+        
+        // Get texture coordinates (if available)
+        glm::vec2 uv(0.0f, 0.0f); // Default UVs
+        if (mesh->HasTextureCoords(0)) 
+        {
+            uv = glm::vec2(
+                mesh->mTextureCoords[0][i].x,
+                mesh->mTextureCoords[0][i].y
+            );
+        }
+        
+        // Get vertex color (if available), otherwise use white
+        glm::vec3 color(1.0f, 1.0f, 1.0f); // Default color
+        if (mesh->HasVertexColors(0)) 
+        {
+            color = glm::vec3(
+                mesh->mColors[0][i].r,
+                mesh->mColors[0][i].g,
+                mesh->mColors[0][i].b
+            );
+        }
+        
+        // Create and add the vertex
+        Vertex vertex = { position, color, normal, uv };
+        vertices.push_back(vertex);
+    }
+    
+    // Now expand to triangulated vertices (temporary fix to maintain compatibility)
+    std::vector<Vertex> triangulatedVertices;
+    triangulatedVertices.reserve(mesh->mNumFaces * 3); // Pre-allocate
+    
     for (unsigned int j = 0; j < mesh->mNumFaces; j++) 
     {
         const aiFace& face = mesh->mFaces[j];
-        
-        // Process each vertex in the face
         for (unsigned int k = 0; k < face.mNumIndices; k++) 
         {
             unsigned int index = face.mIndices[k];
-            
-            // Get vertex position
-            glm::vec3 position(
-                mesh->mVertices[index].x,
-                mesh->mVertices[index].y,
-                mesh->mVertices[index].z
-            );
-            
-            // Get vertex normal (if available)
-            glm::vec3 normal(0.0f, 1.0f, 0.0f); // Default normal
-            if (mesh->HasNormals()) 
-            {
-                normal = glm::vec3(
-                    mesh->mNormals[index].x,
-                    mesh->mNormals[index].y,
-                    mesh->mNormals[index].z
-                );
-            }
-            
-            // Get texture coordinates (if available)
-            glm::vec2 uv(0.0f, 0.0f); // Default UVs
-            if (mesh->HasTextureCoords(0)) 
-            {
-                uv = glm::vec2(
-                    mesh->mTextureCoords[0][index].x,
-                    mesh->mTextureCoords[0][index].y
-                );
-            }
-            
-            // Get vertex color (if available), otherwise use white
-            glm::vec3 color(1.0f, 1.0f, 1.0f); // Default color
-            if (mesh->HasVertexColors(0)) 
-            {
-                color = glm::vec3(
-                    mesh->mColors[0][index].r,
-                    mesh->mColors[0][index].g,
-                    mesh->mColors[0][index].b
-                );
-            }
-            
-            // Create and add the vertex
-            Vertex vertex = { position, color, normal, uv };
-            vertices.push_back(vertex);
+            triangulatedVertices.push_back(vertices[index]);
         }
     }
     
-    return vertices;
+    return triangulatedVertices;
 } 

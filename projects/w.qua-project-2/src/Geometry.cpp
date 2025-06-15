@@ -195,25 +195,41 @@ void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, fl
 {
     if (count == 0 || !vertices || !out_c || !out_r) return;
     
-    // Find the most distant pair of points
-    size_t maxI = 0, maxJ = 1;
-    float maxDistanceSq = 0.0f;
+    // Optimized approach: instead of O(n²) search, use approximate method
+    // Find extremal points along each axis (much faster)
+    size_t minX = 0, maxX = 0, minY = 0, maxY = 0, minZ = 0, maxZ = 0;
     
-    for (size_t i = 0; i < count; ++i) 
+    for (size_t i = 1; i < count; ++i) 
     {
-        for (size_t j = i + 1; j < count; ++j) 
-        {
-            float distanceSq = glm::length2(vertices[i].m_Position - vertices[j].m_Position);
-            if (distanceSq > maxDistanceSq) 
-            {
-                maxDistanceSq = distanceSq;
-                maxI = i;
-                maxJ = j;
-            }
-        }
+        const glm::vec3& pos = vertices[i].m_Position;
+        
+        if (pos.x < vertices[minX].m_Position.x) minX = i;
+        if (pos.x > vertices[maxX].m_Position.x) maxX = i;
+        if (pos.y < vertices[minY].m_Position.y) minY = i;
+        if (pos.y > vertices[maxY].m_Position.y) maxY = i;
+        if (pos.z < vertices[minZ].m_Position.z) minZ = i;
+        if (pos.z > vertices[maxZ].m_Position.z) maxZ = i;
     }
     
-    // Initial sphere from most distant pair
+    // Find the pair with maximum distance among the extremal points
+    size_t maxI = minX, maxJ = maxX;
+    float maxDistanceSq = glm::length2(vertices[maxX].m_Position - vertices[minX].m_Position);
+    
+    float distY = glm::length2(vertices[maxY].m_Position - vertices[minY].m_Position);
+    if (distY > maxDistanceSq) {
+        maxDistanceSq = distY;
+        maxI = minY;
+        maxJ = maxY;
+    }
+    
+    float distZ = glm::length2(vertices[maxZ].m_Position - vertices[minZ].m_Position);
+    if (distZ > maxDistanceSq) {
+        maxDistanceSq = distZ;
+        maxI = minZ;
+        maxJ = maxZ;
+    }
+    
+    // Initial sphere from most distant extremal pair
     glm::vec3 center = (vertices[maxI].m_Position + vertices[maxJ].m_Position) * 0.5f;
     float radius = glm::length(vertices[maxI].m_Position - vertices[maxJ].m_Position) * 0.5f;
     
