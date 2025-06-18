@@ -13,6 +13,7 @@
 #include "RayRenderer.hpp"
 #include "Systems.hpp"
 #include "Keybinds.hpp"
+#include "EventSystem.hpp"
 
 InputSystem::InputSystem(Registry& registry, Window& window)
     : m_Registry(registry), 
@@ -47,16 +48,12 @@ InputSystem::InputSystem(Registry& registry, Window& window)
 
 InputSystem::~InputSystem()
 {
-    // Clear any stored callbacks
-    m_KeyCallbacks.clear();
-    m_MouseButtonCallbacks.clear();
-    m_MouseMoveCallbacks.clear();
-    m_MouseScrollCallbacks.clear();
+    // Cleanup
 }
 
 void InputSystem::Update(float deltaTime)
 {
-    m_PreviousKeysPressed = m_KeysPressed;
+    // Currently no per-frame updates needed
 }
 
 bool InputSystem::IsKeyPressed(int keyCode) const
@@ -64,11 +61,7 @@ bool InputSystem::IsKeyPressed(int keyCode) const
     return m_Window.IsKeyPressed(keyCode);
 }
 
-bool InputSystem::WasKeyPressed(int keyCode) const
-{
-    auto it = m_PreviousKeysPressed.find(keyCode);
-    return (it != m_PreviousKeysPressed.end() && it->second);
-}
+
 
 bool InputSystem::IsMouseButtonPressed(int button) const
 {
@@ -91,25 +84,7 @@ bool InputSystem::IsMouseDragging() const
     return m_MouseDragging;
 }
 
-void InputSystem::SubscribeToKey(int keyCode, KeyCallback callback)
-{
-    m_KeyCallbacks.insert(std::make_pair(keyCode, callback));
-}
 
-void InputSystem::SubscribeToMouseButton(int button, MouseButtonCallback callback)
-{
-    m_MouseButtonCallbacks.insert(std::make_pair(button, callback));
-}
-
-void InputSystem::SubscribeToMouseMove(MouseMoveCallback callback)
-{
-    m_MouseMoveCallbacks.push_back(callback);
-}
-
-void InputSystem::SubscribeToMouseScroll(MouseScrollCallback callback)
-{
-    m_MouseScrollCallbacks.push_back(callback);
-}
 
 void InputSystem::StartDragging()
 {
@@ -139,17 +114,19 @@ void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods
     if (action == Keybinds::PRESS) 
     {
         m_KeysPressed[key] = true;
+        
+        // Fire event using the EventSystem
+        FIRE_EVENT_WITH_DATA(EventType::KeyPress, key);
     }
     else if (action == Keybinds::RELEASE) 
     {
         m_KeysPressed[key] = false;
+        
+        // Fire event using the EventSystem
+        FIRE_EVENT_WITH_DATA(EventType::KeyRelease, key);
     }
     
-    // Notify subscribers
-    auto range = m_KeyCallbacks.equal_range(key);
-    for (auto it = range.first; it != range.second; ++it) {
-        it->second(key, scancode, action, mods);
-    }
+
 }
 
 void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
@@ -164,20 +141,18 @@ void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
     if (action == Keybinds::PRESS) 
     {
         m_MouseButtonsPressed[button] = true;
+        
+        // Fire event using the EventSystem
+        FIRE_EVENT_WITH_DATA(EventType::MouseButtonPress, button);
     } else if (action == Keybinds::RELEASE) 
     {
         m_MouseButtonsPressed[button] = false;
+        
+        // Fire event using the EventSystem
+        FIRE_EVENT_WITH_DATA(EventType::MouseButtonRelease, button);
     }
     
-    // Notify subscribers first (object manipulation system will handle object selection)
-    auto range = m_MouseButtonCallbacks.equal_range(button);
-    for (auto it = range.first; it != range.second; ++it) 
-    {
-        it->second(button, action, mods);
-    }
-    
-    // If no subscribers handled it, and it's left mouse button, handle camera control
-    // This is now handled by the FPSCameraSystem
+
 }
 
 void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
@@ -196,12 +171,12 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     
     m_LastMousePos = m_CurrentMousePos;
     
-    // Notify subscribers if not captured by ImGui
+    // Fire event using the EventSystem if not captured by ImGui
     if (!ImGui::GetIO().WantCaptureMouse) {
-        for (const auto& callback : m_MouseMoveCallbacks) {
-            callback(xpos, ypos);
-        }
+        FIRE_EVENT_WITH_DATA(EventType::MouseMove, m_CurrentMousePos);
     }
+    
+
 }
 
 void InputSystem::ProcessScrollCallback(double xoffset, double yoffset)
@@ -212,8 +187,8 @@ void InputSystem::ProcessScrollCallback(double xoffset, double yoffset)
         return;
     }
     
-    // Notify subscribers
-    for (const auto& callback : m_MouseScrollCallbacks) {
-        callback(xoffset, yoffset);
-    }
+    // Fire event using the EventSystem
+    FIRE_EVENT_WITH_DATA(EventType::MouseScroll, glm::vec2(static_cast<float>(xoffset), static_cast<float>(yoffset)));
+    
+
 } 

@@ -24,20 +24,7 @@ public:
     using CursorPosCallback = std::function<void(double xpos, double ypos)>;
     using ScrollCallback = std::function<void(double xoffset, double yoffset)>;
     
-    // Input mode constants
-    static const int CURSOR;
-    static const int CURSOR_NORMAL;
-    static const int CURSOR_HIDDEN;
-    static const int CURSOR_DISABLED;
-    
-    // Mouse button constants
-    static const int MOUSE_BUTTON_LEFT;
-    static const int MOUSE_BUTTON_RIGHT;
-    static const int MOUSE_BUTTON_MIDDLE;
-    
-    // Action constants
-    static const int PRESS;
-    static const int RELEASE;
+
     
     /**
      * @brief Constructs a new window with specified dimensions and title.

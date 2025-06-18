@@ -198,10 +198,19 @@ struct OrbitalCamera
         
         // Keep yaw in [0, 360) range
         if (m_Yaw > 360.0f) m_Yaw -= 360.0f;
-        if (m_Yaw < 0.0f) m_Yaw += 360.0f;
+        else if (m_Yaw < 0.0f) m_Yaw += 360.0f;
         
         // Clamp pitch to prevent flipping
         m_Pitch = glm::clamp(m_Pitch, -89.0f, 89.0f);
+    }
+
+    /**
+     * @brief Moves the target point.
+     * @param offset Direction and magnitude to move target
+     */
+    void MoveTarget(const glm::vec3& offset) 
+    {
+        m_Target += offset;
     }
 };
 
@@ -209,9 +218,9 @@ class CameraSystem
 {
 public:
     /**
-     * @brief Constructs the camera system with registry and window references.
-     * @param registry Entity registry for managing camera components
-     * @param window Window reference for input handling
+     * @brief Constructs a camera system with registry and window dependencies.
+     * @param registry Entity registry for camera components
+     * @param window Window reference for viewport aspect ratio
      */
     CameraSystem(Registry& registry, Window& window);
     
@@ -221,109 +230,97 @@ public:
     ~CameraSystem();
     
     /**
-     * @brief Updates the camera system each frame.
-     * @param deltaTime Time elapsed since last frame
+     * @brief Updates camera state each frame.
+     * @param deltaTime Time elapsed since the last frame
      */
     void OnRun(float deltaTime);
     
     /**
-     * @brief Gets the view matrix from a camera component.
+     * @brief Gets the view matrix for the given camera.
      * @param camera Camera component to get view matrix from
      * @return 4x4 view matrix
      */
     glm::mat4 GetViewMatrix(const CameraComponent& camera);
     
-    // Frustum culling methods
     /**
-     * @brief Updates frustum planes for culling calculations.
-     * @param camera Camera component to calculate frustum from
+     * @brief Updates the frustum culling planes for a camera.
+     * @param camera Camera component to update frustum for
      * @param aspectRatio Viewport aspect ratio
      */
     void UpdateFrustumPlanes(const CameraComponent& camera, float aspectRatio);
     
     /**
-     * @brief Tests a sphere against the camera frustum.
+     * @brief Tests if a sphere is inside, outside, or intersecting the frustum.
      * @param sphere Sphere to test
-     * @return Result of frustum test (inside, outside, or intersecting)
+     * @return Classification result
      */
     SideResult TestSphereAgainstFrustum(const Sphere& sphere) const;
     
     /**
-     * @brief Tests an axis-aligned bounding box against the camera frustum.
+     * @brief Tests if an AABB is inside, outside, or intersecting the frustum.
      * @param aabb AABB to test
-     * @return Result of frustum test (inside, outside, or intersecting)
+     * @return Classification result
      */
     SideResult TestAabbAgainstFrustum(const Aabb& aabb) const;
     
     /**
-     * @brief Tests an oriented bounding box against the camera frustum.
+     * @brief Tests if an OBB is inside, outside, or intersecting the frustum.
      * @param obb OBB to test
-     * @return Result of frustum test (inside, outside, or intersecting)
+     * @return Classification result
      */
     SideResult TestObbAgainstFrustum(const Obb& obb) const;
     
-    // Get appropriate color based on frustum test result
     /**
      * @brief Gets the appropriate color for visualizing frustum test results.
      * @param result Result of frustum test
-     * @return Color vector for visualization
+     * @return RGB color vector
      */
     glm::vec3 GetFrustumTestColor(SideResult result) const;
     
-    // Frustum visualization
     /**
-     * @brief Gets a view-projection matrix for frustum visualization.
-     * @param camera Camera component to use
+     * @brief Gets the view-projection matrix for visualization.
+     * @param camera Camera component to get view-projection from
      * @param aspectRatio Viewport aspect ratio
-     * @return Combined view-projection matrix
+     * @return 4x4 view-projection matrix
      */
     glm::mat4 GetVisualizationViewProjectionMatrix(const CameraComponent& camera, float aspectRatio) const;
     
-    // Reference camera for frustum visualization and culling (separate from main camera)
     /**
-     * @brief Sets the reference camera projection parameters.
-     * @param projection Projection parameters to set
+     * @brief Sets the reference camera projection used for visualization.
+     * @param projection Projection parameters
      */
     void SetReferenceCameraProjection(const Projection& projection) { m_ReferenceCameraProjection = projection; }
     
     /**
-     * @brief Gets the reference camera projection parameters.
-     * @return Current reference camera projection
+     * @brief Gets the reference camera projection used for visualization.
+     * @return Reference camera projection
      */
-    const Projection& GetReferenceCameraProjection() const { return m_ReferenceCameraProjection; }
+    Projection GetReferenceCameraProjection() const { return m_ReferenceCameraProjection; }
 
 private:
-    /**
-     * @brief Sets up input callbacks for camera control.
-     */
-    void SetupInputCallbacks();
-    
-    /**
-     * @brief Processes mouse movement for camera rotation.
-     */
-    void ProcessMouseMovement();
-    
-    /**
-     * @brief Processes keyboard input for camera movement.
-     * @param deltaTime Time elapsed since last frame
-     */
+    // Setup and processing methods
+    void SetupEventSubscriptions();
+    void ProcessMouseMovement(const EventData& eventData);
     void ProcessKeyboardInput(float deltaTime);
-    
-    /**
-     * @brief Switches between different camera types.
-     */
+    void HandleMouseButtonPressEvent(const EventData& eventData);
+    void HandleMouseButtonReleaseEvent(const EventData& eventData);
+    void HandleMouseScrollEvent(const EventData& eventData);
+    void HandleKeyPressEvent(const EventData& eventData);
+    void HandleKeyReleaseEvent(const EventData& eventData);
     void SwitchCameraType();
     
     Registry& m_Registry;
     Window& m_Window;
+    
     Registry::Entity m_CameraEntity = entt::null;
     
-    // Camera switching state
     bool m_CKeyPressed = false;
+    bool m_MouseDragging = false;
+    glm::vec2 m_LastMousePos = glm::vec2(0.0f);
     
     // Frustum culling data
-    glm::vec3 m_FrustumNormals[6]; // Normals for 6 frustum planes
-    float m_FrustumDistances[6];   // Distances for 6 frustum planes
+    glm::vec3 m_FrustumNormals[6];
+    float m_FrustumDistances[6];
     bool m_FrustumUpdated = false; // Flag to track if frustum needs updating
     
     Projection m_ReferenceCameraProjection;

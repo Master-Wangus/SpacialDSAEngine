@@ -19,6 +19,7 @@ class Registry;
 class CameraSystem;
 class RenderSystem;
 class InputSystem;
+class EventSystem;
 
 namespace Systems
 {

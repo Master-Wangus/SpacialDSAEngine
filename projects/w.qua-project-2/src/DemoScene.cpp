@@ -21,6 +21,7 @@
 #include "MeshRenderer.hpp"
 #include "ResourceSystem.hpp"
 #include "InputSystem.hpp"
+#include "EventSystem.hpp"
 #include "Keybinds.hpp"
 
 namespace DemoScene 
@@ -35,20 +36,18 @@ namespace DemoScene
     {
         SetupMeshScene(registry);
         
-        // Setup arrow key input for model switching
-        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_RIGHT, 
-            [&registry](int key, int scancode, int action, int mods) {
-                if (action == Keybinds::PRESS) {
+        // Setup arrow key input for model switching using EventSystem
+        SUBSCRIBE_TO_EVENT(EventType::KeyPress, [&registry](const EventData& eventData) {
+            // Check if the event data contains an integer (key code)
+            if (auto keyCode = std::get_if<int>(&eventData)) {
+                if (*keyCode == Keybinds::KEY_RIGHT) {
                     CycleToNextModel(registry);
                 }
-            });
-            
-        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_LEFT, 
-            [&registry](int key, int scancode, int action, int mods) {
-                if (action == Keybinds::PRESS) {
+                else if (*keyCode == Keybinds::KEY_LEFT) {
                     CycleToPreviousModel(registry);
                 }
-            });
+            }
+        });
     }
     
     void ClearScene(Registry& registry)
@@ -261,14 +260,14 @@ namespace DemoScene
     
     void CycleToNextModel(Registry& registry)
     {
-        int nextModel = (static_cast<int>(s_CurrentModel) + 1) % static_cast<int>(ModelType::Count);
-        SwitchToModel(registry, static_cast<ModelType>(nextModel));
+        int nextModelIndex = (static_cast<int>(s_CurrentModel) + 1) % static_cast<int>(ModelType::Count);
+        SwitchToModel(registry, static_cast<ModelType>(nextModelIndex));
     }
     
     void CycleToPreviousModel(Registry& registry)
     {
-        int prevModel = static_cast<int>(s_CurrentModel) - 1;
-        if (prevModel < 0) prevModel = static_cast<int>(ModelType::Count) - 1;
-        SwitchToModel(registry, static_cast<ModelType>(prevModel));
+        int prevModelIndex = static_cast<int>(s_CurrentModel) - 1;
+        if (prevModelIndex < 0) prevModelIndex = static_cast<int>(ModelType::Count) - 1;
+        SwitchToModel(registry, static_cast<ModelType>(prevModelIndex));
     }
 } 

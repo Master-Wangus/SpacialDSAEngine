@@ -25,11 +25,7 @@ enum class InputEventType
     MouseScrolled
 };
 
-// Callback types
-using KeyCallback = std::function<void(int, int, int, int)>;
-using MouseButtonCallback = std::function<void(int, int, int)>;
-using MouseMoveCallback = std::function<void(double, double)>;
-using MouseScrollCallback = std::function<void(double, double)>;
+
 
 class InputSystem 
 {
@@ -60,12 +56,7 @@ public:
      */
     bool IsKeyPressed(int keyCode) const;
     
-    /**
-     * @brief Checks if a key was pressed this frame.
-     * @param keyCode Key code to check
-     * @return True if the key was pressed this frame, false otherwise
-     */
-    bool WasKeyPressed(int keyCode) const;
+
     
     /**
      * @brief Checks if a mouse button is currently pressed.
@@ -93,32 +84,7 @@ public:
      */
     bool IsMouseDragging() const;
     
-    // Event subscription
-    /**
-     * @brief Subscribes to key events for a specific key.
-     * @param keyCode Key code to listen for
-     * @param callback Function to call when key event occurs
-     */
-    void SubscribeToKey(int keyCode, KeyCallback callback);
-    
-    /**
-     * @brief Subscribes to mouse button events for a specific button.
-     * @param button Mouse button code to listen for
-     * @param callback Function to call when mouse button event occurs
-     */
-    void SubscribeToMouseButton(int button, MouseButtonCallback callback);
-    
-    /**
-     * @brief Subscribes to mouse movement events.
-     * @param callback Function to call when mouse moves
-     */
-    void SubscribeToMouseMove(MouseMoveCallback callback);
-    
-    /**
-     * @brief Subscribes to mouse scroll events.
-     * @param callback Function to call when mouse scrolls
-     */
-    void SubscribeToMouseScroll(MouseScrollCallback callback);
+
     
     // Mouse dragging control
     /**
@@ -144,7 +110,6 @@ private:
     
     // Keyboard state
     std::map<int, bool> m_KeysPressed;
-    std::map<int, bool> m_PreviousKeysPressed;
     
     // Mouse button state
     std::map<int, bool> m_MouseButtonsPressed;
@@ -181,9 +146,5 @@ private:
      */
     void ProcessScrollCallback(double xoffset, double yoffset);
     
-    // Callback storage
-    std::multimap<int, KeyCallback> m_KeyCallbacks;
-    std::multimap<int, MouseButtonCallback> m_MouseButtonCallbacks;
-    std::vector<MouseMoveCallback> m_MouseMoveCallbacks;
-    std::vector<MouseScrollCallback> m_MouseScrollCallbacks;
+
 }; 

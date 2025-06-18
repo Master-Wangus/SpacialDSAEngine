@@ -14,6 +14,7 @@
 #include "InputSystem.hpp"
 #include "ImGuiManager.hpp"
 #include "Keybinds.hpp"
+#include "EventSystem.hpp"
 
 // Constants
 const int WINDOW_WIDTH = 1024;
@@ -48,21 +49,26 @@ int main()
         ImGuiManager imguiManager(window);
         imguiManager.Init();
         
-        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_ESCAPE, 
-            [&window](int key, int scancode, int action, int mods) {
-                if (action == Keybinds::PRESS) {
+        // Subscribe to ESC key using EventSystem
+        SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([&window](const EventData& eventData) {
+            // Check if the event data contains an integer (key code)
+            if (auto keyCode = std::get_if<int>(&eventData)) {
+                if (*keyCode == Keybinds::KEY_ESCAPE) {
                     window.SetShouldClose(true);
                 }
-            });
+            }
+        }));
         
-        // Reset scene shortcut
-        Systems::g_InputSystem->SubscribeToKey(Keybinds::KEY_R, 
-            [&registry, &window](int key, int scancode, int action, int mods) {
-                if (action == Keybinds::PRESS) {
+        // Reset scene shortcut using EventSystem
+        SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([&registry, &window](const EventData& eventData) {
+            // Check if the event data contains an integer (key code)
+            if (auto keyCode = std::get_if<int>(&eventData)) {
+                if (*keyCode == Keybinds::KEY_R) {
                     Systems::ResetCurrentScene(registry, window);
                     std::cout << "Scene reset!" << std::endl;
                 }
-            });
+            }
+        }));
         
         // Game loop variables
         float lastFrame = 0.0f;

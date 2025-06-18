@@ -14,6 +14,7 @@
 #include "CameraSystem.hpp"
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
+#include "EventSystem.hpp"
 #include "SphereRenderer.hpp"
 #include "CubeRenderer.hpp"
 #include "TriangleRenderer.hpp"
@@ -32,10 +33,14 @@ namespace Systems
 
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
-        // Initialize InputSystem first as other systems will use it
+        // Initialize EventSystem first as it may be used by other systems
+        EventSystem::Get().Initialize();
+        
+        // Initialize InputSystem next, which will use the EventSystem
         g_InputSystem = std::make_unique<InputSystem>(registry, window);
         
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
+        
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
         
         // Connect CameraSystem to RenderSystem for frustum culling
@@ -47,6 +52,7 @@ namespace Systems
     
     void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
     {
+        EventSystem::Get().Update(deltaTime);
         g_InputSystem->Update(deltaTime);
         g_CameraSystem->OnRun(deltaTime);
     }
@@ -62,6 +68,8 @@ namespace Systems
         g_RenderSystem.reset();
         g_CameraSystem.reset();
         g_InputSystem.reset();
+        // Shutdown the EventSystem
+        EventSystem::Get().Shutdown();
     }
 
     void ResetCurrentScene(Registry& registry, Window& window)
@@ -69,6 +77,9 @@ namespace Systems
         if (g_RenderSystem)
         {
             DemoScene::ResetScene(registry, window);
+            
+            // Fire a scene reset event
+            FIRE_EVENT(EventType::SceneReset);
         }
     }
 }

@@ -24,6 +24,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <variant>
 
 // GLM
 #include <glm/glm.hpp>
@@ -49,3 +50,4 @@
 
 // Engine includes
 #include "Registry.hpp"
+#include "EventSystem.hpp"

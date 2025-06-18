@@ -39,21 +39,7 @@ struct DirectionalLight
           m_Padding(0.0f)
           {}
     
-    /**
-     * @brief Constructs a directional light with direction and color components.
-     * @param dir Light direction vector
-     * @param amb Ambient color component
-     * @param diff Diffuse color component
-     * @param spec Specular color component
-     */
-    DirectionalLight(const glm::vec3& dir, const glm::vec3& amb, const glm::vec3& diff, const glm::vec3& spec)
-        : m_Direction(glm::normalize(dir), 0.0f),
-          m_Color(1.0f), // Default color is white
-          m_Enabled(1.0f),
-          m_Padding(0.0f)
-    {
 
-    }
 };
 
 struct Material 
