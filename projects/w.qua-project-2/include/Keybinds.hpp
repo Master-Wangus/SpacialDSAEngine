@@ -30,6 +30,7 @@ namespace Keybinds
     static const int KEY_D = 68;
     static const int KEY_C = 67;
     static const int KEY_R = 82;
+    static const int KEY_F = 70;  // Wireframe toggle
     static const int KEY_ESCAPE = 256;
     
     // Arrow keys

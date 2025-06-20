@@ -81,6 +81,12 @@ public:
     void RenderBoundingVolumeControls(Registry& registry);
     
     /**
+     * @brief Renders wireframe rendering controls.
+     * @param registry Entity registry reference
+     */
+    void RenderWireframeControls(Registry& registry);
+    
+    /**
      * @brief Renders object visibility controls.
      * @param registry Entity registry reference
      */

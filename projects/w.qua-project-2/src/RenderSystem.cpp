@@ -18,14 +18,26 @@
 #include "Buffer.hpp"
 #include "Lighting.hpp"
 #include "CameraSystem.hpp"
+#include "EventSystem.hpp"
+#include "Keybinds.hpp"
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
-    : m_Registry(registry), m_Window(window), m_Shader(shader)
+    : m_Registry(registry), m_Window(window), m_Shader(shader), m_GlobalWireframe(false)
 {
     window.SetFramebufferSizeCallback([](int width, int height)
         {
         glViewport(0, 0, width, height);
     });
+
+    // Subscribe to wireframe toggle events
+    SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([this](const EventData& eventData) {
+        if (auto keyCode = std::get_if<int>(&eventData)) {
+            if (*keyCode == Keybinds::KEY_F) {
+                SetGlobalWireframe(!m_GlobalWireframe);
+                std::cout << "Wireframe mode: " << (m_GlobalWireframe ? "ON" : "OFF") << std::endl;
+            }
+        }
+    }));
 }
 
 void RenderSystem::Initialize()
@@ -71,8 +83,6 @@ void RenderSystem::Render()
     {
         m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
     }
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     auto renderView = m_Registry.View<TransformComponent, RenderComponent>();
     for (auto entity : renderView) 
@@ -122,15 +132,27 @@ void RenderSystem::Render()
         
         if (m_ShowMainObjects && renderComp.m_Renderable) 
         {
-            m_Shader->SetBool("disableLighting", true);            
+            // Lighting is always enabled now.
+            
+            // Apply global wireframe mode if enabled
+            if (m_GlobalWireframe)
+            {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            }
+            else
+            {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+            
             renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            
+            // Reset polygon mode
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
         
         if (m_Registry.HasComponent<BoundingComponent>(entity))
         {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            
-            m_Shader->SetBool("disableLighting", false);
+            // Bounding volumes rendered with lighting enabled.
             
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
                         
@@ -244,15 +266,14 @@ void RenderSystem::Render()
                 obbMaterial.m_SpecularColor = obbTestColor;
                 
                 UpdateMaterialUBO(obbMaterial);
-                
+
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                obbMaterial.m_DiffuseColor = originalObbDiffuse;
-                obbMaterial.m_AmbientColor = originalObbAmbient;
-                obbMaterial.m_SpecularColor = originalObbSpecular;
-                
+
                 UpdateMaterialUBO(obbMaterial);
             }
+
+            // Reapply default material so subsequent objects use correct shading.
+            UpdateMaterialUBO(m_DefaultMaterial);
         }
     }
     
@@ -404,16 +425,12 @@ void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
 
 void RenderSystem::SetupMaterial()
 {
-    Material material;
+    m_DefaultMaterial = Material();
     
-    material.m_AmbientColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    material.m_AmbientIntensity = 0.5f;
-    
-    material.m_DiffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    material.m_DiffuseIntensity = 1.0f;
-    material.m_SpecularColor = glm::vec3(0.5f, 0.5f, 0.5f);
-    material.m_SpecularIntensity = 0.5f;
-    material.m_Shininess = 32.0f;
+    // Slightly toned-down default values
+    m_DefaultMaterial.m_AmbientIntensity  = 0.5f;
+    m_DefaultMaterial.m_SpecularIntensity = 0.5f;
+    m_DefaultMaterial.m_Shininess         = 32.0f;
     
     if (m_MaterialUBO == 0) 
     {
@@ -428,7 +445,7 @@ void RenderSystem::SetupMaterial()
         }
     } 
 
-    Buffer::UpdateUniformBuffer(m_MaterialUBO, &material, sizeof(Material));
+    Buffer::UpdateUniformBuffer(m_MaterialUBO, &m_DefaultMaterial, sizeof(Material));
 }
 
 void RenderSystem::UpdateMaterialUBO(const Material& material)
@@ -528,4 +545,14 @@ void RenderSystem::SetShowFrustum(bool show)
 bool RenderSystem::IsShowFrustum() const
 {
     return m_ShowFrustum;
+}
+
+void RenderSystem::SetGlobalWireframe(bool enabled)
+{
+    m_GlobalWireframe = enabled;
+}
+
+bool RenderSystem::IsGlobalWireframeEnabled() const
+{
+    return m_GlobalWireframe;
 } 

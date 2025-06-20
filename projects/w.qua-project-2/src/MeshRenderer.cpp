@@ -39,36 +39,17 @@ void MeshRenderer::Initialize(const std::shared_ptr<Shader>& shader)
         // Get vertices and reserve space to avoid reallocations
         const auto& meshVertices = mesh->GetVertexes();
         
-        if (m_Wireframe)
+        // Always use the same vertices - wireframe handled by glPolygonMode
+        std::vector<Vertex> vertices;
+        vertices.reserve(meshVertices.size()); // Pre-allocate
+        
+        // Copy and apply color in one pass
+        for (const auto& vertex : meshVertices)
         {
-            // For wireframe, we need to create line vertices
-            auto wireframeVertices = CreateWireframeVertices(meshVertices);
-            
-            // Apply color to wireframe vertices in-place
-            for (auto& vertex : wireframeVertices)
-            {
-                vertex.m_Color = m_Color;
-            }
-            
-            m_Buffer.Setup(wireframeVertices);
-            m_WireframeVertexCount = static_cast<int>(wireframeVertices.size());
-        }
-        else
-        {
-            // For solid rendering, make a copy and apply color
-            std::vector<Vertex> vertices;
-            vertices.reserve(meshVertices.size()); // Pre-allocate
-            
-            // Copy and apply color in one pass
-            for (const auto& vertex : meshVertices)
-            {
-                vertices.emplace_back(vertex.m_Position, m_Color, vertex.m_Normal, vertex.m_UV);
-            }
-            
-            m_Buffer.Setup(vertices);
-            m_WireframeVertexCount = 0;
+            vertices.emplace_back(vertex.m_Position, m_Color, vertex.m_Normal, vertex.m_UV);
         }
         
+        m_Buffer.Setup(vertices);
         m_Initialized = true;
     }
     else
@@ -88,18 +69,28 @@ void MeshRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMat
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    m_Buffer.Bind();
-    
+    // Save current polygon mode so we can restore it after rendering. This allows
+    // higher-level systems (e.g. a global wireframe toggle) to control the mode
+    // without being overridden by individual renderers.
+    GLint prevPolygonMode[2];
+    glGetIntegerv(GL_POLYGON_MODE, prevPolygonMode);
+
+    // Apply local wireframe setting *only* if this renderer explicitly requests
+    // wireframe drawing. Otherwise, keep the mode that was already active.
     if (m_Wireframe)
     {
-        glDrawArrays(GL_LINES, 0, m_WireframeVertexCount);
-    }
-    else
-    {
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
     
+    m_Buffer.Bind();
+    
+    // Always draw as triangles - glPolygonMode handles wireframe conversion
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
+    
     m_Buffer.Unbind();
+    
+    // Restore previous polygon mode so subsequent renderers keep the expected state
+    glPolygonMode(GL_FRONT_AND_BACK, prevPolygonMode[0]);
 }
 
 void MeshRenderer::CleanUp()
@@ -138,16 +129,8 @@ glm::vec3 MeshRenderer::GetColor() const
 
 void MeshRenderer::SetWireframe(bool wireframe)
 {
-    if (m_Wireframe == wireframe)
-        return;
-        
     m_Wireframe = wireframe;
-    
-    if (m_Initialized && m_Shader)
-    {
-        m_Initialized = false;
-        Initialize(m_Shader);
-    }
+    // No need to recreate vertices - wireframe handled by glPolygonMode
 }
 
 bool MeshRenderer::IsWireframe() const
@@ -171,46 +154,8 @@ void MeshRenderer::UpdateVertexColors()
         vertex.m_Color = m_Color;
     }
     
-    if (m_Wireframe)
-    {
-        // Convert triangles to lines for wireframe rendering
-        auto wireframeVertices = CreateWireframeVertices(vertices);
-        m_Buffer.Setup(wireframeVertices);
-        m_WireframeVertexCount = static_cast<int>(wireframeVertices.size());
-    }
-    else
-    {
-        // Update our vertex buffer with the new colored vertices
-        m_Buffer.Setup(vertices);
-        m_WireframeVertexCount = 0;
-    }
+    // Update our vertex buffer with the new colored vertices
+    m_Buffer.Setup(vertices);
 }
 
-std::vector<Vertex> MeshRenderer::CreateWireframeVertices(const std::vector<Vertex>& triangleVertices)
-{
-    std::vector<Vertex> wireframeVertices;
-    
-    for (size_t i = 0; i < triangleVertices.size(); i += 3)
-    {
-        if (i + 2 < triangleVertices.size())
-        {
-            const Vertex& v0 = triangleVertices[i];
-            const Vertex& v1 = triangleVertices[i + 1];
-            const Vertex& v2 = triangleVertices[i + 2];
-            
-            // Line 1: v0 -> v1
-            wireframeVertices.push_back(v0);
-            wireframeVertices.push_back(v1);
-            
-            // Line 2: v1 -> v2
-            wireframeVertices.push_back(v1);
-            wireframeVertices.push_back(v2);
-            
-            // Line 3: v2 -> v0
-            wireframeVertices.push_back(v2);
-            wireframeVertices.push_back(v0);
-        }
-    }
-    
-    return wireframeVertices;
-} 
+ 

@@ -127,6 +127,12 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     
     ImGui::Separator();
     
+    // Wireframe controls
+    ImGui::Text("Rendering Controls:");
+    RenderWireframeControls(registry);
+    
+    ImGui::Separator();
+    
     // Object visibility
     ImGui::Text("Object Visibility:");
     RenderObjectVisibilityControls(registry);
@@ -301,6 +307,21 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
     }
     
     ImGui::Separator();
+}
+
+void ImGuiManager::RenderWireframeControls(Registry& registry)
+{
+    if (!Systems::g_RenderSystem) 
+    {
+        ImGui::Text("Render system not available");
+        return;
+    }
+    
+    bool wireframeEnabled = Systems::g_RenderSystem->IsGlobalWireframeEnabled();
+    if (ImGui::Checkbox("Global Wireframe Mode", &wireframeEnabled))
+    {
+        Systems::g_RenderSystem->SetGlobalWireframe(wireframeEnabled);
+    }
 }
 
 void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)

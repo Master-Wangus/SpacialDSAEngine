@@ -94,17 +94,9 @@ private:
     glm::vec3 m_Color = glm::vec3(1.0f);
     bool m_Initialized = false;
     bool m_Wireframe = false;
-    int m_WireframeVertexCount = 0;
     
     /**
      * @brief Updates vertex colors to match current color setting.
      */
     void UpdateVertexColors();
-    
-    /**
-     * @brief Creates wireframe vertices from triangle vertices.
-     * @param triangleVertices Input triangle vertex data
-     * @return Vector of wireframe vertex data
-     */
-    std::vector<Vertex> CreateWireframeVertices(const std::vector<Vertex>& triangleVertices);
 }; 

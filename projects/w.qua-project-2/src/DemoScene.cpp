@@ -48,6 +48,17 @@ namespace DemoScene
                 }
             }
         });
+        
+        // Setup scene reset shortcut using EventSystem
+        SUBSCRIBE_TO_EVENT(EventType::KeyPress, [&](const EventData& eventData) {
+            // Check if the event data contains an integer (key code)
+            if (auto keyCode = std::get_if<int>(&eventData)) {
+                if (*keyCode == Keybinds::KEY_R) {
+                    ResetScene(registry, window);
+                    std::cout << "Scene reset!" << std::endl;
+                }
+            }
+        });
     }
     
     void ClearScene(Registry& registry)
@@ -96,7 +107,7 @@ namespace DemoScene
                               glm::vec3(0.0f),
                               glm::vec3(1.0f)));
         
-        auto meshRendererRhino = std::make_shared<MeshRenderer>(meshHandleRhino, glm::vec3(0.0f, 1.0f, 0.0f), true);
+        auto meshRendererRhino = std::make_shared<MeshRenderer>(meshHandleRhino, glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Create bounding component for rhino
         auto boundingComponentRhino = BoundingComponent(meshHandleRhino);
@@ -115,7 +126,7 @@ namespace DemoScene
                 glm::vec3(0.0f),
                 glm::vec3(1.0f)));
         
-        auto meshRendererCup = std::make_shared<MeshRenderer>(meshHandleCup, glm::vec3(0.0f, 1.0f, 0.0f), true);
+        auto meshRendererCup = std::make_shared<MeshRenderer>(meshHandleCup, glm::vec3(0.0f, 1.0f, 0.0f));
         
         // Create bounding component for cup
         auto boundingComponentCup = BoundingComponent(meshHandleCup);
@@ -134,7 +145,7 @@ namespace DemoScene
                 glm::vec3(0.0f),
                 glm::vec3(1.5f)));  // Scaled up for better visibility
         
-        auto meshRendererBunny = std::make_shared<MeshRenderer>(meshHandleBunny, glm::vec3(0.0f, 1.0f, 0.0f), true);
+        auto meshRendererBunny = std::make_shared<MeshRenderer>(meshHandleBunny, glm::vec3(0.0f, 1.0f, 0.0f));
         
         // Create bounding component for bunny
         auto boundingComponentBunny = BoundingComponent(meshHandleBunny);
@@ -157,8 +168,7 @@ namespace DemoScene
         auto cubeRenderer = std::make_shared<CubeRenderer>(
             glm::vec3(0.0f),          // Center (will be positioned by transform)
             glm::vec3(1.0f),          // Size 
-            glm::vec3(0.0f, 1.0f, 0.0f), // Green color (consistent with other models)
-            true                      // Wireframe
+            glm::vec3(0.0f, 1.0f, 0.0f) // Green color (consistent with other models)
         );
         cubeRenderer->Initialize(shader);
         

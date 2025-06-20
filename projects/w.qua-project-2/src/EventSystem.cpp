@@ -64,7 +64,8 @@ void EventSystem::FireEvent(const EventType eventType, EventData eventData)
 {
     // Check if the event type exists in the map
     auto it = m_EventMap.find(eventType);
-    if (it == m_EventMap.end()) {
+    if (it == m_EventMap.end()) 
+    {
         return; // No subscribers for this event type
     }
     

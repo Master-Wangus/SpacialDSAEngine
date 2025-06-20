@@ -148,7 +148,8 @@ private:
     glm::vec3 m_Color;
     bool m_Wireframe = false;
     bool m_IsOriented = false;
-    glm::vec3 m_Axes[3] = {
+    glm::vec3 m_Axes[3] = 
+    {
         glm::vec3(1.0f, 0.0f, 0.0f),
         glm::vec3(0.0f, 1.0f, 0.0f),
         glm::vec3(0.0f, 0.0f, 1.0f)
@@ -156,20 +157,8 @@ private:
     glm::vec3 m_HalfExtents = glm::vec3(0.5f);
 
     /**
-     * @brief Creates vertex data for solid cube rendering.
+     * @brief Creates vertex data for cube rendering.
      * @return Vector of vertex data
      */
     std::vector<Vertex> CreateVertices();
-    
-    /**
-     * @brief Creates vertex data for wireframe cube rendering.
-     * @return Vector of vertex data for wireframe
-     */
-    std::vector<Vertex> CreateWireframeVertices();
-    
-    /**
-     * @brief Creates vertex data for oriented wireframe cube rendering.
-     * @return Vector of vertex data for oriented wireframe
-     */
-    std::vector<Vertex> CreateOrientedWireframeVertices();
 }; 

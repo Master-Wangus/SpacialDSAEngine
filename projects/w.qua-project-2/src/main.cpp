@@ -49,23 +49,12 @@ int main()
         ImGuiManager imguiManager(window);
         imguiManager.Init();
         
-        // Subscribe to ESC key using EventSystem
+        // Subscribe to ESC key using EventSystem (application-level)
         SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([&window](const EventData& eventData) {
             // Check if the event data contains an integer (key code)
             if (auto keyCode = std::get_if<int>(&eventData)) {
                 if (*keyCode == Keybinds::KEY_ESCAPE) {
                     window.SetShouldClose(true);
-                }
-            }
-        }));
-        
-        // Reset scene shortcut using EventSystem
-        SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([&registry, &window](const EventData& eventData) {
-            // Check if the event data contains an integer (key code)
-            if (auto keyCode = std::get_if<int>(&eventData)) {
-                if (*keyCode == Keybinds::KEY_R) {
-                    Systems::ResetCurrentScene(registry, window);
-                    std::cout << "Scene reset!" << std::endl;
                 }
             }
         }));

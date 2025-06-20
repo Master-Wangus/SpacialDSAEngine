@@ -74,6 +74,18 @@ public:
     void UpdateLightFromVisualization();
     
     /**
+     * @brief Toggles global wireframe mode for all rendered objects.
+     * @param enabled True to enable wireframe, false for solid rendering
+     */
+    void SetGlobalWireframe(bool enabled);
+    
+    /**
+     * @brief Checks if global wireframe mode is enabled.
+     * @return True if global wireframe is enabled, false otherwise
+     */
+    bool IsGlobalWireframeEnabled() const;
+    
+    /**
      * @brief Gets the entity used for light visualization.
      * @return Entity ID of the light visualization object
      */
@@ -220,7 +232,7 @@ private:
     Registry::Entity m_LightVisualizationEntity = entt::null;
     
     // Bounding volume visibility flags
-    bool m_ShowAABB = true;
+    bool m_ShowAABB = false;
     bool m_ShowRitterSphere = false;
     bool m_ShowLarsonSphere = false;
     bool m_ShowPCASphere = false;
@@ -239,4 +251,10 @@ private:
     
     // OpenGL buffer IDs
     GLuint m_MaterialUBO = 0;
+    
+    // Default material used for regular objects; reapplied after bounding-volume draws
+    Material m_DefaultMaterial;
+    
+    // Global wireframe toggle
+    bool m_GlobalWireframe = false;
 }; 

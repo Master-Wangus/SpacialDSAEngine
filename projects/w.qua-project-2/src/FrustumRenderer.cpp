@@ -44,8 +44,6 @@ void FrustumRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& view
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
-    m_Shader->SetBool("disableLighting", true);
-    
     m_Buffer.Bind();
     
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));

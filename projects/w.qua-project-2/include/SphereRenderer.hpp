@@ -123,14 +123,8 @@ private:
     bool m_Wireframe = false;
 
     /**
-     * @brief Creates vertex data for solid sphere rendering.
+     * @brief Creates vertex data for sphere rendering.
      * @return Vector of vertex data
      */
     std::vector<Vertex> CreateVertices();
-    
-    /**
-     * @brief Creates vertex data for wireframe sphere rendering.
-     * @return Vector of vertex data for wireframe
-     */
-    std::vector<Vertex> CreateWireframeVertices();
 }; 

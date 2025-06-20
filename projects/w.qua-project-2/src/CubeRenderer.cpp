@@ -37,23 +37,8 @@ void CubeRenderer::Initialize(const std::shared_ptr<Shader>& shader)
 {
     m_Shader = shader;
     
-    std::vector<Vertex> vertices;
-    if (m_Wireframe)
-    {
-        if (m_IsOriented)
-        {
-            vertices = CreateOrientedWireframeVertices();
-        }
-        else
-        {
-            vertices = CreateWireframeVertices();
-        }
-    }
-    else
-    {
-        vertices = CreateVertices();
-    }
-    
+    // Always create solid vertices - wireframe handled by glPolygonMode
+    std::vector<Vertex> vertices = CreateVertices();
     m_Buffer.Setup(vertices);
 }
 
@@ -68,22 +53,27 @@ void CubeRenderer::Render(const glm::mat4& modelMatrix, const glm::mat4& viewMat
     m_Shader->SetMat4("view", viewMatrix);
     m_Shader->SetMat4("projection", projectionMatrix);
     
+    // Preserve the existing polygon mode so higher-level systems (like the global
+    // wireframe toggle) remain in control after this renderer finishes.
+    GLint prevPolygonMode[2];
+    glGetIntegerv(GL_POLYGON_MODE, prevPolygonMode);
+
+    if (m_Wireframe)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
     // Bind buffer
     m_Buffer.Bind();
     
-    // Draw cube
-    if (m_Wireframe)
-    {
-        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
-    }
-    else
-    {
-        // Draw cube triangles (36 vertices for 12 triangles)
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
-    }
+    // Always draw as triangles - glPolygonMode handles wireframe conversion
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_Buffer.GetVertexCount()));
     
     // Unbind
     m_Buffer.Unbind();
+    
+    // Restore previous polygon mode
+    glPolygonMode(GL_FRONT_AND_BACK, prevPolygonMode[0]);
 }
 
 void CubeRenderer::CleanUp()
@@ -117,15 +107,7 @@ void CubeRenderer::SetColor(const glm::vec3& color)
     // Recreate vertices if buffer is setup
     if (m_Buffer.GetVertexCount() > 0)
     {
-        std::vector<Vertex> vertices;
-        if (m_Wireframe)
-        {
-            vertices = CreateWireframeVertices();
-        }
-        else
-        {
-            vertices = CreateVertices();
-        }
+        std::vector<Vertex> vertices = CreateVertices();
         m_Buffer.UpdateVertices(vertices);
     }
 }
@@ -137,24 +119,8 @@ glm::vec3 CubeRenderer::GetColor() const
 
 void CubeRenderer::SetWireframe(bool wireframe)
 {
-    if (m_Wireframe == wireframe)
-        return;
-        
     m_Wireframe = wireframe;
-    
-    if (m_Buffer.GetVertexCount() > 0)
-    {
-        std::vector<Vertex> vertices;
-        if (m_Wireframe)
-        {
-            vertices = CreateWireframeVertices();
-        }
-        else
-        {
-            vertices = CreateVertices();
-        }
-        m_Buffer.Setup(vertices);
-    }
+    // No need to recreate vertices - wireframe handled by glPolygonMode
 }
 
 bool CubeRenderer::IsWireframe() const
@@ -170,9 +136,9 @@ void CubeRenderer::SetOrientation(const glm::vec3 axes[3])
     m_IsOriented = true;
     
     // Recreate vertices if buffer is setup
-    if (m_Buffer.GetVertexCount() > 0 && m_Wireframe)
+    if (m_Buffer.GetVertexCount() > 0)
     {
-        std::vector<Vertex> vertices = CreateOrientedWireframeVertices();
+        std::vector<Vertex> vertices = CreateVertices();
         m_Buffer.UpdateVertices(vertices);
     }
 }
@@ -183,9 +149,9 @@ void CubeRenderer::SetHalfExtents(const glm::vec3& halfExtents)
     m_Size = halfExtents * 2.0f;
     
     // Recreate vertices if buffer is setup
-    if (m_Buffer.GetVertexCount() > 0 && m_Wireframe && m_IsOriented)
+    if (m_Buffer.GetVertexCount() > 0)
     {
-        std::vector<Vertex> vertices = CreateOrientedWireframeVertices();
+        std::vector<Vertex> vertices = CreateVertices();
         m_Buffer.UpdateVertices(vertices);
     }
 }
@@ -251,93 +217,4 @@ std::vector<Vertex> CubeRenderer::CreateVertices()
     return vertices;
 }
 
-std::vector<Vertex> CubeRenderer::CreateWireframeVertices()
-{
-    std::vector<Vertex> vertices;
-    
-    glm::vec3 halfSize = m_Size * 0.5f;
-    
-    const glm::vec3 pos[8] = 
-    {
-        m_Center + glm::vec3(-halfSize.x, -halfSize.y, -halfSize.z), // 0: bottom-left-back
-        m_Center + glm::vec3( halfSize.x, -halfSize.y, -halfSize.z), // 1: bottom-right-back
-        m_Center + glm::vec3( halfSize.x,  halfSize.y, -halfSize.z), // 2: top-right-back
-        m_Center + glm::vec3(-halfSize.x,  halfSize.y, -halfSize.z), // 3: top-left-back
-        m_Center + glm::vec3(-halfSize.x, -halfSize.y,  halfSize.z), // 4: bottom-left-front
-        m_Center + glm::vec3( halfSize.x, -halfSize.y,  halfSize.z), // 5: bottom-right-front
-        m_Center + glm::vec3( halfSize.x,  halfSize.y,  halfSize.z), // 6: top-right-front
-        m_Center + glm::vec3(-halfSize.x,  halfSize.y,  halfSize.z)  // 7: top-left-front
-    };
-    
-    // 12 edges of a cube (each edge is a line)
-    const int edges[24] = 
-    {
-        // Bottom face edges
-        0, 1,  1, 5,  5, 4,  4, 0,
-        // Top face edges  
-        3, 2,  2, 6,  6, 7,  7, 3,
-        // Vertical edges
-        0, 3,  1, 2,  5, 6,  4, 7
-    };
-    
-    glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f); 
-    
-    // Create line vertices
-    for (int i = 0; i < 24; i += 2)
-    {
-        Vertex v1 = { pos[edges[i]], m_Color, normal, glm::vec2(0.0f, 0.0f) };
-        Vertex v2 = { pos[edges[i+1]], m_Color, normal, glm::vec2(1.0f, 0.0f) };
-        
-        vertices.push_back(v1);
-        vertices.push_back(v2);
-    }
-    
-    return vertices;
-}
-
-std::vector<Vertex> CubeRenderer::CreateOrientedWireframeVertices()
-{
-    std::vector<Vertex> vertices;
-    
-    // Compute the 8 corners of the oriented box
-    glm::vec3 corners[8];
-    
-    // Use the orientation axes and half-extents to calculate the corners
-    glm::vec3 xAxis = m_Axes[0] * m_HalfExtents.x;
-    glm::vec3 yAxis = m_Axes[1] * m_HalfExtents.y;
-    glm::vec3 zAxis = m_Axes[2] * m_HalfExtents.z;
-    
-    corners[0] = m_Center - xAxis - yAxis - zAxis; // bottom-left-back
-    corners[1] = m_Center + xAxis - yAxis - zAxis; // bottom-right-back
-    corners[2] = m_Center + xAxis + yAxis - zAxis; // top-right-back
-    corners[3] = m_Center - xAxis + yAxis - zAxis; // top-left-back
-    corners[4] = m_Center - xAxis - yAxis + zAxis; // bottom-left-front
-    corners[5] = m_Center + xAxis - yAxis + zAxis; // bottom-right-front
-    corners[6] = m_Center + xAxis + yAxis + zAxis; // top-right-front
-    corners[7] = m_Center - xAxis + yAxis + zAxis; // top-left-front
-    
-    // 12 edges of a cube (each edge is a line)
-    const int edges[24] = 
-    {
-        // Bottom face edges
-        0, 1,  1, 5,  5, 4,  4, 0,
-        // Top face edges  
-        3, 2,  2, 6,  6, 7,  7, 3,
-        // Vertical edges
-        0, 3,  1, 2,  5, 6,  4, 7
-    };
-    
-    glm::vec3 normal = glm::vec3(0.0f, 1.0f, 0.0f); 
-    
-    // Create line vertices
-    for (int i = 0; i < 24; i += 2)
-    {
-        Vertex v1 = { corners[edges[i]], m_Color, normal, glm::vec2(0.0f, 0.0f) };
-        Vertex v2 = { corners[edges[i+1]], m_Color, normal, glm::vec2(1.0f, 0.0f) };
-        
-        vertices.push_back(v1);
-        vertices.push_back(v2);
-    }
-    
-    return vertices;
-} 
+ 
