@@ -109,6 +109,11 @@ public:
      */
     void RenderStats();
 
+    /**
+     * @brief Renders per-model scaling controls.
+     * @param registry Entity registry reference
+     */
+    void RenderScalingControls(Registry& registry);
 
 private:
     Window& m_Window;

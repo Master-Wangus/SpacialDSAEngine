@@ -36,19 +36,6 @@ namespace DemoScene
     {
         SetupMeshScene(registry);
         
-        // Setup arrow key input for model switching using EventSystem
-        SUBSCRIBE_TO_EVENT(EventType::KeyPress, [&registry](const EventData& eventData) {
-            // Check if the event data contains an integer (key code)
-            if (auto keyCode = std::get_if<int>(&eventData)) {
-                if (*keyCode == Keybinds::KEY_RIGHT) {
-                    CycleToNextModel(registry);
-                }
-                else if (*keyCode == Keybinds::KEY_LEFT) {
-                    CycleToPreviousModel(registry);
-                }
-            }
-        });
-        
         // Setup scene reset shortcut using EventSystem
         SUBSCRIBE_TO_EVENT(EventType::KeyPress, [&](const EventData& eventData) {
             // Check if the event data contains an integer (key code)
@@ -96,14 +83,17 @@ namespace DemoScene
         
         auto shader = Systems::g_RenderSystem->GetShader();
         
-        // Common position for all models
-        glm::vec3 modelPosition(0.0f, 0.0f, 0.0f);
+        // Positions for each model so they appear side-by-side
+        const glm::vec3 posRhino (-3.0f, 0.0f, 0.0f);
+        const glm::vec3 posCup   ( 0.0f, 0.0f, 0.0f);
+        const glm::vec3 posBunny ( 3.0f, 0.0f, 0.0f);
+        const glm::vec3 posCube  ( 6.0f, 0.0f, 0.0f);
         
         // Rhino
         auto meshEntityRhino = registry.Create();
         s_ModelEntities[static_cast<int>(ModelType::Rhino)] = meshEntityRhino;
         registry.AddComponent<TransformComponent>(meshEntityRhino,
-            TransformComponent(modelPosition,
+            TransformComponent(posRhino,
                               glm::vec3(0.0f),
                               glm::vec3(1.0f)));
         
@@ -122,7 +112,7 @@ namespace DemoScene
         auto meshEntityCup = registry.Create();
         s_ModelEntities[static_cast<int>(ModelType::Cup)] = meshEntityCup;
         registry.AddComponent<TransformComponent>(meshEntityCup,
-            TransformComponent(modelPosition,
+            TransformComponent(posCup,
                 glm::vec3(0.0f),
                 glm::vec3(1.0f)));
         
@@ -141,7 +131,7 @@ namespace DemoScene
         auto meshEntityBunny = registry.Create();
         s_ModelEntities[static_cast<int>(ModelType::Bunny)] = meshEntityBunny;
         registry.AddComponent<TransformComponent>(meshEntityBunny,
-            TransformComponent(modelPosition,
+            TransformComponent(posBunny,
                 glm::vec3(0.0f),
                 glm::vec3(1.5f)));  // Scaled up for better visibility
         
@@ -160,7 +150,7 @@ namespace DemoScene
         auto cubeEntity = registry.Create();
         s_ModelEntities[static_cast<int>(ModelType::Cube)] = cubeEntity;
         registry.AddComponent<TransformComponent>(cubeEntity,
-            TransformComponent(modelPosition,
+            TransformComponent(posCube,
                 glm::vec3(0.0f, 0.0f, 0.0f),
                 glm::vec3(1.0f)));
         
@@ -235,8 +225,13 @@ namespace DemoScene
         boundingComponentCube.InitializeRenderables(shader);
         registry.AddComponent<BoundingComponent>(cubeEntity, boundingComponentCube);
         
-        // Set initial model visibility
-        SwitchToModel(registry, s_CurrentModel);
+        // Ensure all models are visible by default
+        for (int i = 0; i < static_cast<int>(ModelType::Count); ++i) {
+            auto ent = s_ModelEntities[i];
+            if (ent != entt::null && registry.HasComponent<RenderComponent>(ent)) {
+                registry.GetComponent<RenderComponent>(ent).m_IsVisible = true;
+            }
+        }
     }
     
     // Implementation of model switching functions
@@ -276,8 +271,41 @@ namespace DemoScene
     
     void CycleToPreviousModel(Registry& registry)
     {
-        int prevModelIndex = static_cast<int>(s_CurrentModel) - 1;
-        if (prevModelIndex < 0) prevModelIndex = static_cast<int>(ModelType::Count) - 1;
-        SwitchToModel(registry, static_cast<ModelType>(prevModelIndex));
+        int currentIndex = static_cast<int>(s_CurrentModel);
+        currentIndex = (currentIndex - 1 + static_cast<int>(ModelType::Count)) % static_cast<int>(ModelType::Count);
+        SwitchToModel(registry, static_cast<ModelType>(currentIndex));
+    }
+
+    // ============================
+    //  Scaling helper functions
+    // ============================
+
+    void SetModelScale(Registry& registry, ModelType modelType, float scale)
+    {
+        auto entity = s_ModelEntities[static_cast<int>(modelType)];
+        if (entity != entt::null && registry.HasComponent<TransformComponent>(entity))
+        {
+            auto &transform = registry.GetComponent<TransformComponent>(entity);
+            transform.m_Scale = glm::vec3(scale);
+            transform.UpdateModelMatrix();
+        }
+    }
+
+    float GetModelScale(Registry& registry, ModelType modelType)
+    {
+        auto entity = s_ModelEntities[static_cast<int>(modelType)];
+        if (entity != entt::null && registry.HasComponent<TransformComponent>(entity))
+        {
+            return registry.GetComponent<TransformComponent>(entity).m_Scale.x;
+        }
+        return 1.0f;
+    }
+
+    void SetGlobalScale(Registry& registry, float scale)
+    {
+        for (int i = 0; i < static_cast<int>(ModelType::Count); ++i)
+        {
+            SetModelScale(registry, static_cast<ModelType>(i), scale);
+        }
     }
 } 

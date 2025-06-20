@@ -116,9 +116,10 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     // Create a separate widget for Assignment 2 controls
     ImGui::Begin("Assignment 2");
     
-    // Model selection controls (without the buttons)
-    RenderModelSelectionControls(registry);
-    
+    // Model selection controls removed; all models are shown simultaneously.
+
+    // (Removed UI controls for switching models)
+
     ImGui::Separator();
     
     // Bounding volume controls
@@ -136,7 +137,13 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     // Object visibility
     ImGui::Text("Object Visibility:");
     RenderObjectVisibilityControls(registry);
+
+    ImGui::Separator();
     
+    // Scaling controls
+    ImGui::Text("Scale Models (Uniform):");
+    RenderScalingControls(registry);
+
     ImGui::Separator();
     
     // Frustum visualization controls
@@ -157,40 +164,6 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow - Intersecting Frustum");
     
     ImGui::End();
-}
-
-void ImGuiManager::RenderModelSelectionControls(Registry& registry)
-{
-    if (!Systems::g_RenderSystem) 
-    {
-        ImGui::Text("Render system not available");
-        return;
-    }
-    
-    // Get current model
-    ModelType currentModel = DemoScene::GetCurrentModel();
-    
-    // Display current model name
-    const char* modelNames[] = {
-        "Rhino",
-        "Cup",
-        "Bunny",
-        "Cube"
-    };
-    
-    // Display the current model
-    ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Current Model: %s", 
-                      modelNames[static_cast<int>(currentModel)]);
-    
-    ImGui::Text("Use Left/Right Arrow Keys to switch models");
-    
-    // Radio buttons for direct model selection
-    int selectedModel = static_cast<int>(currentModel);
-    for (int i = 0; i < static_cast<int>(ModelType::Count); i++) {
-        if (ImGui::RadioButton(modelNames[i], &selectedModel, i)) {
-            DemoScene::SwitchToModel(registry, static_cast<ModelType>(i));
-        }
-    }
 }
 
 void ImGuiManager::RenderCameraControls(Registry& registry)
@@ -335,6 +308,39 @@ void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
     }
 }
 
+void ImGuiManager::RenderScalingControls(Registry& registry)
+{
+    using namespace DemoScene;
+
+    // Rhino
+    float rhinoScale = GetModelScale(registry, ModelType::Rhino);
+    if (ImGui::SliderFloat("Rhino Scale", &rhinoScale, 0.1f, 5.0f, "%.2f"))
+    {
+        SetModelScale(registry, ModelType::Rhino, rhinoScale);
+    }
+
+    // Cup
+    float cupScale = GetModelScale(registry, ModelType::Cup);
+    if (ImGui::SliderFloat("Cup Scale", &cupScale, 0.1f, 5.0f, "%.2f"))
+    {
+        SetModelScale(registry, ModelType::Cup, cupScale);
+    }
+
+    // Bunny
+    float bunnyScale = GetModelScale(registry, ModelType::Bunny);
+    if (ImGui::SliderFloat("Bunny Scale", &bunnyScale, 0.1f, 5.0f, "%.2f"))
+    {
+        SetModelScale(registry, ModelType::Bunny, bunnyScale);
+    }
+
+    // Cube
+    float cubeScale = GetModelScale(registry, ModelType::Cube);
+    if (ImGui::SliderFloat("Cube Scale", &cubeScale, 0.1f, 5.0f, "%.2f"))
+    {
+        SetModelScale(registry, ModelType::Cube, cubeScale);
+    }
+}
+
 void ImGuiManager::RenderFrustumControls(Registry& registry)
 {
     if (!Systems::g_RenderSystem) 
@@ -377,7 +383,6 @@ void ImGuiManager::RenderFrustumControls(Registry& registry)
     }
 }
 
-
 void ImGuiManager::RenderStats()
 {
     // OpenGL statistics
@@ -405,4 +410,10 @@ void ImGuiManager::UpdateFrameRate(float deltaTime)
         m_FrameCount = 0;
         m_FrameTimeAccumulator = 0.0f;
     }
+}
+
+// Stub: model selection UI removed
+void ImGuiManager::RenderModelSelectionControls(Registry& /*registry*/)
+{
+    // No model-selection UI; all models are visible by default.
 } 

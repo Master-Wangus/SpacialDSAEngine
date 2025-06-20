@@ -107,26 +107,54 @@ void RenderSystem::Render()
         if (m_CameraSystem && m_Registry.HasComponent<BoundingComponent>(entity)) 
         {
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
-            
+
+            // Compute world-space versions
+            Aabb worldAabb = boundingComp.GetAABB();
+            worldAabb.Transform(transform.m_Model);
+
+            Sphere worldRitter = boundingComp.GetRitterSphere();
+            Sphere worldLarson = boundingComp.GetLarssonSphere();
+            Sphere worldPCA    = boundingComp.GetPCASphere();
+
+            // Transform sphere centers
+            auto transformPoint = [&](const glm::vec3& p){ return glm::vec3(transform.m_Model * glm::vec4(p,1.0f)); };
+            worldRitter.center = transformPoint(worldRitter.center);
+            worldLarson.center = transformPoint(worldLarson.center);
+            worldPCA.center    = transformPoint(worldPCA.center);
+
+            // Scale radii by maximum scale factor (uniform approximation)
+            float maxScale = glm::compMax(glm::abs(transform.m_Scale));
+            worldRitter.radius *= maxScale;
+            worldLarson.radius *= maxScale;
+            worldPCA.radius    *= maxScale;
+
+            Obb worldObb = boundingComp.GetOBB();
+            // Transform OBB center & axes
+            worldObb.center = transformPoint(worldObb.center);
+            for(int i=0;i<3;++i){
+                worldObb.axes[i] = glm::normalize(glm::mat3(transform.m_Model) * worldObb.axes[i]);
+                worldObb.halfExtents[i] *= maxScale;
+            }
+
             if (m_ShowAABB) 
             {
-                frustumResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.GetAABB());
+                frustumResult = m_CameraSystem->TestAabbAgainstFrustum(worldAabb);
             }
             else if (m_ShowOBB) 
             {
-                frustumResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.GetOBB());
+                frustumResult = m_CameraSystem->TestObbAgainstFrustum(worldObb);
             }
             else if (m_ShowRitterSphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetRitterSphere());
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(worldRitter);
             }
             else if (m_ShowLarsonSphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetLarssonSphere());
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(worldLarson);
             }
             else if (m_ShowPCASphere) 
             {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetPCASphere());
+                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(worldPCA);
             }
         }
         

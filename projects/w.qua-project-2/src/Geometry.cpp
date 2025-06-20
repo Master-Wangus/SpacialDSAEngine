@@ -125,6 +125,10 @@ void TransformAabb(glm::vec3& min, glm::vec3& max, glm::mat4 const& transform)
         newMin = glm::min(newMin, corner);
         newMax = glm::max(newMax, corner);
     }
+
+    // Write results back
+    min = newMin;
+    max = newMax;
 }
 
 void FrustumFromVp(glm::mat4 const& vp, glm::vec3 fn[6], float fd[6])

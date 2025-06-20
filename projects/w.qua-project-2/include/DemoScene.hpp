@@ -80,4 +80,27 @@ namespace DemoScene
      * @param registry Entity registry to modify
      */
     void CycleToPreviousModel(Registry& registry);
+
+    /**
+     * @brief Sets a uniform scale for all models in the scene.
+     * @param registry Entity registry reference
+     * @param scale Uniform scale factor to apply (uniform across X,Y,Z)
+     */
+    void SetGlobalScale(Registry& registry, float scale);
+
+    /**
+     * @brief Sets the scale for a specific model type.
+     * @param registry Entity registry reference
+     * @param modelType Model whose scale should be changed
+     * @param scale Uniform scale factor to apply
+     */
+    void SetModelScale(Registry& registry, ModelType modelType, float scale);
+
+    /**
+     * @brief Gets the current scale (uniform) for a model type.
+     * @param registry Entity registry reference
+     * @param modelType Model to query
+     * @return The uniform scale value (assumes X scale represents uniform scale)
+     */
+    float GetModelScale(Registry& registry, ModelType modelType);
 } 
