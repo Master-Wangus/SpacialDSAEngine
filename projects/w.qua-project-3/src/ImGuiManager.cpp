@@ -115,8 +115,8 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     
     ImGui::End();
     
-    // Create a separate widget for Assignment 2 controls
-    ImGui::Begin("Assignment 2");
+    // Create a separate widget for model controls
+    ImGui::Begin("Model Controls");
     
     // Model selection controls removed; all models are shown simultaneously.
 
@@ -148,23 +148,8 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 
     ImGui::Separator();
     
-    // Frustum visualization controls
-    ImGui::Text("Frustum Visualization:");
-    RenderFrustumControls(registry);
-    
-    // Add color legend for frustum culling
-    ImGui::Separator();
-    ImGui::Text("Frustum Culling Color Legend:");
-    
-    // Inside color (Green)
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Green - Inside Frustum");
-    
-    // Outside color (Red)
-    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Red - Outside Frustum");
-    
-    // Intersecting color (Yellow)
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Yellow - Intersecting Frustum");
-    
+    // (Frustum visualization UI removed)
+
     ImGui::End();
 
     // ───────────────────────────────── Assignment 3 ───────────────────────────
@@ -376,48 +361,6 @@ void ImGuiManager::RenderScalingControls(Registry& registry)
     if (ImGui::SliderFloat("Stuffed Scale", &stuffedScale, 0.1f, 5.0f, "%.2f"))
     {
         SetModelScale(registry, ModelType::Stuffed, stuffedScale);
-    }
-}
-
-void ImGuiManager::RenderFrustumControls(Registry& registry)
-{
-    if (!Systems::g_RenderSystem) 
-    {
-        ImGui::Text("Render system not available");
-        return;
-    }
-    
-    // Frustum visualization toggle
-    bool showFrustum = Systems::g_RenderSystem->IsShowFrustum();
-    if (ImGui::Checkbox("Show View Frustum", &showFrustum))
-    {
-        Systems::g_RenderSystem->SetShowFrustum(showFrustum);
-    }
-    
-    // Get reference camera projection for frustum visualization (separate from main camera)
-    if (Systems::g_CameraSystem) 
-    {
-        Projection referenceProjection = Systems::g_CameraSystem->GetReferenceCameraProjection();
-        
-        ImGui::Separator();
-        ImGui::Text("Reference Frustum Parameters:");
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "(These control the visualized frustum, not the main camera)");
-        
-        // Field of View control
-        float fov = referenceProjection.m_Fov;
-        if (ImGui::SliderFloat("Field of View (degrees)", &fov, 10.0f, 170.0f, "%.1f")) {
-            referenceProjection.m_Fov = fov;
-            Systems::g_CameraSystem->SetReferenceCameraProjection(referenceProjection);
-        }
-        
-        // Display current values for reference
-        ImGui::Separator();
-        ImGui::Text("Reference Camera Values:");
-        ImGui::Text("FOV: %.1f degrees", referenceProjection.m_Fov);
-    }
-    else 
-    {
-        ImGui::Text("Camera system not available");
     }
 }
 

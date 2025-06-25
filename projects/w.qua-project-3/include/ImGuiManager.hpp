@@ -99,12 +99,6 @@ public:
     void RenderModelSelectionControls(Registry& registry);
     
     /**
-     * @brief Renders frustum culling controls.
-     * @param registry Entity registry reference
-     */
-    void RenderFrustumControls(Registry& registry);
-    
-    /**
      * @brief Renders performance statistics.
      */
     void RenderStats();

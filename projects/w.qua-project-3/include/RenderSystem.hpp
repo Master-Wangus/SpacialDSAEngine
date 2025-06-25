@@ -14,7 +14,6 @@
 class Shader;
 class Window;
 class CameraSystem;
-class FrustumRenderer;
 
 struct RenderComponent;
 struct TransformComponent;
@@ -260,9 +259,8 @@ private:
     bool m_EnableFrustumCulling = false;
     CameraSystem* m_CameraSystem = nullptr;
     
-    // Frustum visualization
+    // Frustum visualization flag retained (no renderer instance)
     bool m_ShowFrustum = false;
-    std::shared_ptr<FrustumRenderer> m_FrustumRenderer = nullptr;
     
     // OpenGL buffer IDs
     GLuint m_MaterialUBO = 0;

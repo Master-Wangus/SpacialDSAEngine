@@ -162,17 +162,38 @@ std::vector<Vertex> CubeRenderer::CreateVertices()
 
     glm::vec3 halfSize = m_Size * 0.5f;
     
-    const glm::vec3 pos[8] = 
+    glm::vec3 pos[8];
+    if (!m_IsOriented)
     {
-        m_Center + glm::vec3(-halfSize.x, -halfSize.y, -halfSize.z), // 0: bottom-left-back
-        m_Center + glm::vec3( halfSize.x, -halfSize.y, -halfSize.z), // 1: bottom-right-back
-        m_Center + glm::vec3( halfSize.x,  halfSize.y, -halfSize.z), // 2: top-right-back
-        m_Center + glm::vec3(-halfSize.x,  halfSize.y, -halfSize.z), // 3: top-left-back
-        m_Center + glm::vec3(-halfSize.x, -halfSize.y,  halfSize.z), // 4: bottom-left-front
-        m_Center + glm::vec3( halfSize.x, -halfSize.y,  halfSize.z), // 5: bottom-right-front
-        m_Center + glm::vec3( halfSize.x,  halfSize.y,  halfSize.z), // 6: top-right-front
-        m_Center + glm::vec3(-halfSize.x,  halfSize.y,  halfSize.z)  // 7: top-left-front
-    };
+        // Axis-aligned cube (AABB)
+        pos[0] = m_Center + glm::vec3(-halfSize.x, -halfSize.y, -halfSize.z);
+        pos[1] = m_Center + glm::vec3( halfSize.x, -halfSize.y, -halfSize.z);
+        pos[2] = m_Center + glm::vec3( halfSize.x,  halfSize.y, -halfSize.z);
+        pos[3] = m_Center + glm::vec3(-halfSize.x,  halfSize.y, -halfSize.z);
+        pos[4] = m_Center + glm::vec3(-halfSize.x, -halfSize.y,  halfSize.z);
+        pos[5] = m_Center + glm::vec3( halfSize.x, -halfSize.y,  halfSize.z);
+        pos[6] = m_Center + glm::vec3( halfSize.x,  halfSize.y,  halfSize.z);
+        pos[7] = m_Center + glm::vec3(-halfSize.x,  halfSize.y,  halfSize.z);
+    }
+    else
+    {
+        // Oriented cube (OBB) – build each corner using axes and half-extents
+        glm::vec3 he = m_HalfExtents;
+        // Precompute orientation vectors scaled by half extents
+        glm::vec3 ax = m_Axes[0] * he.x;
+        glm::vec3 ay = m_Axes[1] * he.y;
+        glm::vec3 az = m_Axes[2] * he.z;
+
+        // Construct the 8 corners
+        pos[0] = m_Center - ax - ay - az;
+        pos[1] = m_Center + ax - ay - az;
+        pos[2] = m_Center + ax + ay - az;
+        pos[3] = m_Center - ax + ay - az;
+        pos[4] = m_Center - ax - ay + az;
+        pos[5] = m_Center + ax - ay + az;
+        pos[6] = m_Center + ax + ay + az;
+        pos[7] = m_Center - ax + ay + az;
+    }
     
     const glm::vec3 normals[6] = 
     {

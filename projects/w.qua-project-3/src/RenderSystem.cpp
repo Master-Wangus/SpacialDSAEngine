@@ -10,7 +10,6 @@
 #include "Shader.hpp"
 #include "SphereRenderer.hpp"
 #include "CubeRenderer.hpp"
-#include "FrustumRenderer.hpp"
 #include "Components.hpp"
 #include "Shapes.hpp"
 #include "Registry.hpp"
@@ -61,6 +60,13 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
             m_BvhDirty = true;
         }
     });
+
+    // Rebuild BVH when the entire scene is reset
+    EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&) {
+        // Clear any previous hierarchy so we don't reference destroyed entities
+        m_Bvh.reset();
+        m_BvhDirty = true;
+    });
 }
 
 void RenderSystem::Initialize()
@@ -76,9 +82,6 @@ void RenderSystem::Initialize()
             renderComp.m_Renderable->Initialize(m_Shader);
         }
     }
-
-    m_FrustumRenderer = std::make_shared<FrustumRenderer>(glm::vec3(1.0f, 0.0f, 1.0f)); // Magenta color
-    m_FrustumRenderer->Initialize(m_Shader);
 
     SetupLighting();
     SetupMaterial();
@@ -215,120 +218,29 @@ void RenderSystem::Render()
             
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
                         
-            if (m_ShowAABB && boundingComp.m_AABBRenderable && m_CameraSystem) 
+            if (m_ShowAABB && boundingComp.m_AABBRenderable)
             {
-                SideResult aabbResult = m_CameraSystem->TestAabbAgainstFrustum(boundingComp.GetAABB());
-                Material& aabbMaterial = boundingComp.m_AABBRenderable->GetMaterialEditable();
-                glm::vec3 originalAabbDiffuse = aabbMaterial.m_DiffuseColor;
-                glm::vec3 originalAabbAmbient = aabbMaterial.m_AmbientColor;
-                glm::vec3 originalAabbSpecular = aabbMaterial.m_SpecularColor;
-                
-                glm::vec3 aabbTestColor = m_CameraSystem->GetFrustumTestColor(aabbResult);
-                aabbMaterial.m_DiffuseColor = aabbTestColor;
-                aabbMaterial.m_AmbientColor = aabbTestColor;
-                aabbMaterial.m_SpecularColor = aabbTestColor;
-                
-                UpdateMaterialUBO(aabbMaterial);
-                
                 boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                aabbMaterial.m_DiffuseColor = originalAabbDiffuse;
-                aabbMaterial.m_AmbientColor = originalAabbAmbient;
-                aabbMaterial.m_SpecularColor = originalAabbSpecular;
-                
-                UpdateMaterialUBO(aabbMaterial);
             }
             
-            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable && m_CameraSystem) 
+            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable) 
             {
-                SideResult ritterResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetRitterSphere());
-                Material& ritterMaterial = boundingComp.m_RitterRenderable->GetMaterialEditable();
-                glm::vec3 originalRitterDiffuse = ritterMaterial.m_DiffuseColor;
-                glm::vec3 originalRitterAmbient = ritterMaterial.m_AmbientColor;
-                glm::vec3 originalRitterSpecular = ritterMaterial.m_SpecularColor;
-                
-                glm::vec3 ritterTestColor = m_CameraSystem->GetFrustumTestColor(ritterResult);
-                ritterMaterial.m_DiffuseColor = ritterTestColor;
-                ritterMaterial.m_AmbientColor = ritterTestColor;
-                ritterMaterial.m_SpecularColor = ritterTestColor;
-                
-                UpdateMaterialUBO(ritterMaterial);
-                
                 boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                ritterMaterial.m_DiffuseColor = originalRitterDiffuse;
-                ritterMaterial.m_AmbientColor = originalRitterAmbient;
-                ritterMaterial.m_SpecularColor = originalRitterSpecular;
-                
-                UpdateMaterialUBO(ritterMaterial);
             }
             
-            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable && m_CameraSystem) 
+            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable) 
             {
-                SideResult larsonResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetLarssonSphere());
-                Material& larsonMaterial = boundingComp.m_LarsonRenderable->GetMaterialEditable();
-                glm::vec3 originalLarsonDiffuse = larsonMaterial.m_DiffuseColor;
-                glm::vec3 originalLarsonAmbient = larsonMaterial.m_AmbientColor;
-                glm::vec3 originalLarsonSpecular = larsonMaterial.m_SpecularColor;
-                
-                glm::vec3 larsonTestColor = m_CameraSystem->GetFrustumTestColor(larsonResult);
-                larsonMaterial.m_DiffuseColor = larsonTestColor;
-                larsonMaterial.m_AmbientColor = larsonTestColor;
-                larsonMaterial.m_SpecularColor = larsonTestColor;
-                
-                UpdateMaterialUBO(larsonMaterial);
-                
                 boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                larsonMaterial.m_DiffuseColor = originalLarsonDiffuse;
-                larsonMaterial.m_AmbientColor = originalLarsonAmbient;
-                larsonMaterial.m_SpecularColor = originalLarsonSpecular;
-                
-                UpdateMaterialUBO(larsonMaterial);
             }
             
-            if (m_ShowPCASphere && boundingComp.m_PCARenderable && m_CameraSystem) 
+            if (m_ShowPCASphere && boundingComp.m_PCARenderable) 
             {
-                SideResult pcaResult = m_CameraSystem->TestSphereAgainstFrustum(boundingComp.GetPCASphere());
-                Material& pcaMaterial = boundingComp.m_PCARenderable->GetMaterialEditable();
-                glm::vec3 originalPcaDiffuse = pcaMaterial.m_DiffuseColor;
-                glm::vec3 originalPcaAmbient = pcaMaterial.m_AmbientColor;
-                glm::vec3 originalPcaSpecular = pcaMaterial.m_SpecularColor;
-                
-                glm::vec3 pcaTestColor = m_CameraSystem->GetFrustumTestColor(pcaResult);
-                pcaMaterial.m_DiffuseColor = pcaTestColor;
-                pcaMaterial.m_AmbientColor = pcaTestColor;
-                pcaMaterial.m_SpecularColor = pcaTestColor;
-                
-                UpdateMaterialUBO(pcaMaterial);
-                
                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-                
-                pcaMaterial.m_DiffuseColor = originalPcaDiffuse;
-                pcaMaterial.m_AmbientColor = originalPcaAmbient;
-                pcaMaterial.m_SpecularColor = originalPcaSpecular;
-                
-                UpdateMaterialUBO(pcaMaterial);
             }
             
-            if (m_ShowOBB && boundingComp.m_OBBRenderable && m_CameraSystem) 
+            if (m_ShowOBB && boundingComp.m_OBBRenderable) 
             {
-                SideResult obbResult = m_CameraSystem->TestObbAgainstFrustum(boundingComp.GetOBB());
-                Material& obbMaterial = boundingComp.m_OBBRenderable->GetMaterialEditable();
-                glm::vec3 originalObbDiffuse = obbMaterial.m_DiffuseColor;
-                glm::vec3 originalObbAmbient = obbMaterial.m_AmbientColor;
-                glm::vec3 originalObbSpecular = obbMaterial.m_SpecularColor;
-                
-                glm::vec3 obbTestColor = m_CameraSystem->GetFrustumTestColor(obbResult);
-                obbMaterial.m_DiffuseColor = obbTestColor;
-                obbMaterial.m_AmbientColor = obbTestColor;
-                obbMaterial.m_SpecularColor = obbTestColor;
-                
-                UpdateMaterialUBO(obbMaterial);
-
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-
-                UpdateMaterialUBO(obbMaterial);
             }
 
             // Reapply default material so subsequent objects use correct shading.
@@ -349,19 +261,6 @@ void RenderSystem::Render()
             if (m_BvhRenderables[i])
                 m_BvhRenderables[i]->Render(identity, viewMatrix, projectionMatrix);
         }
-    }
-
-    if (m_ShowFrustum && m_FrustumRenderer && m_CameraSystem) 
-    {
-        glm::mat4 viewProjection = m_CameraSystem->GetVisualizationViewProjectionMatrix(camera, aspectRatio);
-        glm::mat4 invViewProjection = glm::inverse(viewProjection);
-        
-        // Update frustum geometry
-        m_FrustumRenderer->UpdateFrustum(invViewProjection);
-        
-        // Render frustum
-        glm::mat4 identity(1.0f);
-        m_FrustumRenderer->Render(identity, viewMatrix, projectionMatrix);
     }
 }
 
