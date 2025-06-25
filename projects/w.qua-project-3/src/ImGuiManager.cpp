@@ -512,18 +512,33 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                          (termination != prevTermination) ||
                          (heuristic != prevHeuristic);
 
-    if (paramsChanged && Systems::g_RenderSystem)
+    if (paramsChanged)
     {
-        if (buildMethod == 0)
+        // Update global build configuration so that automatic rebuilds use latest settings.
+        BvhBuildConfig::s_Method        = (buildMethod == 0) ? BvhBuildMethod::TopDown : BvhBuildMethod::BottomUp;
+        BvhBuildConfig::s_TDStrategy    = static_cast<TDSSplitStrategy>(splitStrategy);
+        BvhBuildConfig::s_TDTermination = static_cast<TDSTermination>(termination);
+        BvhBuildConfig::s_BUHeuristic   = static_cast<BUSHeuristic>(heuristic);
+
+        // Manually trigger a rebuild immediately so the visual updates this frame.
+        if (Systems::g_RenderSystem)
         {
-            TDSSplitStrategy ss = static_cast<TDSSplitStrategy>(splitStrategy);
-            TDSTermination   tt = static_cast<TDSTermination>(termination);
-            Systems::g_RenderSystem->BuildBVH(BvhBuildMethod::TopDown, ss, tt);
-        }
-        else
-        {
-            BUSHeuristic h = static_cast<BUSHeuristic>(heuristic);
-            Systems::g_RenderSystem->BuildBVH(BvhBuildMethod::BottomUp, TDSSplitStrategy::MedianCenter, TDSTermination::SingleObject, h);
+            if (BvhBuildConfig::s_Method == BvhBuildMethod::TopDown)
+            {
+                Systems::g_RenderSystem->BuildBVH(BvhBuildConfig::s_Method,
+                                                  BvhBuildConfig::s_TDStrategy,
+                                                  BvhBuildConfig::s_TDTermination,
+                                                  BvhBuildConfig::s_BUHeuristic,
+                                                  BvhBuildConfig::s_UseAabbVisual);
+            }
+            else
+            {
+                Systems::g_RenderSystem->BuildBVH(BvhBuildConfig::s_Method,
+                                                  BvhBuildConfig::s_TDStrategy,
+                                                  BvhBuildConfig::s_TDTermination,
+                                                  BvhBuildConfig::s_BUHeuristic,
+                                                  BvhBuildConfig::s_UseAabbVisual);
+            }
         }
 
         // Update previous trackers

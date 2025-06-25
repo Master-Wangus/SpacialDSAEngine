@@ -89,12 +89,12 @@ void RenderSystem::Render()
     // Rebuild BVH automatically if marked dirty (e.g., transforms changed)
     if (m_BvhDirty)
     {
-        // Default to bottom-up construction with MinCombinedVolume heuristic
-        BuildBVH(BvhBuildMethod::BottomUp,
-                 TDSSplitStrategy::MedianCenter,
-                 TDSTermination::SingleObject,
-                 BUSHeuristic::MinCombinedVolume,
-                 true /* useAabbVisual */);
+        // Rebuild using current settings chosen in ImGui (stored in BvhBuildConfig)
+        BuildBVH(BvhBuildConfig::s_Method,
+                 BvhBuildConfig::s_TDStrategy,
+                 BvhBuildConfig::s_TDTermination,
+                 BvhBuildConfig::s_BUHeuristic,
+                 BvhBuildConfig::s_UseAabbVisual);
         // BuildBVH clears the dirty flag
     }
 

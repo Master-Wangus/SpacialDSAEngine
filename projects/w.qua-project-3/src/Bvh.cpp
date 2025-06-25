@@ -30,6 +30,16 @@ namespace
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Static configuration defaults
+// ──────────────────────────────────────────────────────────────────────────────
+
+BvhBuildMethod   BvhBuildConfig::s_Method        = BvhBuildMethod::TopDown;
+TDSSplitStrategy BvhBuildConfig::s_TDStrategy    = TDSSplitStrategy::MedianCenter;
+TDSTermination   BvhBuildConfig::s_TDTermination = TDSTermination::SingleObject;
+BUSHeuristic     BvhBuildConfig::s_BUHeuristic   = BUSHeuristic::MinCombinedVolume;
+bool             BvhBuildConfig::s_UseAabbVisual = true;
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Public interface
 // ──────────────────────────────────────────────────────────────────────────────
 

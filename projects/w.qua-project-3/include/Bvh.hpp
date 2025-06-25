@@ -57,6 +57,24 @@ enum class BUSHeuristic
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Global configuration (modifiable by UI)
+// ──────────────────────────────────────────────────────────────────────────────
+
+struct BvhBuildConfig
+{
+    // Current build method and parameters selected by the UI. These are used
+    // by RenderSystem when it needs to rebuild the BVH automatically (e.g.
+    // after transforms change) so that the hierarchy is regenerated with the
+    // most recent user preferences.
+
+    static BvhBuildMethod     s_Method;
+    static TDSSplitStrategy   s_TDStrategy;
+    static TDSTermination     s_TDTermination;
+    static BUSHeuristic       s_BUHeuristic;
+    static bool               s_UseAabbVisual;
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
 // BVH Node definition
 // ──────────────────────────────────────────────────────────────────────────────
 
