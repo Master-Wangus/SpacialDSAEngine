@@ -15,11 +15,6 @@
 #include "RenderSystem.hpp"
 #include "InputSystem.hpp"
 #include "EventSystem.hpp"
-#include "SphereRenderer.hpp"
-#include "CubeRenderer.hpp"
-#include "TriangleRenderer.hpp"
-#include "PlaneRenderer.hpp"
-#include "RayRenderer.hpp"
 #include "DemoScene.hpp"
 #include "PickingSystem.hpp"
 
@@ -83,7 +78,7 @@ namespace Systems
             DemoScene::ResetScene(registry, window);
             
             // Fire a scene reset event
-            FIRE_EVENT(EventType::SceneReset);
+            EventSystem::Get().FireEvent(EventType::SceneReset);
         }
     }
 }

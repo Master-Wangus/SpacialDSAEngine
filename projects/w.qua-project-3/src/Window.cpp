@@ -9,6 +9,7 @@
 #include "Window.hpp"
 #include "Keybinds.hpp"
 #include <GLFW/glfw3.h> // as required by task 1
+#include <imgui_impl_glfw.h>
 
 // Static map to associate GLFW windows with Window instances
 static std::unordered_map<GLFWwindow*, Window*> windowMap;
@@ -168,6 +169,12 @@ void* Window::GetNativeWindow() const
 // Static callback wrappers
 void Window::KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) 
 {
+    // Let ImGui process the event first
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureKeyboard)
+        return; // UI wants the event
+    
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_KeyCallback) 
     {
@@ -177,6 +184,10 @@ void Window::KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int a
 
 void Window::CursorPosCallbackWrapper(GLFWwindow* window, double xpos, double ypos) 
 {
+    ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+        return;
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_CursorPosCallback) 
     {
@@ -186,6 +197,10 @@ void Window::CursorPosCallbackWrapper(GLFWwindow* window, double xpos, double yp
 
 void Window::MouseButtonCallbackWrapper(GLFWwindow* window, int button, int action, int mods)
 {
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+        return;
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_MouseButtonCallback)
     {
@@ -195,6 +210,10 @@ void Window::MouseButtonCallbackWrapper(GLFWwindow* window, int button, int acti
 
 void Window::ScrollCallbackWrapper(GLFWwindow* window, double xoffset, double yoffset)
 {
+    ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse)
+        return;
     auto it = windowMap.find(window);
     if (it != windowMap.end() && it->second->m_ScrollCallback)
     {

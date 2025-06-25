@@ -32,17 +32,17 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     });
 
     // Subscribe to wireframe toggle events
-    SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [this](const EventData& eventData) {
         if (auto keyCode = std::get_if<int>(&eventData)) {
             if (*keyCode == Keybinds::KEY_F) {
                 SetGlobalWireframe(!m_GlobalWireframe);
                 std::cout << "Wireframe mode: " << (m_GlobalWireframe ? "ON" : "OFF") << std::endl;
             }
         }
-    }));
+    });
 
     // Listen for transform changes to rebuild BVH automatically
-    SUBSCRIBE_TO_EVENT(EventType::TransformChanged, ([this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData) {
         if (m_Bvh)
         {
             if (auto entPtr = std::get_if<entt::entity>(&eventData))
@@ -60,7 +60,7 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
         {
             m_BvhDirty = true;
         }
-    }));
+    });
 }
 
 void RenderSystem::Initialize()
@@ -117,6 +117,15 @@ void RenderSystem::Render()
     if (m_CameraSystem) 
     {
         m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
+    }
+    
+    // Apply global wireframe mode once per frame
+    static GLenum s_CurrentPolyMode = GL_FILL;
+    GLenum desiredMode = m_GlobalWireframe ? GL_LINE : GL_FILL;
+    if (desiredMode != s_CurrentPolyMode)
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, desiredMode);
+        s_CurrentPolyMode = desiredMode;
     }
     
     auto renderView = m_Registry.View<TransformComponent, RenderComponent>();
@@ -197,20 +206,7 @@ void RenderSystem::Render()
         {
             // Lighting is always enabled now.
             
-            // Apply global wireframe mode if enabled
-            if (m_GlobalWireframe)
-            {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            }
-            else
-            {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
-            
             renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-            
-            // Reset polygon mode
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
         
         if (m_Registry.HasComponent<BoundingComponent>(entity))

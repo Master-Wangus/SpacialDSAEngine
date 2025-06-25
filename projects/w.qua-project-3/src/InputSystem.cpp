@@ -10,7 +10,6 @@
 #include "InputSystem.hpp"
 #include "Window.hpp"
 #include "Components.hpp"
-#include "RayRenderer.hpp"
 #include "Systems.hpp"
 #include "Keybinds.hpp"
 #include "EventSystem.hpp"
@@ -88,12 +87,8 @@ bool InputSystem::IsMouseDragging() const
 
 void InputSystem::StartDragging()
 {
-    // Only start dragging if ImGui isn't capturing the mouse
-    if (!ImGui::GetIO().WantCaptureMouse) 
-    {
-        m_MouseDragging = true;
-        m_Window.SetInputMode(Keybinds::CURSOR, Keybinds::CURSOR_DISABLED);
-    }
+    m_MouseDragging = true;
+    m_Window.SetInputMode(Keybinds::CURSOR, Keybinds::CURSOR_DISABLED);
 }
 
 void InputSystem::StopDragging()
@@ -104,11 +99,7 @@ void InputSystem::StopDragging()
 
 void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods)
 {
-    // Skip keyboard input if ImGui is capturing keyboard
-    if (ImGui::GetIO().WantCaptureKeyboard) 
-    {
-        return;
-    }
+    // ImGui already processed input in Window callbacks; no need to filter here
     
     // Update key state
     if (action == Keybinds::PRESS) 
@@ -116,14 +107,14 @@ void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods
         m_KeysPressed[key] = true;
         
         // Fire event using the EventSystem
-        FIRE_EVENT_WITH_DATA(EventType::KeyPress, key);
+        EventSystem::Get().FireEvent(EventType::KeyPress, key);
     }
     else if (action == Keybinds::RELEASE) 
     {
         m_KeysPressed[key] = false;
         
         // Fire event using the EventSystem
-        FIRE_EVENT_WITH_DATA(EventType::KeyRelease, key);
+        EventSystem::Get().FireEvent(EventType::KeyRelease, key);
     }
     
 
@@ -131,25 +122,19 @@ void InputSystem::ProcessKeyCallback(int key, int scancode, int action, int mods
 
 void InputSystem::ProcessMouseButtonCallback(int button, int action, int mods)
 {
-    // Skip mouse input if ImGui is capturing mouse
-    if (ImGui::GetIO().WantCaptureMouse) 
-    {
-        return;
-    }
-    
     // Update mouse button state
     if (action == Keybinds::PRESS) 
     {
         m_MouseButtonsPressed[button] = true;
         
         // Fire event using the EventSystem
-        FIRE_EVENT_WITH_DATA(EventType::MouseButtonPress, button);
+        EventSystem::Get().FireEvent(EventType::MouseButtonPress, button);
     } else if (action == Keybinds::RELEASE) 
     {
         m_MouseButtonsPressed[button] = false;
         
         // Fire event using the EventSystem
-        FIRE_EVENT_WITH_DATA(EventType::MouseButtonRelease, button);
+        EventSystem::Get().FireEvent(EventType::MouseButtonRelease, button);
     }
     
 
@@ -160,8 +145,8 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     // Update mouse position
     m_CurrentMousePos = glm::vec2(static_cast<float>(xpos), static_cast<float>(ypos));
     
-    // Calculate delta only when dragging and not captured by ImGui
-    if (m_MouseDragging && !ImGui::GetIO().WantCaptureMouse) 
+    // Calculate delta only when dragging
+    if (m_MouseDragging)
     {
         m_MouseDelta.x = m_CurrentMousePos.x - m_LastMousePos.x;
         m_MouseDelta.y = m_LastMousePos.y - m_CurrentMousePos.y; // Inverted Y for camera control
@@ -171,24 +156,16 @@ void InputSystem::ProcessCursorPosCallback(double xpos, double ypos)
     
     m_LastMousePos = m_CurrentMousePos;
     
-    // Fire event using the EventSystem if not captured by ImGui
-    if (!ImGui::GetIO().WantCaptureMouse) {
-        FIRE_EVENT_WITH_DATA(EventType::MouseMove, m_CurrentMousePos);
-    }
+    // Fire event using the EventSystem
+    EventSystem::Get().FireEvent(EventType::MouseMove, m_CurrentMousePos);
     
 
 }
 
 void InputSystem::ProcessScrollCallback(double xoffset, double yoffset)
 {
-    // Skip scroll input if ImGui is capturing mouse
-    if (ImGui::GetIO().WantCaptureMouse) 
-    {
-        return;
-    }
-    
     // Fire event using the EventSystem
-    FIRE_EVENT_WITH_DATA(EventType::MouseScroll, glm::vec2(static_cast<float>(xoffset), static_cast<float>(yoffset)));
+    EventSystem::Get().FireEvent(EventType::MouseScroll, glm::vec2(static_cast<float>(xoffset), static_cast<float>(yoffset)));
     
 
 } 

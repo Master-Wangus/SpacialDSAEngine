@@ -25,11 +25,11 @@ PickingSystem::PickingSystem(Registry& registry, Window& window)
     : m_Registry(registry), m_Window(window)
 {
     // Subscribe to mouse button presses through the EventSystem
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseButtonPress, HandleMouseButtonPress);
+    EventSystem::Get().SubscribeToEvent(EventType::MouseButtonPress, [this](const EventData& e){ HandleMouseButtonPress(e); });
 
     // Also listen for button release and mouse movement to enable dragging
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseButtonRelease, HandleMouseButtonRelease);
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseMove, HandleMouseMove);
+    EventSystem::Get().SubscribeToEvent(EventType::MouseButtonRelease, [this](const EventData& e){ HandleMouseButtonRelease(e); });
+    EventSystem::Get().SubscribeToEvent(EventType::MouseMove, [this](const EventData& e){ HandleMouseMove(e); });
 }
 
 //------------------------------------------------------------------------------
@@ -168,15 +168,15 @@ bool PickingSystem::RayIntersectsAABB(const Ray& ray, const Aabb& aabb, float& t
 //------------------------------------------------------------------------------
 void PickingSystem::HandleMouseButtonPress(const EventData& eventData)
 {
-    int button = GET_EVENT_DATA(int, eventData);
+    int button = std::get<int>(eventData);
     if (button != Keybinds::MOUSE_BUTTON_LEFT)
         return; // Only react to left-click
 
     // Retrieve current mouse position using the InputSystem
-    if (!g_InputSystem)
+    if (!Systems::GetInputSystem())
         return;
 
-    glm::vec2 mousePos = g_InputSystem->GetMousePosition();
+    glm::vec2 mousePos = Systems::GetInputSystem()->GetMousePosition();
 
     Registry::Entity picked = Pick(mousePos);
 
@@ -234,8 +234,8 @@ void PickingSystem::HandleMouseButtonPress(const EventData& eventData)
             m_DragOffset = trans.m_Position - intersect;
         }
 
-        if (g_InputSystem)
-            g_InputSystem->StartDragging();
+        if (Systems::GetInputSystem())
+            Systems::GetInputSystem()->StartDragging();
     }
 }
 
@@ -298,15 +298,15 @@ glm::vec3 PickingSystem::GetIntersectionPointOnDragPlane(const Ray& ray) const
 //------------------------------------------------------------------------------
 void PickingSystem::HandleMouseButtonRelease(const EventData& eventData)
 {
-    int button = GET_EVENT_DATA(int, eventData);
+    int button = std::get<int>(eventData);
     if (button != Keybinds::MOUSE_BUTTON_LEFT)
         return;
 
     if (m_DraggingEntity != entt::null)
     {
         m_DraggingEntity = entt::null;
-        if (g_InputSystem)
-            g_InputSystem->StopDragging();
+        if (Systems::GetInputSystem())
+            Systems::GetInputSystem()->StopDragging();
     }
 }
 
@@ -316,7 +316,7 @@ void PickingSystem::HandleMouseMove(const EventData& eventData)
     if (m_DraggingEntity == entt::null)
         return;
 
-    glm::vec2 screenPos = GET_EVENT_DATA(glm::vec2, eventData);
+    glm::vec2 screenPos = std::get<glm::vec2>(eventData);
 
     Ray ray = ScreenToWorldRay(screenPos);
 
@@ -329,6 +329,6 @@ void PickingSystem::HandleMouseMove(const EventData& eventData)
         transform.UpdateModelMatrix();
 
         // Notify systems of transform change for this entity
-        FIRE_EVENT_WITH_DATA(EventType::TransformChanged, m_DraggingEntity);
+        EventSystem::Get().FireEvent(EventType::TransformChanged, m_DraggingEntity);
     }
 } 

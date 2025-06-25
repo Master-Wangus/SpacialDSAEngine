@@ -15,8 +15,8 @@ ResourceSystem& ResourceSystem::GetInstance()
 }
 
 ResourceSystem::ResourceSystem() 
+    : m_Rng(std::random_device{}())
 {
-    std::srand(static_cast<unsigned int>(std::time(nullptr)));
     m_Loader = std::make_unique<Assimp::Importer>();
 }
 
@@ -27,19 +27,27 @@ ResourceSystem::~ResourceSystem()
 
 ResourceHandle ResourceSystem::LoadMesh(const std::string& path) 
 {
+    // Check if we've already loaded this path
+    auto itHandle = m_PathToHandle.find(path);
+    if (itHandle != m_PathToHandle.end())
+    {
+        return itHandle->second;
+    }
+
     // Load mesh from file
     auto mesh = LoadOBJFile(path);
-    if (!mesh) 
+    if (!mesh)
     {
         return INVALID_RESOURCE_HANDLE; // Return invalid handle
     }
-    
+
     // Create new handle with random UUID
     ResourceHandle handle = GenerateRandomUUID();
-    
-    // Store in cache
+
+    // Store in caches
     m_MeshResources[handle] = mesh;
-    
+    m_PathToHandle[path]   = handle;
+
     return handle;
 }
 
@@ -62,6 +70,7 @@ std::shared_ptr<MeshResource> ResourceSystem::GetMesh(const ResourceHandle& hand
 void ResourceSystem::Clear() 
 {
     m_MeshResources.clear();
+    m_PathToHandle.clear();
 }
 
 void ResourceSystem::ClearUnused() 
@@ -83,19 +92,11 @@ void ResourceSystem::ClearUnused()
 
 uint64_t ResourceSystem::GenerateRandomUUID() 
 {
-    // Generate a random 64-bit UUID
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis(1, UINT64_MAX); // Start from 1, 0 is reserved for invalid handles
-    
-    uint64_t uuid = dis(gen);
-    
-    // Make sure it's not already in use (highly unlikely but still check)
-    while (uuid == INVALID_RESOURCE_HANDLE) // 0 is reserved for invalid handles
-    {
-        uuid = dis(gen);
-    }
-    
+    std::uniform_int_distribution<uint64_t> dist(1, UINT64_MAX);
+    uint64_t uuid = 0;
+    do {
+        uuid = dist(m_Rng);
+    } while (uuid == INVALID_RESOURCE_HANDLE);
     return uuid;
 }
 

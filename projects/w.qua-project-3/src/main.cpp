@@ -50,14 +50,14 @@ int main()
         imguiManager.Init();
         
         // Subscribe to ESC key using EventSystem (application-level)
-        SUBSCRIBE_TO_EVENT(EventType::KeyPress, ([&window](const EventData& eventData) {
+        EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [&window](const EventData& eventData) {
             // Check if the event data contains an integer (key code)
             if (auto keyCode = std::get_if<int>(&eventData)) {
                 if (*keyCode == Keybinds::KEY_ESCAPE) {
                     window.SetShouldClose(true);
                 }
             }
-        }));
+        });
         
         // Game loop variables
         float lastFrame = 0.0f;

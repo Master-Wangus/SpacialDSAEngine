@@ -52,21 +52,6 @@ using EventFunction = std::function<void(const EventData&)>;
 
 class EventSystem; // Forward declaration for macros
 
-// Macros for convenient event system usage
-#define SUBSCRIBE_TO_EVENT(eventType, eventFunction) \
-    EventSystem::Get().SubscribeToEvent(eventType, (eventFunction))
-
-#define SUBSCRIBE_CLASS_TO_EVENT(eventType, eventFunction) \
-    EventSystem::Get().SubscribeToEvent(eventType, [this](const EventData& eventData) { eventFunction(eventData); })
-
-#define FIRE_EVENT(eventType) \
-    EventSystem::Get().FireEvent(eventType)
-
-#define FIRE_EVENT_WITH_DATA(eventType, eventData) \
-    EventSystem::Get().FireEvent(eventType, eventData)
-    
-#define GET_EVENT_DATA(eventDataType, eventData) \
-    *std::get_if<eventDataType>(&eventData)
 
 class EventSystem
 {

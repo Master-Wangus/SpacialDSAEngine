@@ -9,6 +9,7 @@
 #pragma once
 
 #include "pch.h"
+#include <random>
 
 // Forward declarations
 class Shader;
@@ -117,7 +118,11 @@ private:
     
     // Resource cache
     std::unordered_map<ResourceHandle, std::shared_ptr<MeshResource>> m_MeshResources;
-    
+    // Map from file path to resource handle for deduplication
+    std::unordered_map<std::string, ResourceHandle> m_PathToHandle;
+
+    // RNG for UUID generation (seeded once)
+    std::mt19937_64 m_Rng;
     // Assimp importer for mesh loading
     std::unique_ptr<Assimp::Importer> m_Loader;
     

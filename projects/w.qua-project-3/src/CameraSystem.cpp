@@ -81,7 +81,7 @@ CameraSystem::~CameraSystem()
 void CameraSystem::SetupEventSubscriptions()
 {
     // Subscribe to mouse movement events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseMove, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::MouseMove, [this](const EventData& eventData) {
         if (m_MouseDragging)
         {
             this->ProcessMouseMovement(eventData);
@@ -89,27 +89,27 @@ void CameraSystem::SetupEventSubscriptions()
     });
     
     // Subscribe to mouse button press events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseButtonPress, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::MouseButtonPress, [this](const EventData& eventData) {
         this->HandleMouseButtonPressEvent(eventData);
     });
     
     // Subscribe to mouse button release events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseButtonRelease, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::MouseButtonRelease, [this](const EventData& eventData) {
         this->HandleMouseButtonReleaseEvent(eventData);
     });
     
     // Subscribe to mouse scroll events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::MouseScroll, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::MouseScroll, [this](const EventData& eventData) {
         this->HandleMouseScrollEvent(eventData);
     });
     
     // Subscribe to key press events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::KeyPress, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [this](const EventData& eventData) {
         this->HandleKeyPressEvent(eventData);
     });
     
     // Subscribe to key release events
-    SUBSCRIBE_CLASS_TO_EVENT(EventType::KeyRelease, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::KeyRelease, [this](const EventData& eventData) {
         this->HandleKeyReleaseEvent(eventData);
     });
 }
@@ -122,7 +122,7 @@ void CameraSystem::HandleMouseButtonPressEvent(const EventData& eventData)
             m_MouseDragging = true;
             
             // Reset last mouse position to current position to prevent jumping
-            m_LastMousePos = Systems::g_InputSystem->GetMousePosition();
+            m_LastMousePos = Systems::GetInputSystem()->GetMousePosition();
         }
     }
 }
@@ -232,10 +232,10 @@ void CameraSystem::ProcessKeyboardInput(float deltaTime)
     
     if (camera.m_ActiveCameraType == CameraType::FPS) 
     {
-        bool keyW = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_W);
-        bool keyS = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_S);
-        bool keyA = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_A);
-        bool keyD = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_D);
+        bool keyW = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_W);
+        bool keyS = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_S);
+        bool keyA = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_A);
+        bool keyD = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_D);
         
         float velocity = camera.m_FPS.m_MovementSpeed * deltaTime;
         
@@ -250,10 +250,10 @@ void CameraSystem::ProcessKeyboardInput(float deltaTime)
     }
     else if (camera.m_ActiveCameraType == CameraType::Orbital) 
     {
-        bool keyW = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_W);
-        bool keyS = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_S);
-        bool keyA = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_A);
-        bool keyD = Systems::g_InputSystem->IsKeyPressed(Keybinds::KEY_D);
+        bool keyW = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_W);
+        bool keyS = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_S);
+        bool keyA = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_A);
+        bool keyD = Systems::GetInputSystem()->IsKeyPressed(Keybinds::KEY_D);
         
         // Move target point in orbital mode
         float targetSpeed = 2.0f * deltaTime;

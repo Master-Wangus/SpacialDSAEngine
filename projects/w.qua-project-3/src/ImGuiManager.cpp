@@ -43,7 +43,7 @@ void ImGuiManager::Init()
     ImGui::StyleColorsDark();
     
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_Window.GetNativeWindow(), true);
+    ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_Window.GetNativeWindow(), false);
     ImGui_ImplOpenGL3_Init("#version 460");
     
     m_Initialized = true;

@@ -30,6 +30,12 @@ namespace Systems
     extern DemoSceneType g_CurrentDemoScene;
     extern std::unique_ptr<PickingSystem> g_PickingSystem;
 
+    // Type-safe accessors (preferred over using the raw extern pointers)
+    inline InputSystem* GetInputSystem()   { return g_InputSystem.get(); }
+    inline CameraSystem* GetCameraSystem(){ return g_CameraSystem.get(); }
+    inline RenderSystem* GetRenderSystem(){ return g_RenderSystem.get(); }
+    inline PickingSystem* GetPickingSystem(){ return g_PickingSystem.get(); }
+
     /**
      * @brief Initializes all engine systems.
      * @param registry Entity registry for system initialization

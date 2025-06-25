@@ -13,11 +13,6 @@
 #include "Window.hpp"
 #include "Shader.hpp"
 #include "RenderSystem.hpp"
-#include "SphereRenderer.hpp"
-#include "CubeRenderer.hpp"
-#include "TriangleRenderer.hpp"
-#include "PlaneRenderer.hpp"
-#include "RayRenderer.hpp"
 #include "MeshRenderer.hpp"
 #include "ResourceSystem.hpp"
 #include "InputSystem.hpp"
@@ -37,7 +32,7 @@ namespace DemoScene
         SetupMeshScene(registry);
         
         // Setup scene reset shortcut using EventSystem
-        SUBSCRIBE_TO_EVENT(EventType::KeyPress, [&](const EventData& eventData) {
+        EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [&](const EventData& eventData) {
             // Check if the event data contains an integer (key code)
             if (auto keyCode = std::get_if<int>(&eventData)) {
                 if (*keyCode == Keybinds::KEY_R) {
@@ -195,7 +190,7 @@ namespace DemoScene
             auto &transform = registry.GetComponent<TransformComponent>(entity);
             transform.m_Scale = glm::vec3(scale);
             transform.UpdateModelMatrix();
-            FIRE_EVENT_WITH_DATA(EventType::TransformChanged, entity);
+            EventSystem::Get().FireEvent(EventType::TransformChanged, entity);
         }
     }
 
