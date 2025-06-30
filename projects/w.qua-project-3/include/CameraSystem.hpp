@@ -156,24 +156,24 @@ struct OrbitalCamera
 
     /**
      * @brief Calculates the current camera position based on orbital parameters.
+     *        (Top-down debug camera: camera sits above the target at a fixed height)
      * @return Current camera position in world space
      */
-    glm::vec3 GetCameraPosition() const 
+    glm::vec3 GetCameraPosition() const
     {
-        float x = m_Distance * cos(glm::radians(m_Pitch)) * cos(glm::radians(m_Yaw));
-        float y = m_Distance * sin(glm::radians(m_Pitch));
-        float z = m_Distance * cos(glm::radians(m_Pitch)) * sin(glm::radians(m_Yaw));
-        return m_Target + glm::vec3(x, y, z);
+        // For a top-down debug view we always stay directly above the target.
+        return m_Target + glm::vec3(0.0f, m_Distance, 0.0f);
     }
 
     /**
      * @brief Gets the view matrix for this orbital camera.
      * @return 4x4 view matrix
      */
-    glm::mat4 GetViewMatrix() const 
+    glm::mat4 GetViewMatrix() const
     {
         glm::vec3 cameraPos = GetCameraPosition();
-        return glm::lookAt(cameraPos, m_Target, glm::vec3(0.0f, 1.0f, 0.0f));
+        // Use -Z as the up vector to keep world X axis to the right on screen.
+        return glm::lookAt(cameraPos, m_Target, glm::vec3(0.0f, 0.0f, -1.0f));
     }
 
     /**
@@ -324,4 +324,10 @@ private:
     bool m_FrustumUpdated = false; // Flag to track if frustum needs updating
     
     Projection m_ReferenceCameraProjection;
+
+    // --- Stored FPS state when switching to Top-Down camera ---
+    bool m_HasStoredFPSState = false;
+    glm::vec3 m_StoredFPSPosition = glm::vec3(0.0f);
+    float m_StoredFPSYaw = 0.0f;
+    float m_StoredFPSPitch = 0.0f;
 }; 

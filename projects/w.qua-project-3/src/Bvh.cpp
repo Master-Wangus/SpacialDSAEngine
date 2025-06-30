@@ -311,7 +311,7 @@ int Bvh::BuildTopDownRecursive(Registry& registry,
     std::vector<Entity> leftObjs(objects.begin(), objects.begin() + midIndex);
     std::vector<Entity> rightObjs(objects.begin() + midIndex, objects.end());
 
-    // Create internal node first (placeholder children indices)
+    // Create internal node first
     int nodeIdx = static_cast<int>(m_Nodes.size());
     m_Nodes.emplace_back(); // default constructed
     m_Nodes[nodeIdx].m_Depth = depth;
@@ -369,7 +369,7 @@ Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, bool useAabb) cons
     std::vector<std::shared_ptr<IRenderable>> result;
     if (!shader) return result;
 
-    // Colour palette for first 7 levels (ROYGBIV)
+    // Colour palette for first 7 levels 
     static const glm::vec3 palette[7] = {
         {1.0f, 0.0f, 0.0f}, // Red
         {1.0f, 0.5f, 0.0f}, // Orange

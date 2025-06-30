@@ -52,7 +52,7 @@ CameraSystem::CameraSystem(Registry& registry, Window& window)
         
         CameraComponent camera;
         camera.m_FPS = fpsCamera;
-        camera.m_Orbital = orbitalCamera;
+        camera.m_TopDown = orbitalCamera;
         camera.m_Projection = projection;
         camera.m_ActiveCameraType = CameraType::FPS;
         
@@ -143,7 +143,7 @@ void CameraSystem::HandleMouseScrollEvent(const EventData& eventData)
         auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
         if (camera.m_ActiveCameraType == CameraType::Orbital) 
         {
-            camera.m_Orbital.Zoom(-scrollData->y);
+            camera.m_TopDown.Zoom(-scrollData->y);
         }
     }
 }
@@ -218,10 +218,12 @@ void CameraSystem::ProcessMouseMovement(const EventData& eventData)
             
             camera.m_FPS.UpdateVectors();
         }
-        else if (camera.m_ActiveCameraType == CameraType::Orbital) 
+        else if (camera.m_ActiveCameraType == CameraType::Orbital)
         {
-            // For orbital camera, mouse movement rotates around the target
-            camera.m_Orbital.Orbit(xOffset, -yOffset); // Negative yOffset for intuitive up/down movement
+            // Top-down debug camera: right-drag pans across the XZ ground plane.
+            const float panSpeed = 0.05f;
+            glm::vec3 offset(-xOffset * panSpeed, 0.0f, yOffset * panSpeed);
+            camera.m_TopDown.MoveTarget(offset);
         }
     }
 }
@@ -259,13 +261,13 @@ void CameraSystem::ProcessKeyboardInput(float deltaTime)
         float targetSpeed = 2.0f * deltaTime;
         
         if (keyW)
-            camera.m_Orbital.MoveTarget(glm::vec3(0.0f, 0.0f, -targetSpeed)); // Move forward
+            camera.m_TopDown.MoveTarget(glm::vec3(0.0f, 0.0f, -targetSpeed)); // Move forward
         if (keyS)
-            camera.m_Orbital.MoveTarget(glm::vec3(0.0f, 0.0f, targetSpeed)); // Move backward
+            camera.m_TopDown.MoveTarget(glm::vec3(0.0f, 0.0f, targetSpeed)); // Move backward
         if (keyA)
-            camera.m_Orbital.MoveTarget(glm::vec3(-targetSpeed, 0.0f, 0.0f)); // Move left
+            camera.m_TopDown.MoveTarget(glm::vec3(-targetSpeed, 0.0f, 0.0f)); // Move left
         if (keyD)
-            camera.m_Orbital.MoveTarget(glm::vec3(targetSpeed, 0.0f, 0.0f)); // Move right
+            camera.m_TopDown.MoveTarget(glm::vec3(targetSpeed, 0.0f, 0.0f)); // Move right
     }
 }
 
@@ -273,32 +275,45 @@ void CameraSystem::SwitchCameraType()
 {
     auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
     
-    // Toggle between camera types
-    if (camera.m_ActiveCameraType == CameraType::FPS) 
+    if (camera.m_ActiveCameraType == CameraType::FPS)
     {
+        // --- Switching to Top-Down ---
+        // Store current FPS state so we can restore later.
+        m_StoredFPSPosition = camera.m_FPS.m_CameraPosition;
+        m_StoredFPSYaw      = camera.m_FPS.m_YawAngle;
+        m_StoredFPSPitch    = camera.m_FPS.m_PitchAngle;
+        m_HasStoredFPSState = true;
+
         camera.m_ActiveCameraType = CameraType::Orbital;
-        
-        // Set orbital camera target to be at the current FPS camera position + front
-        glm::vec3 lookPoint = camera.m_FPS.m_CameraPosition + camera.m_FPS.m_CameraFront * 5.0f;
-        camera.m_Orbital.m_Target = lookPoint;
-    } 
-    else 
+
+        // Place target at current FPS position (XZ) so the camera will look down on that point.
+        camera.m_TopDown.m_Target   = camera.m_FPS.m_CameraPosition;
+        camera.m_TopDown.m_Distance = 10.0f; // reasonable default height
+    }
+    else
     {
+        // --- Switching back to FPS ---
         camera.m_ActiveCameraType = CameraType::FPS;
-        
-        // Position FPS camera at the orbital camera's position
-        camera.m_FPS.m_CameraPosition = camera.m_Orbital.GetCameraPosition();
-        
-        // Make the FPS camera look at the orbital target
-        glm::vec3 direction = camera.m_Orbital.m_Target - camera.m_FPS.m_CameraPosition;
-        if (glm::length(direction) > 0.001f) // Ensure we have a valid direction
+
+        if (m_HasStoredFPSState)
         {
-            direction = glm::normalize(direction);
-            camera.m_FPS.m_CameraFront = direction;
-            
-            // Calculate the yaw and pitch from the direction vector
-            camera.m_FPS.m_YawAngle = glm::degrees(atan2(direction.z, direction.x));
-            camera.m_FPS.m_PitchAngle = glm::degrees(asin(direction.y));
+            camera.m_FPS.m_CameraPosition = m_StoredFPSPosition;
+            camera.m_FPS.m_YawAngle       = m_StoredFPSYaw;
+            camera.m_FPS.m_PitchAngle     = m_StoredFPSPitch;
+            camera.m_FPS.UpdateVectors();
+        }
+        else
+        {
+            // Fallback to position at the top-down camera location facing its target.
+            camera.m_FPS.m_CameraPosition = camera.m_TopDown.GetCameraPosition();
+            glm::vec3 direction = camera.m_TopDown.m_Target - camera.m_FPS.m_CameraPosition;
+            if (glm::length(direction) > 0.001f)
+            {
+                direction = glm::normalize(direction);
+                camera.m_FPS.m_CameraFront = direction;
+                camera.m_FPS.m_YawAngle   = glm::degrees(atan2(direction.z, direction.x));
+                camera.m_FPS.m_PitchAngle = glm::degrees(asin(direction.y));
+            }
         }
     }
 }

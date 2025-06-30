@@ -94,12 +94,6 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     
     ImGui::Separator();
     
-    if (ImGui::Button("Reset Scene")) {
-        Systems::ResetCurrentScene(registry, m_Window);
-    }
-    
-    ImGui::Separator();
-    
     // Add collapsing headers for different control categories
     if (ImGui::CollapsingHeader("Camera Controls", ImGuiTreeNodeFlags_DefaultOpen)) {
         RenderCameraControls(registry);
@@ -173,7 +167,7 @@ void ImGuiManager::RenderCameraControls(Registry& registry)
     auto cameraEntity = *cameraView.begin();
     auto& camera = registry.GetComponent<CameraComponent>(cameraEntity);
     
-    const char* currentCameraType = (camera.m_ActiveCameraType == CameraType::FPS) ? "FPS Camera" : "Orbital Camera";
+    const char* currentCameraType = (camera.m_ActiveCameraType == CameraType::FPS) ? "FPS Camera" : "Top-Down Camera";
     ImGui::Text("Current Camera: %s", currentCameraType);
     
     glm::vec3 cameraPos = camera.GetPosition();
@@ -187,7 +181,7 @@ void ImGuiManager::RenderCameraControls(Registry& registry)
         ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "FPS Camera Controls:");
         ImGui::Text("WASD - Move camera");
         ImGui::Text("Mouse + Right Click - Look around");
-        ImGui::Text("C - Switch to Orbital camera");
+        ImGui::Text("C - Switch to Top-Down camera");
         
         ImGui::Separator();
         
@@ -198,21 +192,19 @@ void ImGuiManager::RenderCameraControls(Registry& registry)
     }
     else if (camera.m_ActiveCameraType == CameraType::Orbital) 
     {
-        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Orbital Camera Controls:");
-        ImGui::Text("Mouse + Right Click - Orbit around target");
+        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Top-Down Camera Controls:");
+        ImGui::Text("Mouse + Right Click - Pan view");
         ImGui::Text("Mouse Wheel - Zoom in/out");
         ImGui::Text("WASD - Move target point");
         ImGui::Text("C - Switch to FPS camera");
         
         ImGui::Separator();
         
-        // Orbital Camera details
-        glm::vec3 target = camera.m_Orbital.m_Target;
+        // Top-Down Camera details
+        glm::vec3 target = camera.m_TopDown.m_Target;
         ImGui::Text("Target: (%.2f, %.2f, %.2f)", target.x, target.y, target.z);
-        ImGui::Text("Distance: %.2f", camera.m_Orbital.m_Distance);
-        ImGui::Text("Yaw: %.1f°", camera.m_Orbital.m_Yaw);
-        ImGui::Text("Pitch: %.1f°", camera.m_Orbital.m_Pitch);
-        ImGui::Text("Zoom Range: %.1f - %.1f", camera.m_Orbital.m_MinDistance, camera.m_Orbital.m_MaxDistance);
+        ImGui::Text("Height: %.2f", camera.m_TopDown.m_Distance);
+        ImGui::Text("Zoom Range: %.1f - %.1f", camera.m_TopDown.m_MinDistance, camera.m_TopDown.m_MaxDistance);
     }
 }
 
@@ -225,6 +217,13 @@ void ImGuiManager::RenderLightingControls(Registry& registry)
         if (ImGui::Checkbox("Enable Directional Lighting", &lightEnabled))
         {
             Systems::g_RenderSystem->ToggleDirectionalLight(lightEnabled);
+        }
+
+        // Slider to control light rotation speed (degrees per second)
+        float speedDeg = glm::degrees(Systems::g_RenderSystem->GetLightRotationSpeed());
+        if (ImGui::SliderFloat("Light Speed (deg/s)", &speedDeg, 0.0f, 180.0f))
+        {
+            Systems::g_RenderSystem->SetLightRotationSpeed(glm::radians(speedDeg));
         }
     }
 }
@@ -246,23 +245,9 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
         Systems::g_RenderSystem->SetShowAABB(showAABB);
     }
     
-    // Ritter Sphere Controls
-    bool showRitter = Systems::g_RenderSystem->IsRitterSphereVisible();
-    if (ImGui::Checkbox("Ritter Sphere", &showRitter))
-    {
-        Systems::g_RenderSystem->SetShowRitterSphere(showRitter);
-    }
-    
-    // Larsson Sphere Controls
-    bool showLarsson = Systems::g_RenderSystem->IsLarsonSphereVisible();
-    if (ImGui::Checkbox("Larsson Iterative Sphere", &showLarsson))
-    {
-        Systems::g_RenderSystem->SetShowLarsonSphere(showLarsson);
-    }
-    
-    // PCA Sphere Controls
+    // Bounding Sphere (PCA) Controls
     bool showPCA = Systems::g_RenderSystem->IsPCASphereVisible();
-    if (ImGui::Checkbox("PCA Sphere", &showPCA))
+    if (ImGui::Checkbox("Bounding Sphere", &showPCA))
     {
         Systems::g_RenderSystem->SetShowPCASphere(showPCA);
     }

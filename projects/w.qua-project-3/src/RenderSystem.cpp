@@ -89,16 +89,41 @@ void RenderSystem::Initialize()
 
 void RenderSystem::Render()
 {
+    // Rotate directional light vertically over time -----------------------
+    if (m_LightEntity != entt::null && m_Registry.HasComponent<DirectionalLightComponent>(m_LightEntity))
+    {
+        auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
+
+        // Compute new direction based on elapsed time
+        float time = static_cast<float>(m_Window.GetTime());
+        float angle = time * m_LightRotationSpeed; // radians
+
+        // Rotate in the YZ plane (vertical swing)
+        glm::vec3 dir = glm::normalize(glm::vec3(0.0f, -cos(angle), -sin(angle)));
+        lightComp.m_Light.m_Direction = glm::vec4(dir, 0.0f);
+
+        // Move the visualization sphere opposite the light direction
+        if (m_LightVisualizationEntity != entt::null && m_Registry.HasComponent<TransformComponent>(m_LightVisualizationEntity))
+        {
+            glm::vec3 lightPos = -dir * 5.0f;
+            auto& t = m_Registry.GetComponent<TransformComponent>(m_LightVisualizationEntity);
+            t.m_Position = lightPos;
+            t.UpdateModelMatrix();
+        }
+
+        // Upload to GPU UBO
+        UpdateLighting();
+    }
+
     // Rebuild BVH automatically if marked dirty (e.g., transforms changed)
     if (m_BvhDirty)
     {
-        // Rebuild using current settings chosen in ImGui (stored in BvhBuildConfig)
+        // Rebuild using current settings chosen in ImGui 
         BuildBVH(BvhBuildConfig::s_Method,
                  BvhBuildConfig::s_TDStrategy,
                  BvhBuildConfig::s_TDTermination,
                  BvhBuildConfig::s_BUHeuristic,
                  BvhBuildConfig::s_UseAabbVisual);
-        // BuildBVH clears the dirty flag
     }
 
     auto cameraView = m_Registry.View<CameraComponent>();
@@ -159,20 +184,14 @@ void RenderSystem::Render()
             Aabb worldAabb = boundingComp.GetAABB();
             worldAabb.Transform(transform.m_Model);
 
-            Sphere worldRitter = boundingComp.GetRitterSphere();
-            Sphere worldLarson = boundingComp.GetLarssonSphere();
             Sphere worldPCA    = boundingComp.GetPCASphere();
 
             // Transform sphere centers
             auto transformPoint = [&](const glm::vec3& p){ return glm::vec3(transform.m_Model * glm::vec4(p,1.0f)); };
-            worldRitter.center = transformPoint(worldRitter.center);
-            worldLarson.center = transformPoint(worldLarson.center);
-            worldPCA.center    = transformPoint(worldPCA.center);
+            worldPCA.center = transformPoint(worldPCA.center);
 
             // Scale radii by maximum scale factor (uniform approximation)
             float maxScale = glm::compMax(glm::abs(transform.m_Scale));
-            worldRitter.radius *= maxScale;
-            worldLarson.radius *= maxScale;
             worldPCA.radius    *= maxScale;
 
             Obb worldObb = boundingComp.GetOBB();
@@ -190,14 +209,6 @@ void RenderSystem::Render()
             else if (m_ShowOBB) 
             {
                 frustumResult = m_CameraSystem->TestObbAgainstFrustum(worldObb);
-            }
-            else if (m_ShowRitterSphere) 
-            {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(worldRitter);
-            }
-            else if (m_ShowLarsonSphere) 
-            {
-                frustumResult = m_CameraSystem->TestSphereAgainstFrustum(worldLarson);
             }
             else if (m_ShowPCASphere) 
             {
@@ -223,24 +234,14 @@ void RenderSystem::Render()
                 boundingComp.m_AABBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
             }
             
-            if (m_ShowRitterSphere && boundingComp.m_RitterRenderable) 
-            {
-                boundingComp.m_RitterRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-            }
-            
-            if (m_ShowLarsonSphere && boundingComp.m_LarsonRenderable) 
-            {
-                boundingComp.m_LarsonRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-            }
-            
-            if (m_ShowPCASphere && boundingComp.m_PCARenderable) 
-            {
-                boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
-            }
-            
             if (m_ShowOBB && boundingComp.m_OBBRenderable) 
             {
                 boundingComp.m_OBBRenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
+            }
+
+            if (m_ShowPCASphere && boundingComp.m_PCARenderable)
+            {
+                 boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
             }
 
             // Reapply default material so subsequent objects use correct shading.
@@ -300,16 +301,6 @@ void RenderSystem::SetShowAABB(bool show)
     m_ShowAABB = show;
 }
 
-void RenderSystem::SetShowRitterSphere(bool show)
-{
-    m_ShowRitterSphere = show;
-}
-
-void RenderSystem::SetShowLarsonSphere(bool show)
-{
-    m_ShowLarsonSphere = show;
-}
-
 void RenderSystem::SetShowPCASphere(bool show)
 {
     m_ShowPCASphere = show;
@@ -323,16 +314,6 @@ void RenderSystem::SetShowOBB(bool show)
 bool RenderSystem::IsAABBVisible() const
 {
     return m_ShowAABB;
-}
-
-bool RenderSystem::IsRitterSphereVisible() const
-{
-    return m_ShowRitterSphere;
-}
-
-bool RenderSystem::IsLarsonSphereVisible() const
-{
-    return m_ShowLarsonSphere;
 }
 
 bool RenderSystem::IsPCASphereVisible() const

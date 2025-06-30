@@ -38,26 +38,6 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
     );
     m_AABBRenderable->Initialize(shader);
     
-    // Get Ritter sphere (computed lazily)
-    const auto& ritterSphere = GetRitterSphere();
-    m_RitterRenderable = std::make_shared<SphereRenderer>(
-        ritterSphere.center, 
-        ritterSphere.radius,
-        neutralColor,
-        true 
-    );
-    m_RitterRenderable->Initialize(shader);
-    
-    // Get Larsson sphere (computed lazily)
-    const auto& larssonSphere = GetLarssonSphere();
-    m_LarsonRenderable = std::make_shared<SphereRenderer>(
-        larssonSphere.center,
-        larssonSphere.radius,
-        neutralColor,
-        true 
-    );
-    m_LarsonRenderable->Initialize(shader);
-    
     // Get PCA sphere (computed lazily)
     const auto& pcaSphere = GetPCASphere();
     m_PCARenderable = std::make_shared<SphereRenderer>(
@@ -83,8 +63,6 @@ void BoundingComponent::InitializeRenderables(const std::shared_ptr<Shader>& sha
 void BoundingComponent::CleanupRenderables()
 {
     m_AABBRenderable.reset();
-    m_RitterRenderable.reset();
-    m_LarsonRenderable.reset();
     m_PCARenderable.reset();
     m_OBBRenderable.reset();
 }
@@ -100,34 +78,6 @@ void BoundingComponent::ComputeAABB()
     CreateAabbBruteForce(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), &min, &max);
     m_AABB = Aabb(min.m_Position, max.m_Position);
     m_AABBComputed = true;
-}
-
-void BoundingComponent::ComputeRitterSphere()
-{
-    if (m_RitterComputed || m_MeshHandle == INVALID_RESOURCE_HANDLE) return;
-    
-    const auto& meshResource = ResourceSystem::GetInstance().GetMesh(m_MeshHandle);
-    if (!meshResource) return;
-    
-    Vertex center;
-    float radius;
-    CreateSphereRitters(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), &center, &radius);
-    m_RitterSphere = Sphere(center.m_Position, radius);
-    m_RitterComputed = true;
-}
-
-void BoundingComponent::ComputeLarssonSphere()
-{
-    if (m_LarssonComputed || m_MeshHandle == INVALID_RESOURCE_HANDLE) return;
-    
-    const auto& meshResource = ResourceSystem::GetInstance().GetMesh(m_MeshHandle);
-    if (!meshResource) return;
-    
-    Vertex center;
-    float radius;
-    CreateSphereIterative(meshResource->GetVertexes().data(), meshResource->GetVertexes().size(), 2, 0.5f, &center, &radius);
-    m_LarssonSphere = Sphere(center.m_Position, radius);
-    m_LarssonComputed = true;
 }
 
 void BoundingComponent::ComputePCASphere()

@@ -99,18 +99,6 @@ public:
     void SetShowAABB(bool show);
     
     /**
-     * @brief Sets visibility of Ritter sphere bounding volumes.
-     * @param show True to show Ritter spheres, false to hide
-     */
-    void SetShowRitterSphere(bool show);
-    
-    /**
-     * @brief Sets visibility of Larson sphere bounding volumes.
-     * @param show True to show Larson spheres, false to hide
-     */
-    void SetShowLarsonSphere(bool show);
-    
-    /**
      * @brief Sets visibility of PCA sphere bounding volumes.
      * @param show True to show PCA spheres, false to hide
      */
@@ -127,18 +115,6 @@ public:
      * @return True if AABBs are visible, false otherwise
      */
     bool IsAABBVisible() const;
-    
-    /**
-     * @brief Checks if Ritter sphere bounding volumes are visible.
-     * @return True if Ritter spheres are visible, false otherwise
-     */
-    bool IsRitterSphereVisible() const;
-    
-    /**
-     * @brief Checks if Larson sphere bounding volumes are visible.
-     * @return True if Larson spheres are visible, false otherwise
-     */
-    bool IsLarsonSphereVisible() const;
     
     /**
      * @brief Checks if PCA sphere bounding volumes are visible.
@@ -211,6 +187,10 @@ public:
 
     void MarkBVHDirty() { m_BvhDirty = true; }
 
+    // Light animation speed (radians per second)
+    float GetLightRotationSpeed() const { return m_LightRotationSpeed; }
+    void  SetLightRotationSpeed(float radiansPerSec) { m_LightRotationSpeed = radiansPerSec; }
+
 private:
     /**
      * @brief Sets up lighting system and uniform buffer objects.
@@ -247,13 +227,14 @@ private:
     
     // Bounding volume visibility flags
     bool m_ShowAABB = false;
-    bool m_ShowRitterSphere = false;
-    bool m_ShowLarsonSphere = false;
     bool m_ShowPCASphere = false;
     bool m_ShowOBB = false;
     
     // Main object display control
     bool m_ShowMainObjects = true;
+    
+    // Automatic vertical rotation of the directional light
+    float m_LightRotationSpeed = glm::radians(15.0f); // 15 degrees per second
     
     // Frustum culling control
     bool m_EnableFrustumCulling = false;

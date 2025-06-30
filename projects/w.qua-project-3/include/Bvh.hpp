@@ -122,15 +122,11 @@ public:
     // Clear hierarchy.
     void Clear();
 
-    // Get read-only access to nodes.
     const std::vector<BvhNode>& GetNodes() const { return m_Nodes; }
     int  GetRootIndex() const { return m_RootIndex; }
 
     // Creates wireframe renderables for visualising the BVH. One renderable per
-    // node is generated and coloured by depth (level 0 = red, then orange,
-    // yellow, green, blue, indigo, violet, cycling if deeper than 7).
-    // If useAabb is true, CubeRenderer objects are created, otherwise
-    // SphereRenderer objects are produced.
+    // node is generated and coloured by depth
     std::vector<std::shared_ptr<IRenderable>>
     CreateRenderables(const std::shared_ptr<Shader>& shader,
                       bool useAabb = true) const;

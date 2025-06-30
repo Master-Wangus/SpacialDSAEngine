@@ -85,8 +85,6 @@ struct DirectionalLightComponent
 enum class BoundingVolumeType 
 {
     AABB,              
-    BSphere_Ritter,    
-    BSphere_Larsson,    
     BSphere_PCA         
 };
 
@@ -94,23 +92,17 @@ struct BoundingComponent
 {
     // Bounding volume data
     Aabb m_AABB;
-    Sphere m_RitterSphere;      
-    Sphere m_LarssonSphere;     
     Sphere m_PCASphere;
     // OBB data
     Obb m_OBB;
 
     // Wireframe renderables for visualization
     std::shared_ptr<IRenderable> m_AABBRenderable;
-    std::shared_ptr<IRenderable> m_RitterRenderable;
-    std::shared_ptr<IRenderable> m_LarsonRenderable;
     std::shared_ptr<IRenderable> m_PCARenderable;
     std::shared_ptr<IRenderable> m_OBBRenderable;
     
     // Lazy computation flags
     bool m_AABBComputed = false;
-    bool m_RitterComputed = false;
-    bool m_LarssonComputed = false;
     bool m_PCAComputed = false;
     bool m_OBBComputed = false;
     
@@ -137,24 +129,6 @@ struct BoundingComponent
     {
         if (!m_AABBComputed) ComputeAABB();
         return m_AABB;
-    }
-    
-    /**
-     * @brief Gets the Ritter sphere, computing it if necessary.
-     */
-    const Sphere& GetRitterSphere() 
-    {
-        if (!m_RitterComputed) ComputeRitterSphere();
-        return m_RitterSphere;
-    }
-    
-    /**
-     * @brief Gets the Larsson sphere, computing it if necessary.
-     */
-    const Sphere& GetLarssonSphere() 
-    {
-        if (!m_LarssonComputed) ComputeLarssonSphere();
-        return m_LarssonSphere;
     }
     
     /**
@@ -188,8 +162,6 @@ struct BoundingComponent
 
 private:
     void ComputeAABB();
-    void ComputeRitterSphere();
-    void ComputeLarssonSphere();
     void ComputePCASphere();
     void ComputeOBB();
 };
@@ -200,7 +172,7 @@ struct CameraComponent
 {
     Projection m_Projection;
     FPSCamera m_FPS;
-    OrbitalCamera m_Orbital;
+    OrbitalCamera m_TopDown;
     CameraType m_ActiveCameraType = CameraType::FPS;
     
     CameraComponent() = default;
@@ -217,7 +189,7 @@ struct CameraComponent
         const FPSCamera& fpsCamera,
         const OrbitalCamera& orbitalCamera = OrbitalCamera(),
         CameraType type = CameraType::FPS)
-        : m_Projection(proj), m_FPS(fpsCamera), m_Orbital(orbitalCamera), m_ActiveCameraType(type) {}
+        : m_Projection(proj), m_FPS(fpsCamera), m_TopDown(orbitalCamera), m_ActiveCameraType(type) {}
     
     /**
      * @brief Gets the view matrix for the currently active camera.
@@ -230,7 +202,7 @@ struct CameraComponent
             case CameraType::FPS:
                 return m_FPS.GetViewMatrix();
             case CameraType::Orbital:
-                return m_Orbital.GetViewMatrix();
+                return m_TopDown.GetViewMatrix();
             default:
                 return m_FPS.GetViewMatrix(); // Default to FPS camera
         }
@@ -257,7 +229,7 @@ struct CameraComponent
             case CameraType::FPS:
                 return m_FPS.m_CameraPosition;
             case CameraType::Orbital:
-                return m_Orbital.GetCameraPosition();
+                return m_TopDown.GetCameraPosition();
             default:
                 return m_FPS.m_CameraPosition; // Default to FPS camera
         }
