@@ -330,4 +330,9 @@ private:
     glm::vec3 m_StoredFPSPosition = glm::vec3(0.0f);
     float m_StoredFPSYaw = 0.0f;
     float m_StoredFPSPitch = 0.0f;
+
+    // Stored top-down (orbital) state
+    bool  m_HasStoredTDState = false;
+    glm::vec3 m_StoredTDTarget = glm::vec3(0.0f);
+    float      m_StoredTDDistance = 10.0f;
 }; 

@@ -434,13 +434,33 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         // No manual build button needed.
     }
 
-    // If any parameter changed, rebuild BVH immediately
+    // Track visual mode previous value
+    static int prevVisualMode = BvhBuildConfig::s_UseAabbVisual ? 0 : 1;
+
+    // Detect changes in builder parameters (method/split/termination/heuristic)
     bool paramsChanged = (buildMethod != prevBuildMethod) ||
                          (splitStrategy != prevSplitStrategy) ||
-                         (termination != prevTermination) ||
-                         (heuristic != prevHeuristic);
+                         (termination   != prevTermination)   ||
+                         (heuristic     != prevHeuristic);
 
-    if (paramsChanged)
+    // ───── Visualisation type (AABB vs Sphere) ───────────────────────────
+    static int visualMode = BvhBuildConfig::s_UseAabbVisual ? 0 : 1; // 0=AABB,1=Sphere
+    ImGui::Separator();
+    ImGui::Text("Visualise BVH As:");
+    ImGui::RadioButton("AABB",   &visualMode, 0); ImGui::SameLine();
+    ImGui::RadioButton("Sphere", &visualMode, 1);
+
+    bool visualChanged = false;
+    if (visualMode != prevVisualMode)
+    {
+        BvhBuildConfig::s_UseAabbVisual = (visualMode == 0);
+        visualChanged = true;
+        prevVisualMode = visualMode;
+    }
+
+    bool rebuildNeeded = paramsChanged || visualChanged;
+
+    if (rebuildNeeded)
     {
         // Update global build configuration so that automatic rebuilds use latest settings.
         BvhBuildConfig::s_Method        = (buildMethod == 0) ? BvhBuildMethod::TopDown : BvhBuildMethod::BottomUp;
@@ -470,7 +490,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         }
 
         // Update previous trackers
-        prevBuildMethod  = buildMethod;
+        prevBuildMethod   = buildMethod;
         prevSplitStrategy = splitStrategy;
         prevTermination   = termination;
         prevHeuristic     = heuristic;

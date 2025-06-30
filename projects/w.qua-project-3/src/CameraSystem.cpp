@@ -284,15 +284,28 @@ void CameraSystem::SwitchCameraType()
         m_StoredFPSPitch    = camera.m_FPS.m_PitchAngle;
         m_HasStoredFPSState = true;
 
-        camera.m_ActiveCameraType = CameraType::Orbital;
+        // If we previously had a stored top-down state, restore it; else init from FPS position.
+        if (m_HasStoredTDState)
+        {
+            camera.m_TopDown.m_Target   = m_StoredTDTarget;
+            camera.m_TopDown.m_Distance = m_StoredTDDistance;
+        }
+        else
+        {
+            camera.m_TopDown.m_Target   = camera.m_FPS.m_CameraPosition;
+            camera.m_TopDown.m_Distance = 10.0f;
+        }
 
-        // Place target at current FPS position (XZ) so the camera will look down on that point.
-        camera.m_TopDown.m_Target   = camera.m_FPS.m_CameraPosition;
-        camera.m_TopDown.m_Distance = 10.0f; // reasonable default height
+        camera.m_ActiveCameraType = CameraType::Orbital;
     }
     else
     {
         // --- Switching back to FPS ---
+        // Save current top-down state for later restoration
+        m_StoredTDTarget   = camera.m_TopDown.m_Target;
+        m_StoredTDDistance = camera.m_TopDown.m_Distance;
+        m_HasStoredTDState = true;
+
         camera.m_ActiveCameraType = CameraType::FPS;
 
         if (m_HasStoredFPSState)

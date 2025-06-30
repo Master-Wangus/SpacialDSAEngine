@@ -4,6 +4,17 @@
 #include "CubeRenderer.hpp"
 #include "SphereRenderer.hpp"
 #include "Shader.hpp"
+#include <functional>
+#include <algorithm>
+
+// Forward declaration
+static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
+                                                 Registry::Entity* objects,
+                                                 int numObjects,
+                                                 int depth,
+                                                 TDSSplitStrategy strategy,
+                                                 TDSTermination termination,
+                                                 TreeNode* parent = nullptr);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Utility helpers (anonymous namespace)
@@ -27,6 +38,33 @@ namespace
     {
         return { glm::min(a.min, b.min), glm::max(a.max, b.max) };
     }
+
+    // Non-member utility: compute AABB of a contiguous entity array (global scope)
+    static Aabb ComputeAabbRange(Registry& registry, const Registry::Entity* objs, int count)
+    {
+        if (count <= 0) return {};
+
+        auto makeWorldAabb = [&](Registry::Entity e){
+            auto aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
+            if (registry.HasComponent<TransformComponent>(e))
+            {
+                aabb.Transform(registry.GetComponent<TransformComponent>(e).m_Model);
+            }
+            return aabb;
+        };
+
+        Aabb first = makeWorldAabb(objs[0]);
+        glm::vec3 mn = first.min;
+        glm::vec3 mx = first.max;
+
+        for (int i = 1; i < count; ++i)
+        {
+            Aabb aabb = makeWorldAabb(objs[i]);
+            mn = glm::min(mn, aabb.min);
+            mx = glm::max(mx, aabb.max);
+        }
+        return { mn, mx };
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -45,23 +83,47 @@ bool             BvhBuildConfig::s_UseAabbVisual = true;
 
 void Bvh::Clear()
 {
-    m_Nodes.clear();
-    m_RootIndex = -1;
+    m_Root.reset();
+    m_FlatDepths.clear();
     m_EntityToLeaf.clear();
 }
 
 void Bvh::BuildTopDown(Registry& registry,
-                       const std::vector<Entity>& objects,
-                       TDSSplitStrategy strategy,
-                       TDSTermination termination,
-                       size_t maxHeight)
+                        const std::vector<Entity>& objects,
+                        TDSSplitStrategy strategy,
+                        TDSTermination termination,
+                        size_t /*maxHeight*/)
 {
     Clear();
     if (objects.empty()) return;
 
-    // Copy so we can sort/partition freely
+    // Make a mutable copy so we can partition in-place with nth_element
     std::vector<Entity> objs = objects;
-    m_RootIndex = BuildTopDownRecursive(registry, objs, 0, strategy, termination, maxHeight);
+
+    // Build the recursive pointer-based hierarchy
+    m_Root = BuildTopDownTree(registry,
+                              objs.data(),
+                              static_cast<int>(objs.size()),
+                              0,
+                              strategy,
+                              termination);
+
+    // ------------------------------------------------------------
+    // Populate entity → leaf map & flat depth list for rendering
+    // ------------------------------------------------------------
+    std::function<void(TreeNode*)> traverse = [&](TreeNode* node){
+        if (!node) return;
+        if (node->type == BvhNodeType::Leaf)
+        {
+            for (const auto& e : node->objects)
+            {
+                m_EntityToLeaf[e] = node;
+            }
+        }
+        traverse(node->lChild.get());
+        traverse(node->rChild.get());
+    };
+    traverse(m_Root.get());
 }
 
 void Bvh::BuildBottomUp(Registry& registry,
@@ -71,68 +133,92 @@ void Bvh::BuildBottomUp(Registry& registry,
     Clear();
     if (objects.empty()) return;
 
-    // Start with a node per object (leaves)
+    // Active list owns its nodes via unique_ptr
+    std::vector<std::unique_ptr<TreeNode>> active;
+    active.reserve(objects.size());
+
     for (auto entity : objects)
     {
-        BvhNode leaf;
-        leaf.m_Objects.push_back(entity);
-        leaf.m_AABB = ComputeAabb(registry, leaf.m_Objects);
-        leaf.m_Sphere = ComputeSphereFromAabb(leaf.m_AABB);
-        leaf.m_Depth = 0;
-        m_Nodes.push_back(std::move(leaf));
-        m_EntityToLeaf[entity] = static_cast<int>(m_Nodes.size())-1;
+        auto leaf = std::make_unique<TreeNode>();
+        leaf->type = BvhNodeType::Leaf;
+        leaf->objects.push_back(entity);
+        leaf->aabb   = ComputeAabbRange(registry, &entity, 1);
+        leaf->sphere = ComputeSphereFromAabb(leaf->aabb);
+        leaf->depth  = 0;
+
+        m_EntityToLeaf[entity] = leaf.get();
+
+        active.push_back(std::move(leaf));
     }
 
-    // Active list holds indices of current forest roots
-    std::vector<int> active(m_Nodes.size());
-    std::iota(active.begin(), active.end(), 0);
+    auto pairCost = [&](const TreeNode* a, const TreeNode* b){
+        switch (heuristic)
+        {
+            case BUSHeuristic::NearestCenter:
+                return glm::distance(a->aabb.GetCenter(), b->aabb.GetCenter());
+            case BUSHeuristic::MinCombinedVolume:
+            {
+                Aabb u = Union(a->aabb, b->aabb);
+                glm::vec3 ext = u.max - u.min;
+                return ext.x * ext.y * ext.z;
+            }
+            case BUSHeuristic::MinCombinedSurfaceArea:
+            default:
+            {
+                Aabb u = Union(a->aabb, b->aabb);
+                glm::vec3 ext = u.max - u.min;
+                return 2.f * (ext.x*ext.y + ext.y*ext.z + ext.x*ext.z);
+            }
+        }
+    };
 
-    // Greedy bottom-up merging
+    // Greedy merge until one root remains
     while (active.size() > 1)
     {
         float bestCost = std::numeric_limits<float>::max();
         size_t bestI = 0, bestJ = 1;
 
-        // Naive O(n^2) search for best pair
         for (size_t i = 0; i < active.size(); ++i)
         {
             for (size_t j = i + 1; j < active.size(); ++j)
             {
-                float c = PairCost(m_Nodes[active[i]], m_Nodes[active[j]], heuristic);
+                float c = pairCost(active[i].get(), active[j].get());
                 if (c < bestCost)
                 {
                     bestCost = c;
-                    bestI = i;
-                    bestJ = j;
+                    bestI = i; bestJ = j;
                 }
             }
         }
 
-        // Merge the best pair
-        int leftIdx  = active[bestI];
-        int rightIdx = active[bestJ];
+        // Move out the unique_ptrs for the selected pair
+        auto leftUP  = std::move(active[bestI]);
+        auto rightUP = std::move(active[bestJ]);
 
-        BvhNode parent;
-        parent.m_Left  = leftIdx;
-        parent.m_Right = rightIdx;
-        parent.m_Depth = std::max(m_Nodes[leftIdx].m_Depth, m_Nodes[rightIdx].m_Depth) + 1;
-        parent.m_AABB  = Union(m_Nodes[leftIdx].m_AABB, m_Nodes[rightIdx].m_AABB);
-        parent.m_Sphere = ComputeSphereFromAabb(parent.m_AABB);
+        TreeNode* left  = leftUP.get();
+        TreeNode* right = rightUP.get();
 
-        int parentIdx = static_cast<int>(m_Nodes.size());
-        m_Nodes.push_back(std::move(parent));
+        auto parent = std::make_unique<TreeNode>();
+        parent->type = BvhNodeType::Internal;
+        parent->lChild = std::move(leftUP);
+        parent->rChild = std::move(rightUP);
+        parent->lChild->parent = parent.get();
+        parent->rChild->parent = parent.get();
+        parent->depth = std::max(left->depth, right->depth) + 1;
+        parent->aabb  = Union(left->aabb, right->aabb);
+        parent->sphere = ComputeSphereFromAabb(parent->aabb);
 
-        m_Nodes[leftIdx].m_Parent  = parentIdx;
-        m_Nodes[rightIdx].m_Parent = parentIdx;
-
-        // Replace active pair with parent
+        // Remove pair indices (ensure higher index first)
         if (bestI > bestJ) std::swap(bestI, bestJ);
         active.erase(active.begin() + bestJ);
         active.erase(active.begin() + bestI);
-        active.push_back(parentIdx);
+
+        // Append the new parent node
+        active.push_back(std::move(parent));
     }
 
-    m_RootIndex = active.front();
+    // Transfer the last remaining unique_ptr as the root
+    m_Root = std::move(active.front());
 }
 
 void Bvh::RefitLeaf(Registry& registry, Entity entity)
@@ -140,25 +226,25 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
     auto it = m_EntityToLeaf.find(entity);
     if (it == m_EntityToLeaf.end()) return;
 
-    int idx = it->second;
-    if (idx < 0 || idx >= static_cast<int>(m_Nodes.size())) return;
+    TreeNode* leaf = it->second;
+    if (!leaf) return;
 
-    // Update leaf BV
-    BvhNode& leaf = m_Nodes[idx];
-    leaf.m_AABB = ComputeAabb(registry, leaf.m_Objects);
-    leaf.m_Sphere = ComputeSphereFromAabb(leaf.m_AABB);
+    // Recompute leaf bounds
+    if (!leaf->objects.empty())
+        leaf->aabb = ComputeAabbRange(registry, leaf->objects.data(), static_cast<int>(leaf->objects.size()));
+    leaf->sphere = ComputeSphereFromAabb(leaf->aabb);
 
-    // Walk up and refit internal nodes
-    int parentIdx = leaf.m_Parent;
-    while (parentIdx != -1)
+    // Walk up the tree and update internal nodes
+    for (TreeNode* node = leaf->parent; node; node = node->parent)
     {
-        BvhNode& parent = m_Nodes[parentIdx];
-        const BvhNode& left  = m_Nodes[parent.m_Left];
-        const BvhNode& right = m_Nodes[parent.m_Right];
-        parent.m_AABB = Union(left.m_AABB, right.m_AABB);
-        parent.m_Sphere = ComputeSphereFromAabb(parent.m_AABB);
+        if (node->lChild && node->rChild)
+            node->aabb = Union(node->lChild->aabb, node->rChild->aabb);
+        else if (node->lChild)
+            node->aabb = node->lChild->aabb;
+        else if (node->rChild)
+            node->aabb = node->rChild->aabb;
 
-        parentIdx = parent.m_Parent;
+        node->sphere = ComputeSphereFromAabb(node->aabb);
     }
 }
 
@@ -225,178 +311,185 @@ int Bvh::ChooseSplitAxis(const std::vector<glm::vec3>& extents)
     return 2;
 }
 
-int Bvh::BuildTopDownRecursive(Registry& registry,
-                               std::vector<Entity>& objects,
-                               int depth,
-                               TDSSplitStrategy strategy,
-                               TDSTermination termination,
-                               size_t maxHeight)
+std::vector<std::shared_ptr<IRenderable>>
+Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, bool useAabb) const
 {
-    // Termination checks ------------------------------------------------------
-    if (objects.empty()) return -1;
-    if ((termination == TDSTermination::SingleObject  && objects.size() == 1) ||
-        (termination == TDSTermination::TwoObjects    && objects.size() <= 2) ||
-        (termination == TDSTermination::MaxHeight2    && depth >= static_cast<int>(maxHeight)))
-    {
-        // Create leaf node
-        BvhNode leaf;
-        leaf.m_Depth = depth;
-        leaf.m_Objects = objects;
-        leaf.m_AABB = ComputeAabb(registry, objects);
-        leaf.m_Sphere = ComputeSphereFromAabb(leaf.m_AABB);
+    std::vector<std::shared_ptr<IRenderable>> result;
+    m_FlatDepths.clear();
 
-        int idx = static_cast<int>(m_Nodes.size());
-        m_Nodes.push_back(std::move(leaf));
-        // Map each object to this leaf for quick updates
-        for (auto e : objects)
-        {
-            m_EntityToLeaf[e] = idx;
-        }
-        return idx;
+    if (!shader || !m_Root) return result;
+
+    // Traverse pointer-based tree
+    CollectRenderables(m_Root.get(), useAabb, shader, result);
+    return result;
+}
+
+// Helper to recursively create renderables from pointer-based tree
+void Bvh::CollectRenderables(const TreeNode* node,
+                             bool useAabb,
+                             const std::shared_ptr<Shader>& shader,
+                             std::vector<std::shared_ptr<IRenderable>>& out) const
+{
+    if (!node) return;
+
+    static const glm::vec3 palette[7] = {
+        {1.0f, 0.0f, 0.0f},
+        {1.0f, 0.5f, 0.0f},
+        {1.0f, 1.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        {0.3f, 0.0f, 0.5f},
+        {0.6f, 0.0f, 1.0f}
+    };
+
+    glm::vec3 colour = palette[node->depth % 7];
+
+    if (useAabb)
+    {
+        glm::vec3 size = node->aabb.max - node->aabb.min;
+        glm::vec3 centre = node->aabb.GetCenter();
+        auto cube = std::make_shared<CubeRenderer>(centre, size, colour, true);
+        cube->Initialize(shader);
+        out.push_back(cube);
+    }
+    else
+    {
+        auto sphere = std::make_shared<SphereRenderer>(node->sphere.center, node->sphere.radius, colour, true);
+        sphere->Initialize(shader);
+        out.push_back(sphere);
     }
 
-    // Choose split axis based on extents or centres ----------------------------------
-    std::vector<float> keys(objects.size());
-    std::vector<glm::vec3> extentVec(objects.size());
+    // record depth parallel to out
+    m_FlatDepths.push_back(node->depth);
 
-    // Fill keys/extentVec
-    for (size_t i = 0; i < objects.size(); ++i)
-    {
-        auto& bc = registry.GetComponent<BoundingComponent>(objects[i]);
-        Aabb aabb = bc.GetAABB();
-        if (registry.HasComponent<TransformComponent>(objects[i]))
-        {
-            aabb.Transform(registry.GetComponent<TransformComponent>(objects[i]).m_Model);
-        }
-        extentVec[i] = aabb.GetExtents();
-    }
+    CollectRenderables(node->lChild.get(), useAabb, shader, out);
+    CollectRenderables(node->rChild.get(), useAabb, shader, out);
+}
 
-    int axis = 0;
-    if (strategy == TDSSplitStrategy::MedianCenter || strategy == TDSSplitStrategy::KEven)
+const std::vector<int>& Bvh::GetDepths() const
+{
+    return m_FlatDepths;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pointer-based top-down helpers (new implementation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+namespace // anonymous
+{
+    // Forward declarations
+    using Entity = Registry::Entity;
+
+    // ComputeAabbRange defined earlier at global scope
+
+    static int PartitionObjects(Registry& registry,
+                                Entity* objects,
+                                int numObjects,
+                                TDSSplitStrategy strategy)
     {
-        // Use spread of centres
-        std::vector<glm::vec3> centres(objects.size());
-        for (size_t i = 0; i < objects.size(); ++i)
+        if (numObjects <= 1) return 1;
+
+        // Prepare centre / extent arrays
+        std::vector<glm::vec3> centres(numObjects);
+        std::vector<glm::vec3> extents(numObjects);
+
+        for (int i = 0; i < numObjects; ++i)
         {
             Aabb aabb = registry.GetComponent<BoundingComponent>(objects[i]).GetAABB();
             if (registry.HasComponent<TransformComponent>(objects[i]))
             {
                 aabb.Transform(registry.GetComponent<TransformComponent>(objects[i]).m_Model);
             }
-            centres[i] = aabb.GetCenter();
+            centres[i]  = aabb.GetCenter();
+            extents[i]  = aabb.GetExtents();
         }
-        axis = ChooseSplitAxis(centres);
-        for (size_t i = 0; i < objects.size(); ++i) keys[i] = centres[i][axis];
+
+        int axis = 0;
+        if (strategy == TDSSplitStrategy::MedianCenter || strategy == TDSSplitStrategy::KEven)
+        {
+            axis = Bvh::ChooseSplitAxis(centres);
+        }
+        else // MedianExtent
+        {
+            axis = Bvh::ChooseSplitAxis(extents);
+        }
+
+        // Determine split index k (median)
+        int k = numObjects / 2; // default median size
+
+        Entity* begin = objects;
+        Entity* mid   = objects + k;
+        Entity* end   = objects + numObjects;
+
+        auto keyGetter = [&](Entity e){
+            Aabb aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
+            if (registry.HasComponent<TransformComponent>(e))
+                aabb.Transform(registry.GetComponent<TransformComponent>(e).m_Model);
+            return (strategy == TDSSplitStrategy::MedianExtent) ? aabb.GetExtents()[axis]
+                                                               : aabb.GetCenter()[axis];
+        };
+
+        std::nth_element(begin, mid, end,
+                        [&](Entity a, Entity b)
+                        {
+                            return keyGetter(a) < keyGetter(b);
+                        });
+
+        return k;
     }
-    else if (strategy == TDSSplitStrategy::MedianExtent)
-    {
-        axis = ChooseSplitAxis(extentVec);
-        for (size_t i = 0; i < objects.size(); ++i) keys[i] = extentVec[i][axis];
-    }
 
-    // Partition around median
-    size_t midIndex = objects.size() / 2;
-    std::nth_element(objects.begin(), objects.begin() + midIndex, objects.end(),
-                     [&](Entity a, Entity b)
-                     {
-                         Aabb aA = registry.GetComponent<BoundingComponent>(a).GetAABB();
-                         Aabb bA = registry.GetComponent<BoundingComponent>(b).GetAABB();
-                         if (registry.HasComponent<TransformComponent>(a))
-                             aA.Transform(registry.GetComponent<TransformComponent>(a).m_Model);
-                         if (registry.HasComponent<TransformComponent>(b))
-                             bA.Transform(registry.GetComponent<TransformComponent>(b).m_Model);
-                         return aA.GetCenter()[axis] < bA.GetCenter()[axis];
-                     });
+    // BuildTopDownTree defined in global scope below
+} // end anonymous namespace helpers 
 
-    std::vector<Entity> leftObjs(objects.begin(), objects.begin() + midIndex);
-    std::vector<Entity> rightObjs(objects.begin() + midIndex, objects.end());
+// ---------------------------------------------------------------------------
+// Global-scope implementation of BuildTopDownTree (pointer-based builder)
+// ---------------------------------------------------------------------------
 
-    // Create internal node first
-    int nodeIdx = static_cast<int>(m_Nodes.size());
-    m_Nodes.emplace_back(); // default constructed
-    m_Nodes[nodeIdx].m_Depth = depth;
-
-    // Recurse
-    int leftIdx  = BuildTopDownRecursive(registry, leftObjs,  depth + 1, strategy, termination, maxHeight);
-    int rightIdx = BuildTopDownRecursive(registry, rightObjs, depth + 1, strategy, termination, maxHeight);
-
-    m_Nodes[nodeIdx].m_Left  = leftIdx;
-    m_Nodes[nodeIdx].m_Right = rightIdx;
-    if (leftIdx != -1)  m_Nodes[leftIdx].m_Parent  = nodeIdx;
-    if (rightIdx != -1) m_Nodes[rightIdx].m_Parent = nodeIdx;
-
-    // Compute bounds from children
-    if (leftIdx != -1 && rightIdx != -1)
-    {
-        m_Nodes[nodeIdx].m_AABB = Union(m_Nodes[leftIdx].m_AABB, m_Nodes[rightIdx].m_AABB);
-    }
-    else if (leftIdx != -1)
-    {
-        m_Nodes[nodeIdx].m_AABB = m_Nodes[leftIdx].m_AABB;
-    }
-    else if (rightIdx != -1)
-    {
-        m_Nodes[nodeIdx].m_AABB = m_Nodes[rightIdx].m_AABB;
-    }
-    m_Nodes[nodeIdx].m_Sphere = ComputeSphereFromAabb(m_Nodes[nodeIdx].m_AABB);
-
-    return nodeIdx;
-}
-
-float Bvh::PairCost(const BvhNode& a, const BvhNode& b, BUSHeuristic h) const
+static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
+                                                  Registry::Entity* objects,
+                                                  int numObjects,
+                                                  int depth,
+                                                  TDSSplitStrategy strategy,
+                                                  TDSTermination termination,
+                                                  TreeNode* parent)
 {
-    Aabb ab = Union(a.m_AABB, b.m_AABB);
+    if (numObjects <= 0) return nullptr;
 
-    switch (h)
+    constexpr int MAX_HEIGHT = 2;
+
+    auto node = std::make_unique<TreeNode>();
+    node->parent = parent;
+    node->depth  = depth;
+
+    node->aabb = ComputeAabbRange(registry, objects, numObjects);
+    // Simple sphere from aabb
+    node->sphere.center = node->aabb.GetCenter();
+    node->sphere.radius = glm::length(node->aabb.GetExtents());
+
+    bool stop = false;
+    switch (termination)
     {
-        case BUSHeuristic::NearestCenter:
-        {
-            float dist = glm::distance(a.m_AABB.GetCenter(), b.m_AABB.GetCenter());
-            return dist;
-        }
-        case BUSHeuristic::MinCombinedVolume:
-            return Volume(ab);
-        case BUSHeuristic::MinCombinedSurfaceArea:
-            return SurfaceArea(ab);
-        default:
-            return Volume(ab);
+        case TDSTermination::SingleObject:  stop = (numObjects == 1); break;
+        case TDSTermination::TwoObjects:    stop = (numObjects <= 2); break;
+        case TDSTermination::MaxHeight2:    stop = (depth >= MAX_HEIGHT); break;
     }
-}
 
-std::vector<std::shared_ptr<IRenderable>>
-Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, bool useAabb) const
-{
-    std::vector<std::shared_ptr<IRenderable>> result;
-    if (!shader) return result;
-
-    // Colour palette for first 7 levels 
-    static const glm::vec3 palette[7] = {
-        {1.0f, 0.0f, 0.0f}, // Red
-        {1.0f, 0.5f, 0.0f}, // Orange
-        {1.0f, 1.0f, 0.0f}, // Yellow
-        {0.0f, 1.0f, 0.0f}, // Green
-        {0.0f, 0.0f, 1.0f}, // Blue
-        {0.3f, 0.0f, 0.5f}, // Indigo
-        {0.6f, 0.0f, 1.0f}  // Violet
-    };
-
-    for (const auto& node : m_Nodes)
+    if (stop)
     {
-        glm::vec3 colour = palette[node.m_Depth % 7];
-        if (useAabb)
-        {
-            glm::vec3 size = node.m_AABB.max - node.m_AABB.min;
-            glm::vec3 centre = node.m_AABB.GetCenter();
-            auto cube = std::make_shared<CubeRenderer>(centre, size, colour, true);
-            cube->Initialize(shader);
-            result.push_back(cube);
-        }
-        else
-        {
-            auto sphere = std::make_shared<SphereRenderer>(node.m_Sphere.center, node.m_Sphere.radius, colour, true);
-            sphere->Initialize(shader);
-            result.push_back(sphere);
-        }
+        node->type = BvhNodeType::Leaf;
+        node->objects.reserve(numObjects);
+        for (int i = 0; i < numObjects; ++i)
+            node->objects.push_back(objects[i]);
+        return node;
     }
-    return result;
+
+    int k = PartitionObjects(registry, objects, numObjects, strategy);
+    if (k <= 0 || k >= numObjects)
+        k = numObjects / 2;
+
+    node->type = BvhNodeType::Internal;
+    node->lChild = BuildTopDownTree(registry, objects, k, depth+1, strategy, termination, node.get());
+    node->rChild = BuildTopDownTree(registry, objects + k, numObjects - k, depth+1, strategy, termination, node.get());
+
+    return node;
 } 

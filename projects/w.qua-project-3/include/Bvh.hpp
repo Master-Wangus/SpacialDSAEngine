@@ -16,6 +16,7 @@
 #include "Shapes.hpp"
 #include "Registry.hpp"
 #include "Components.hpp"
+#include <memory>
 #include <unordered_map>
 
 class IRenderable;
@@ -56,6 +57,29 @@ enum class BUSHeuristic
     MinCombinedSurfaceArea  // Merge nodes that minimise combined AABB surface area
 };
 
+// Add new node type enumeration and pointer-based tree structure -----------------
+
+enum class BvhNodeType { Internal, Leaf };
+
+struct TreeNode
+{
+    BvhNodeType type = BvhNodeType::Internal;
+
+    // Bounding volumes for this node
+    Aabb   aabb;
+    Sphere sphere;
+
+    // Leaf data -------------------------------------------------------------
+    std::vector<Registry::Entity> objects; // Objects stored in this leaf
+
+    // Hierarchy -------------------------------------------------------------
+    TreeNode* parent = nullptr;
+    std::unique_ptr<TreeNode> lChild = nullptr;
+    std::unique_ptr<TreeNode> rChild = nullptr;
+
+    int depth = 0; // Depth of this node (root = 0)
+};
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Global configuration (modifiable by UI)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -72,28 +96,6 @@ struct BvhBuildConfig
     static TDSTermination     s_TDTermination;
     static BUSHeuristic       s_BUHeuristic;
     static bool               s_UseAabbVisual;
-};
-
-// ──────────────────────────────────────────────────────────────────────────────
-// BVH Node definition
-// ──────────────────────────────────────────────────────────────────────────────
-
-struct BvhNode
-{
-    // Bounding volumes encompassing this node
-    Aabb   m_AABB;
-    Sphere m_Sphere;
-
-    // Children indices (-1 if leaf)
-    int m_Left  = -1;
-    int m_Right = -1;
-    int m_Parent = -1;
-
-    std::vector<Registry::Entity> m_Objects; // Non-empty only for leaf nodes
-
-    int m_Depth = 0; // Root = 0
-
-    [[nodiscard]] bool IsLeaf() const { return m_Left == -1 && m_Right == -1; }
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -122,20 +124,23 @@ public:
     // Clear hierarchy.
     void Clear();
 
-    const std::vector<BvhNode>& GetNodes() const { return m_Nodes; }
-    int  GetRootIndex() const { return m_RootIndex; }
-
     // Creates wireframe renderables for visualising the BVH. One renderable per
     // node is generated and coloured by depth
     std::vector<std::shared_ptr<IRenderable>>
     CreateRenderables(const std::shared_ptr<Shader>& shader,
                       bool useAabb = true) const;
 
+    // Depth list parallel to CreateRenderables result (root-first traversal)
+    const std::vector<int>& GetDepths() const;
+
     // Map from entity to its leaf node index for quick updates
-    std::unordered_map<Entity,int> m_EntityToLeaf;
+    std::unordered_map<Entity,TreeNode*> m_EntityToLeaf;
 
     // Refit the hierarchy after a leaf's underlying object has moved / scaled
     void RefitLeaf(Registry& registry, Entity entity);
+
+    // Utility functions for top-down splitting.
+    static int ChooseSplitAxis(const std::vector<glm::vec3>& extents);
 
 private:
     // Helper functions --------------------------------------------------------
@@ -146,23 +151,21 @@ private:
     // Compute a bounding sphere containing supplied objects (simple Ritter's over AABB extents).
     static Sphere ComputeSphereFromAabb(const Aabb& box);
 
-    // Top-down recursive subdivision.
-    int BuildTopDownRecursive(Registry& registry,
-                              std::vector<Entity>& objects,
-                              int depth,
-                              TDSSplitStrategy strategy,
-                              TDSTermination termination,
-                              size_t maxHeight);
-
-    // Utility functions for top-down splitting.
-    static int ChooseSplitAxis(const std::vector<glm::vec3>& extents);
-
-    // Bottom-up helpers.
-    struct PairKey { int a; int b; };
-
-    float PairCost(const BvhNode& a, const BvhNode& b, BUSHeuristic h) const;
-
     // Data --------------------------------------------------------------------
-    std::vector<BvhNode> m_Nodes;
-    int m_RootIndex = -1;
+
+    // ---------------------------------------------------------------------
+    // New pointer-based hierarchy (used by top-down builder)
+    // ---------------------------------------------------------------------
+    std::unique_ptr<TreeNode> m_Root = nullptr;            // root of new tree
+
+    // Flat representation produced from m_Root for rendering convenience
+    mutable std::vector<int> m_FlatDepths;                 // depth per renderable (parallel to CreateRenderables result)
+
+    // Helper to recursively create renderables from pointer-based tree
+    void CollectRenderables(const TreeNode* node,
+                            bool useAabb,
+                            const std::shared_ptr<Shader>& shader,
+                            std::vector<std::shared_ptr<IRenderable>>& out) const;
+
+    // (unused)
 }; 

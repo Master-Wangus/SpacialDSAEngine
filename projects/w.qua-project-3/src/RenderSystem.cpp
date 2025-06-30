@@ -575,11 +575,7 @@ void RenderSystem::BuildBVH(BvhBuildMethod method,
     m_UseAabbForBVH = useAabbVisual;
 
     // Store depth for each renderable (same order as nodes)
-    m_BvhRenderableDepths.clear();
-    for (const auto& node : m_Bvh->GetNodes())
-    {
-        m_BvhRenderableDepths.push_back(node.m_Depth);
-    }
+    m_BvhRenderableDepths = m_Bvh->GetDepths();
 
     // BVH up-to-date
     m_BvhDirty = false;
