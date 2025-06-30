@@ -96,11 +96,6 @@ namespace
         }
         return s;
     }
-
-    inline Aabb AabbFromSphere(const Sphere& s)
-    {
-        return { s.center - glm::vec3(s.radius), s.center + glm::vec3(s.radius) };
-    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -185,7 +180,6 @@ void Bvh::BuildBottomUp(Registry& registry,
         else
         {
             leaf->sphere = WorldSphereFromBC(registry, entity);
-            leaf->aabb   = AabbFromSphere(leaf->sphere);
         }
         leaf->depth  = 0;
 
@@ -266,7 +260,6 @@ void Bvh::BuildBottomUp(Registry& registry,
         else
         {
             parent->sphere = Union(left->sphere, right->sphere);
-            parent->aabb   = AabbFromSphere(parent->sphere);
         }
 
         // Remove pair indices (ensure higher index first)
@@ -302,7 +295,6 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
         for (size_t i=1;i<leaf->objects.size();++i)
             agg = Union(agg, WorldSphereFromBC(registry, leaf->objects[i]));
         leaf->sphere = agg;
-        leaf->aabb   = AabbFromSphere(agg);
     }
 
     // Walk up the tree and update internal nodes
@@ -325,8 +317,6 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
                 node->sphere = node->lChild->sphere;
             else if (node->rChild)
                 node->sphere = node->rChild->sphere;
-
-            node->aabb = AabbFromSphere(node->sphere);
         }
     }
 }
@@ -548,7 +538,6 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
         for (int i=1;i<numObjects;++i)
             agg = Union(agg, WorldSphereFromBC(registry, objects[i]));
         node->sphere = agg;
-        node->aabb   = AabbFromSphere(agg);
     }
 
     bool stop = false;
@@ -584,7 +573,6 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
     else
     {
         node->sphere = Union(node->lChild->sphere, node->rChild->sphere);
-        node->aabb   = AabbFromSphere(node->sphere);
     }
 
     return node;
