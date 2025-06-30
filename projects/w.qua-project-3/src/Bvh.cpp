@@ -39,6 +39,23 @@ namespace
         return { glm::min(a.min, b.min), glm::max(a.max, b.max) };
     }
 
+    // Enclose two spheres with the minimal bounding sphere.
+    inline Sphere Union(const Sphere& s1, const Sphere& s2)
+    {
+        // If one sphere fully contains the other, return the larger.
+        float centreDist = glm::distance(s1.center, s2.center);
+        if (s1.radius >= centreDist + s2.radius) return s1; // s1 contains s2
+        if (s2.radius >= centreDist + s1.radius) return s2; // s2 contains s1
+
+        // Else, build the minimal enclosing sphere.
+        glm::vec3 dir = glm::normalize(s2.center - s1.center);
+        if (centreDist < 1e-5f) dir = glm::vec3(1,0,0); // avoid NaN when almost same centre
+
+        float newRad = 0.5f * (centreDist + s1.radius + s2.radius);
+        glm::vec3 newCenter = s1.center + dir * (newRad - s1.radius);
+        return { newCenter, newRad };
+    }
+
     // Non-member utility: compute AABB of a contiguous entity array (global scope)
     static Aabb ComputeAabbRange(Registry& registry, const Registry::Entity* objs, int count)
     {
@@ -65,6 +82,25 @@ namespace
         }
         return { mn, mx };
     }
+
+    // Returns PCA bounding sphere in world-space for an entity
+    static Sphere WorldSphereFromBC(Registry& registry, Registry::Entity e)
+    {
+        Sphere s = registry.GetComponent<BoundingComponent>(e).GetPCASphere();
+        if (registry.HasComponent<TransformComponent>(e))
+        {
+            const auto& model = registry.GetComponent<TransformComponent>(e).m_Model;
+            s.center = glm::vec3(model * glm::vec4(s.center, 1.0f));
+            float maxScale = glm::compMax(glm::vec3(glm::length(model[0]), glm::length(model[1]), glm::length(model[2])));
+            s.radius *= maxScale;
+        }
+        return s;
+    }
+
+    inline Aabb AabbFromSphere(const Sphere& s)
+    {
+        return { s.center - glm::vec3(s.radius), s.center + glm::vec3(s.radius) };
+    }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -75,7 +111,7 @@ BvhBuildMethod   BvhBuildConfig::s_Method        = BvhBuildMethod::TopDown;
 TDSSplitStrategy BvhBuildConfig::s_TDStrategy    = TDSSplitStrategy::MedianCenter;
 TDSTermination   BvhBuildConfig::s_TDTermination = TDSTermination::SingleObject;
 BUSHeuristic     BvhBuildConfig::s_BUHeuristic   = BUSHeuristic::MinCombinedVolume;
-bool             BvhBuildConfig::s_UseAabbVisual = true;
+bool             BvhBuildConfig::s_BuildWithAabb = true;
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Public interface
@@ -89,9 +125,9 @@ void Bvh::Clear()
 }
 
 void Bvh::BuildTopDown(Registry& registry,
-                        const std::vector<Entity>& objects,
-                        TDSSplitStrategy strategy,
-                        TDSTermination termination,
+                       const std::vector<Entity>& objects,
+                       TDSSplitStrategy strategy,
+                       TDSTermination termination,
                         size_t /*maxHeight*/)
 {
     Clear();
@@ -142,8 +178,15 @@ void Bvh::BuildBottomUp(Registry& registry,
         auto leaf = std::make_unique<TreeNode>();
         leaf->type = BvhNodeType::Leaf;
         leaf->objects.push_back(entity);
-        leaf->aabb   = ComputeAabbRange(registry, &entity, 1);
-        leaf->sphere = ComputeSphereFromAabb(leaf->aabb);
+        if (BvhBuildConfig::s_BuildWithAabb)
+        {
+            leaf->aabb   = ComputeAabbRange(registry, &entity, 1);
+        }
+        else
+        {
+            leaf->sphere = WorldSphereFromBC(registry, entity);
+            leaf->aabb   = AabbFromSphere(leaf->sphere);
+        }
         leaf->depth  = 0;
 
         m_EntityToLeaf[entity] = leaf.get();
@@ -152,22 +195,33 @@ void Bvh::BuildBottomUp(Registry& registry,
     }
 
     auto pairCost = [&](const TreeNode* a, const TreeNode* b){
-        switch (heuristic)
+        if (BvhBuildConfig::s_BuildWithAabb)
         {
-            case BUSHeuristic::NearestCenter:
-                return glm::distance(a->aabb.GetCenter(), b->aabb.GetCenter());
-            case BUSHeuristic::MinCombinedVolume:
+            Aabb u = Union(a->aabb, b->aabb);
+            glm::vec3 ext = u.max - u.min;
+            switch (heuristic)
             {
-                Aabb u = Union(a->aabb, b->aabb);
-                glm::vec3 ext = u.max - u.min;
-                return ext.x * ext.y * ext.z;
+                case BUSHeuristic::NearestCenter:
+                    return glm::distance(a->aabb.GetCenter(), b->aabb.GetCenter());
+                case BUSHeuristic::MinCombinedVolume:
+                    return ext.x * ext.y * ext.z;
+                case BUSHeuristic::MinCombinedSurfaceArea:
+                default:
+                    return 2.f*(ext.x*ext.y + ext.y*ext.z + ext.x*ext.z);
             }
-            case BUSHeuristic::MinCombinedSurfaceArea:
-            default:
+        }
+        else
+        {
+            Sphere u = Union(a->sphere, b->sphere);
+            switch (heuristic)
             {
-                Aabb u = Union(a->aabb, b->aabb);
-                glm::vec3 ext = u.max - u.min;
-                return 2.f * (ext.x*ext.y + ext.y*ext.z + ext.x*ext.z);
+                case BUSHeuristic::NearestCenter:
+                    return glm::distance(a->sphere.center, b->sphere.center);
+                case BUSHeuristic::MinCombinedVolume:
+                    return (4.18879020479f) * u.radius * u.radius * u.radius; // 4/3*pi*r^3
+                case BUSHeuristic::MinCombinedSurfaceArea:
+                default:
+                    return 12.5663706144f * u.radius * u.radius; // 4*pi*r^2
             }
         }
     };
@@ -205,8 +259,15 @@ void Bvh::BuildBottomUp(Registry& registry,
         parent->lChild->parent = parent.get();
         parent->rChild->parent = parent.get();
         parent->depth = std::max(left->depth, right->depth) + 1;
-        parent->aabb  = Union(left->aabb, right->aabb);
-        parent->sphere = ComputeSphereFromAabb(parent->aabb);
+        if (BvhBuildConfig::s_BuildWithAabb)
+        {
+            parent->aabb  = Union(left->aabb, right->aabb);
+        }
+        else
+        {
+            parent->sphere = Union(left->sphere, right->sphere);
+            parent->aabb   = AabbFromSphere(parent->sphere);
+        }
 
         // Remove pair indices (ensure higher index first)
         if (bestI > bestJ) std::swap(bestI, bestJ);
@@ -230,21 +291,43 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
     if (!leaf) return;
 
     // Recompute leaf bounds
-    if (!leaf->objects.empty())
-        leaf->aabb = ComputeAabbRange(registry, leaf->objects.data(), static_cast<int>(leaf->objects.size()));
-    leaf->sphere = ComputeSphereFromAabb(leaf->aabb);
+    if (BvhBuildConfig::s_BuildWithAabb)
+    {
+        if (!leaf->objects.empty())
+            leaf->aabb = ComputeAabbRange(registry, leaf->objects.data(), static_cast<int>(leaf->objects.size()));
+    }
+    else
+    {
+        Sphere agg = WorldSphereFromBC(registry, leaf->objects[0]);
+        for (size_t i=1;i<leaf->objects.size();++i)
+            agg = Union(agg, WorldSphereFromBC(registry, leaf->objects[i]));
+        leaf->sphere = agg;
+        leaf->aabb   = AabbFromSphere(agg);
+    }
 
     // Walk up the tree and update internal nodes
     for (TreeNode* node = leaf->parent; node; node = node->parent)
     {
-        if (node->lChild && node->rChild)
-            node->aabb = Union(node->lChild->aabb, node->rChild->aabb);
-        else if (node->lChild)
-            node->aabb = node->lChild->aabb;
-        else if (node->rChild)
-            node->aabb = node->rChild->aabb;
+        if (BvhBuildConfig::s_BuildWithAabb)
+        {
+            if (node->lChild && node->rChild)
+                node->aabb = Union(node->lChild->aabb, node->rChild->aabb);
+            else if (node->lChild)
+                node->aabb = node->lChild->aabb;
+            else if (node->rChild)
+                node->aabb = node->rChild->aabb;
+        }
+        else
+        {
+            if (node->lChild && node->rChild)
+                node->sphere = Union(node->lChild->sphere, node->rChild->sphere);
+            else if (node->lChild)
+                node->sphere = node->lChild->sphere;
+            else if (node->rChild)
+                node->sphere = node->rChild->sphere;
 
-        node->sphere = ComputeSphereFromAabb(node->aabb);
+            node->aabb = AabbFromSphere(node->sphere);
+        }
     }
 }
 
@@ -277,13 +360,6 @@ Aabb Bvh::ComputeAabb(Registry& registry, const std::vector<Entity>& objs)
         max = glm::max(max, aabb.max);
     }
     return { min, max };
-}
-
-Sphere Bvh::ComputeSphereFromAabb(const Aabb& box)
-{
-    glm::vec3 centre = box.GetCenter();
-    float rad = glm::length(box.GetExtents());
-    return { centre, rad };
 }
 
 int Bvh::ChooseSplitAxis(const std::vector<glm::vec3>& extents)
@@ -410,7 +486,7 @@ namespace // anonymous
             axis = Bvh::ChooseSplitAxis(centres);
         }
         else // MedianExtent
-        {
+    {
             axis = Bvh::ChooseSplitAxis(extents);
         }
 
@@ -430,8 +506,8 @@ namespace // anonymous
         };
 
         std::nth_element(begin, mid, end,
-                        [&](Entity a, Entity b)
-                        {
+                     [&](Entity a, Entity b)
+                     {
                             return keyGetter(a) < keyGetter(b);
                         });
 
@@ -461,10 +537,19 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
     node->parent = parent;
     node->depth  = depth;
 
-    node->aabb = ComputeAabbRange(registry, objects, numObjects);
-    // Simple sphere from aabb
-    node->sphere.center = node->aabb.GetCenter();
-    node->sphere.radius = glm::length(node->aabb.GetExtents());
+    if (BvhBuildConfig::s_BuildWithAabb)
+    {
+        node->aabb = ComputeAabbRange(registry, objects, numObjects);
+    }
+    else
+    {
+        // Aggregate world-space spheres
+        Sphere agg = WorldSphereFromBC(registry, objects[0]);
+        for (int i=1;i<numObjects;++i)
+            agg = Union(agg, WorldSphereFromBC(registry, objects[i]));
+        node->sphere = agg;
+        node->aabb   = AabbFromSphere(agg);
+    }
 
     bool stop = false;
     switch (termination)
@@ -490,6 +575,17 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
     node->type = BvhNodeType::Internal;
     node->lChild = BuildTopDownTree(registry, objects, k, depth+1, strategy, termination, node.get());
     node->rChild = BuildTopDownTree(registry, objects + k, numObjects - k, depth+1, strategy, termination, node.get());
+
+    // Update parent bounds from children
+    if (BvhBuildConfig::s_BuildWithAabb)
+    {
+        node->aabb   = Union(node->lChild->aabb, node->rChild->aabb);
+    }
+    else
+    {
+        node->sphere = Union(node->lChild->sphere, node->rChild->sphere);
+        node->aabb   = AabbFromSphere(node->sphere);
+    }
 
     return node;
 } 

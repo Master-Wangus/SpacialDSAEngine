@@ -95,7 +95,7 @@ struct BvhBuildConfig
     static TDSSplitStrategy   s_TDStrategy;
     static TDSTermination     s_TDTermination;
     static BUSHeuristic       s_BUHeuristic;
-    static bool               s_UseAabbVisual;
+    static bool               s_BuildWithAabb;
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -147,9 +147,6 @@ private:
 
     // Compute an AABB containing the supplied objects.
     static Aabb ComputeAabb(Registry& registry, const std::vector<Entity>& objs);
-
-    // Compute a bounding sphere containing supplied objects (simple Ritter's over AABB extents).
-    static Sphere ComputeSphereFromAabb(const Aabb& box);
 
     // Data --------------------------------------------------------------------
 

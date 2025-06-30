@@ -123,7 +123,7 @@ void RenderSystem::Render()
                  BvhBuildConfig::s_TDStrategy,
                  BvhBuildConfig::s_TDTermination,
                  BvhBuildConfig::s_BUHeuristic,
-                 BvhBuildConfig::s_UseAabbVisual);
+                 BvhBuildConfig::s_BuildWithAabb);
     }
 
     auto cameraView = m_Registry.View<CameraComponent>();

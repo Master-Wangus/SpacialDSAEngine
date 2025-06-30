@@ -435,7 +435,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
     }
 
     // Track visual mode previous value
-    static int prevVisualMode = BvhBuildConfig::s_UseAabbVisual ? 0 : 1;
+    static int prevVisualMode = BvhBuildConfig::s_BuildWithAabb ? 0 : 1;
 
     // Detect changes in builder parameters (method/split/termination/heuristic)
     bool paramsChanged = (buildMethod != prevBuildMethod) ||
@@ -444,7 +444,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                          (heuristic     != prevHeuristic);
 
     // ───── Visualisation type (AABB vs Sphere) ───────────────────────────
-    static int visualMode = BvhBuildConfig::s_UseAabbVisual ? 0 : 1; // 0=AABB,1=Sphere
+    static int visualMode = BvhBuildConfig::s_BuildWithAabb ? 0 : 1; // 0=AABB,1=Sphere
     ImGui::Separator();
     ImGui::Text("Visualise BVH As:");
     ImGui::RadioButton("AABB",   &visualMode, 0); ImGui::SameLine();
@@ -453,7 +453,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
     bool visualChanged = false;
     if (visualMode != prevVisualMode)
     {
-        BvhBuildConfig::s_UseAabbVisual = (visualMode == 0);
+        BvhBuildConfig::s_BuildWithAabb = (visualMode == 0);
         visualChanged = true;
         prevVisualMode = visualMode;
     }
@@ -477,7 +477,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                                                   BvhBuildConfig::s_TDStrategy,
                                                   BvhBuildConfig::s_TDTermination,
                                                   BvhBuildConfig::s_BUHeuristic,
-                                                  BvhBuildConfig::s_UseAabbVisual);
+                                                  BvhBuildConfig::s_BuildWithAabb);
             }
             else
             {
@@ -485,7 +485,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                                                   BvhBuildConfig::s_TDStrategy,
                                                   BvhBuildConfig::s_TDTermination,
                                                   BvhBuildConfig::s_BUHeuristic,
-                                                  BvhBuildConfig::s_UseAabbVisual);
+                                                  BvhBuildConfig::s_BuildWithAabb);
             }
         }
 
