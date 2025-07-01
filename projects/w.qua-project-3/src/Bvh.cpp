@@ -49,10 +49,6 @@ namespace
         return { newCenter, newRad };
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // OBB helpers
-    // ──────────────────────────────────────────────────────────────────────
-
     inline float Volume(const Obb& o)
     {
         glm::vec3 full = o.halfExtents * 2.0f;

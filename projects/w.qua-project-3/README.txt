@@ -1,5 +1,5 @@
 ===========================================================
-CSD3150/CS350 Geometry Toolbox - Project 3
+CSD3150/CS350 Bounding Volume Hierarchy - Project 3
 ===========================================================
 
 UI USAGE INSTRUCTIONS:
@@ -53,8 +53,8 @@ Bounding Volume Hierarchy (70%)
  - AABB
  - Bounding Spheres
  - OBB
-### Top-Down builder
-- Supports 3 split heuristics selectable in ImGui:
+
+- Top-Down builder supports 3 split heuristics selectable in ImGui:
   1. Median of BV centres (balanced, cheap).
   2. Median of BV extents (reduces parent volume).
   3. K-even (binary) equal object counts on the axis with largest extent.
@@ -62,14 +62,12 @@ Bounding Volume Hierarchy (70%)
 - Termination conditions (toggleable):
   - Leaf when 1 object, ≤2 objects, or tree height = 2.
 
-### Bottom-Up builder
-- Start with a leaf for every object; iteratively merge the pair that minimises the chosen heuristic:
+- Bottom-Up builder starts with a leaf for every object, iteratively merge the pair that minimises the chosen heuristic:
   1. Nearest-Neighbour (centroid distance).
   2. Minimum combined volume.
   3. Minimum combined surface area.
 - Merging stops when a single root remains.
 
-### Implementation notes
 - Nodes are colour-coded by depth for visual inspection (Red → Orange → Yellow → … → Violet).
 
 EXTRA CREDIT (10%)
@@ -78,11 +76,11 @@ EXTRA CREDIT (10%)
 
 OBSERVATIONS:
 ----------
-- Median-centre yields balanced trees with fast traversal but slightly larger parent volumes.
-- Median-extent reduces volume overlap at the cost of occasional imbalance.
-- K-even mirrors spatial grids are effective for clustered scenes but sensitive to outliers.
-- Nearest-neighbour bottom-up preserves locality yet can inflate volumes if clusters are elongated.
-- Volume vs Surface-Area heuristic: surface area generally produces the tightest BVH in this dataset.
+Using the nearest neighbor heuristic is fast and simple but it may not always produce the tightest bounding volumes.
+Opting for minimum combined child volume as the heuristic results in tighter fits and better culling, 
+though it is slower to compute and seems best suited for static scenes.
+The minimum combined child surface area heuristic seems to produces the highest-quality BVHs with 
+the best traversal, but it is the slowest to compute due to the need to evaluate many possible merges. 
 
 FILE PATHS AND IMPLEMENTATION DETAILS:
 -----------------------------------
