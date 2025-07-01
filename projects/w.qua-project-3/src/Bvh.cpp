@@ -49,6 +49,125 @@ namespace
         return { newCenter, newRad };
     }
 
+    // ──────────────────────────────────────────────────────────────────────
+    // OBB helpers
+    // ──────────────────────────────────────────────────────────────────────
+
+    inline float Volume(const Obb& o)
+    {
+        glm::vec3 full = o.halfExtents * 2.0f;
+        return full.x * full.y * full.z;
+    }
+
+    inline float SurfaceArea(const Obb& o)
+    {
+        glm::vec3 full = o.halfExtents * 2.0f;
+        return 2.0f * (full.x * full.y + full.y * full.z + full.x * full.z);
+    }
+
+    inline void CollectCorners(const Obb& obb, std::vector<glm::vec3>& out)
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            glm::vec3 dir(
+                (i & 1) ? 1.f : -1.f,
+                (i & 2) ? 1.f : -1.f,
+                (i & 4) ? 1.f : -1.f);
+            glm::vec3 corner = obb.center +
+                dir.x * obb.axes[0] * obb.halfExtents.x +
+                dir.y * obb.axes[1] * obb.halfExtents.y +
+                dir.z * obb.axes[2] * obb.halfExtents.z;
+            out.push_back(corner);
+        }
+    }
+
+    inline Obb Union(const Obb& a, const Obb& b)
+    {
+        // Use orientation of 'a' as parent orientation
+        glm::vec3 axes[3] = { a.axes[0], a.axes[1], a.axes[2] };
+
+        std::vector<glm::vec3> pts;
+        pts.reserve(16);
+        CollectCorners(a, pts);
+        CollectCorners(b, pts);
+
+        glm::vec3 minProj( std::numeric_limits<float>::infinity());
+        glm::vec3 maxProj(-std::numeric_limits<float>::infinity());
+
+        for (const auto& p : pts)
+        {
+            glm::vec3 rel = p - a.center;
+            for (int k = 0; k < 3; ++k)
+            {
+                float proj = glm::dot(rel, axes[k]);
+                minProj[k] = std::min(minProj[k], proj);
+                maxProj[k] = std::max(maxProj[k], proj);
+            }
+        }
+
+        glm::vec3 newHalfExt = 0.5f * (maxProj - minProj);
+        glm::vec3 centreOffset = 0.5f * (maxProj + minProj);
+        glm::vec3 newCentre = a.center + axes[0] * centreOffset.x + axes[1] * centreOffset.y + axes[2] * centreOffset.z;
+
+        return Obb(newCentre, axes, newHalfExt);
+    }
+
+    // Non-member utility: compute OBB of a contiguous entity array (world-space)
+    static Obb ComputeObbRange(Registry& registry, const Registry::Entity* objs, int count)
+    {
+        if (count <= 0) return {};
+
+        auto getWorldObb = [&](Registry::Entity e)
+        {
+            Obb o = registry.GetComponent<BoundingComponent>(e).GetOBB();
+            if (registry.HasComponent<TransformComponent>(e))
+            {
+                const auto& model = registry.GetComponent<TransformComponent>(e).m_Model;
+                // Transform centre
+                o.center = glm::vec3(model * glm::vec4(o.center, 1.0f));
+                // Transform axes (ignore shear)
+                for (int i = 0; i < 3; ++i)
+                {
+                    glm::vec3 axis = glm::vec3(model * glm::vec4(o.axes[i], 0.0f));
+                    float len = glm::length(axis);
+                    if (len > 1e-5f)
+                    {
+                        o.axes[i] = glm::normalize(axis);
+                        o.halfExtents[i] *= len;
+                    }
+                }
+            }
+            return o;
+        };
+
+        Obb agg = getWorldObb(objs[0]);
+        for (int i = 1; i < count; ++i)
+            agg = Union(agg, getWorldObb(objs[i]));
+
+        return agg;
+    }
+
+    static Obb WorldObbFromBC(Registry& registry, Registry::Entity e)
+    {
+        Obb o = registry.GetComponent<BoundingComponent>(e).GetOBB();
+        if (registry.HasComponent<TransformComponent>(e))
+        {
+            const auto& model = registry.GetComponent<TransformComponent>(e).m_Model;
+            o.center = glm::vec3(model * glm::vec4(o.center, 1.0f));
+            for (int i = 0; i < 3; ++i)
+            {
+                glm::vec3 axis = glm::vec3(model * glm::vec4(o.axes[i], 0.0f));
+                float len = glm::length(axis);
+                if (len > 1e-6f)
+                {
+                    o.axes[i] = glm::normalize(axis);
+                    o.halfExtents[i] *= len;
+                }
+            }
+        }
+        return o;
+    }
+
     // Non-member utility: compute AABB of a contiguous entity array (global scope)
     static Aabb ComputeAabbRange(Registry& registry, const Registry::Entity* objs, int count)
     {
@@ -154,7 +273,7 @@ BvhBuildMethod   BvhBuildConfig::s_Method        = BvhBuildMethod::TopDown;
 TDSSplitStrategy BvhBuildConfig::s_TDStrategy    = TDSSplitStrategy::MedianCenter;
 TDSTermination   BvhBuildConfig::s_TDTermination = TDSTermination::SingleObject;
 BUSHeuristic     BvhBuildConfig::s_BUHeuristic   = BUSHeuristic::MinCombinedVolume;
-bool             BvhBuildConfig::s_BuildWithAabb = true;
+BvhVolumeType    BvhBuildConfig::s_BVType = BvhVolumeType::Aabb;
 
 
 void Bvh::Clear()
@@ -216,13 +335,17 @@ void Bvh::BuildBottomUp(Registry& registry,
         auto leaf = std::make_unique<TreeNode>();
         leaf->type = BvhNodeType::Leaf;
         leaf->objects.push_back(entity);
-        if (BvhBuildConfig::s_BuildWithAabb)
+        if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
         {
             leaf->aabb   = ComputeAabbRange(registry, &entity, 1);
         }
-        else
+        else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
         {
             leaf->sphere = WorldSphereFromBC(registry, entity);
+        }
+        else // Obb
+        {
+            leaf->obb = WorldObbFromBC(registry, entity);
         }
         leaf->depth  = 0;
 
@@ -233,7 +356,7 @@ void Bvh::BuildBottomUp(Registry& registry,
 
     auto pairCost = [&](const TreeNode* a, const TreeNode* b)
     {
-        if (BvhBuildConfig::s_BuildWithAabb)
+        if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
         {
             Aabb u = Union(a->aabb, b->aabb);
             glm::vec3 ext = u.max - u.min;
@@ -248,7 +371,7 @@ void Bvh::BuildBottomUp(Registry& registry,
                     return 2.f*(ext.x*ext.y + ext.y*ext.z + ext.x*ext.z);
             }
         }
-        else
+        else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
         {
             Sphere u = Union(a->sphere, b->sphere);
             switch (heuristic)
@@ -260,6 +383,20 @@ void Bvh::BuildBottomUp(Registry& registry,
                 case BUSHeuristic::MinCombinedSurfaceArea:
                 default:
                     return (12.5663706144f) * u.radius * u.radius; // 4*pi*r^2
+            }
+        }
+        else // Obb
+        {
+            Obb u = Union(a->obb, b->obb);
+            switch (heuristic)
+            {
+                case BUSHeuristic::NearestCenter:
+                    return glm::distance(a->obb.center, b->obb.center);
+                case BUSHeuristic::MinCombinedVolume:
+                    return Volume(u);
+                case BUSHeuristic::MinCombinedSurfaceArea:
+                default:
+                    return SurfaceArea(u);
             }
         }
     };
@@ -297,13 +434,17 @@ void Bvh::BuildBottomUp(Registry& registry,
         parent->lChild->parent = parent.get();
         parent->rChild->parent = parent.get();
         parent->depth = std::max(left->depth, right->depth) + 1;
-        if (BvhBuildConfig::s_BuildWithAabb)
+        if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
         {
             parent->aabb  = Union(left->aabb, right->aabb);
         }
-        else
+        else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
         {
             parent->sphere = Union(left->sphere, right->sphere);
+        }
+        else
+        {
+            parent->obb = Union(left->obb, right->obb);
         }
 
         // Remove pair indices (ensure higher index first)
@@ -328,23 +469,33 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
     if (!leaf) return;
 
     // Recompute leaf bounds
-    if (BvhBuildConfig::s_BuildWithAabb)
+    if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
     {
         if (!leaf->objects.empty())
             leaf->aabb = ComputeAabbRange(registry, leaf->objects.data(), static_cast<int>(leaf->objects.size()));
     }
-    else
+    else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
     {
         Sphere agg = WorldSphereFromBC(registry, leaf->objects[0]);
         for (size_t i=1;i<leaf->objects.size();++i)
             agg = Union(agg, WorldSphereFromBC(registry, leaf->objects[i]));
         leaf->sphere = agg;
     }
+    else // Obb
+    {
+        if (!leaf->objects.empty())
+        {
+            Obb agg = WorldObbFromBC(registry, leaf->objects[0]);
+            for (size_t i = 1; i < leaf->objects.size(); ++i)
+                agg = Union(agg, WorldObbFromBC(registry, leaf->objects[i]));
+            leaf->obb = agg;
+        }
+    }
 
     // Walk up the tree and update internal nodes
     for (TreeNode* node = leaf->parent; node; node = node->parent)
     {
-        if (BvhBuildConfig::s_BuildWithAabb)
+        if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
         {
             if (node->lChild && node->rChild)
                 node->aabb = Union(node->lChild->aabb, node->rChild->aabb);
@@ -353,7 +504,7 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
             else if (node->rChild)
                 node->aabb = node->rChild->aabb;
         }
-        else
+        else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
         {
             if (node->lChild && node->rChild)
                 node->sphere = Union(node->lChild->sphere, node->rChild->sphere);
@@ -361,6 +512,15 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
                 node->sphere = node->lChild->sphere;
             else if (node->rChild)
                 node->sphere = node->rChild->sphere;
+        }
+        else
+        {
+            if (node->lChild && node->rChild)
+                node->obb = Union(node->lChild->obb, node->rChild->obb);
+            else if (node->lChild)
+                node->obb = node->lChild->obb;
+            else if (node->rChild)
+                node->obb = node->rChild->obb;
         }
     }
 }
@@ -419,7 +579,7 @@ int Bvh::ChooseSplitAxis(const std::vector<glm::vec3>& extents)
 }
 
 std::vector<std::shared_ptr<IRenderable>>
-Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, bool useAabb) const
+Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, BvhVolumeType volumeType) const
 {
     std::vector<std::shared_ptr<IRenderable>> result;
     m_FlatDepths.clear();
@@ -427,13 +587,13 @@ Bvh::CreateRenderables(const std::shared_ptr<Shader>& shader, bool useAabb) cons
     if (!shader || !m_Root) return result;
 
     // Traverse pointer-based tree
-    CollectRenderables(m_Root.get(), useAabb, shader, result);
+    CollectRenderables(m_Root.get(), volumeType, shader, result);
     return result;
 }
 
 // Helper to recursively create renderables from pointer-based tree
 void Bvh::CollectRenderables(const TreeNode* node,
-                             bool useAabb,
+                             BvhVolumeType volumeType,
                              const std::shared_ptr<Shader>& shader,
                              std::vector<std::shared_ptr<IRenderable>>& out) const
 {
@@ -452,7 +612,7 @@ void Bvh::CollectRenderables(const TreeNode* node,
 
     glm::vec3 colour = palette[node->depth % 7];
 
-    if (useAabb)
+    if (volumeType == BvhVolumeType::Aabb)
     {
         glm::vec3 size = node->aabb.max - node->aabb.min;
         glm::vec3 centre = node->aabb.GetCenter();
@@ -460,18 +620,24 @@ void Bvh::CollectRenderables(const TreeNode* node,
         cube->Initialize(shader);
         out.push_back(cube);
     }
-    else
+    else if (volumeType == BvhVolumeType::Sphere)
     {
         auto sphere = std::make_shared<SphereRenderer>(node->sphere.center, node->sphere.radius, colour, true);
         sphere->Initialize(shader);
         out.push_back(sphere);
     }
+    else
+    {
+        auto obbCube = std::make_shared<CubeRenderer>(node->obb.center, node->obb.axes, node->obb.halfExtents, colour, true);
+        obbCube->Initialize(shader);
+        out.push_back(obbCube);
+    }
 
     // record depth parallel to out
     m_FlatDepths.push_back(node->depth);
 
-    CollectRenderables(node->lChild.get(), useAabb, shader, out);
-    CollectRenderables(node->rChild.get(), useAabb, shader, out);
+    CollectRenderables(node->lChild.get(), volumeType, shader, out);
+    CollectRenderables(node->rChild.get(), volumeType, shader, out);
 }
 
 const std::vector<int>& Bvh::GetDepths() const
@@ -495,17 +661,21 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
     node->parent = parent;
     node->depth  = depth;
 
-    if (BvhBuildConfig::s_BuildWithAabb)
+    if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
     {
         node->aabb = ComputeAabbRange(registry, objects, numObjects);
     }
-    else
+    else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
     {
         // Aggregate world-space spheres
         Sphere agg = WorldSphereFromBC(registry, objects[0]);
         for (int i=1;i<numObjects;++i)
             agg = Union(agg, WorldSphereFromBC(registry, objects[i]));
         node->sphere = agg;
+    }
+    else // Obb
+    {
+        node->obb = ComputeObbRange(registry, objects, numObjects);
     }
 
     bool stop = false;
@@ -534,13 +704,17 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
     node->rChild = BuildTopDownTree(registry, objects + k, numObjects - k, depth+1, strategy, termination, node.get());
 
     // Update parent bounds from children
-    if (BvhBuildConfig::s_BuildWithAabb)
+    if (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb)
     {
         node->aabb   = Union(node->lChild->aabb, node->rChild->aabb);
     }
-    else
+    else if (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere)
     {
         node->sphere = Union(node->lChild->sphere, node->rChild->sphere);
+    }
+    else
+    {
+        node->obb = Union(node->lChild->obb, node->rChild->obb);
     }
 
     return node;

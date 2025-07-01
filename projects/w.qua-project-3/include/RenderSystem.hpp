@@ -178,7 +178,7 @@ public:
                   TDSSplitStrategy tdStrategy = TDSSplitStrategy::MedianCenter,
                   TDSTermination tdTermination = TDSTermination::SingleObject,
                   BUSHeuristic buHeuristic = BUSHeuristic::NearestCenter,
-                  bool useAabbVisual = true);
+                  BvhVolumeType volumeType = BvhVolumeType::Aabb);
 
     static constexpr int kMaxBVHLevels = 8;
     void SetBVHLevelVisible(int level, bool visible);
@@ -253,7 +253,7 @@ private:
     bool m_GlobalWireframe = false;
 
     // BVH controls
-    bool m_UseAabbForBVH = true;
+    BvhVolumeType m_BvhVolume = BvhVolumeType::Aabb;
     std::unique_ptr<Bvh> m_Bvh;
     std::vector<std::shared_ptr<IRenderable>> m_BvhRenderables;
     std::array<bool, kMaxBVHLevels> m_BvhLevelVisible { { true,false,false,false,false,false,false,false } };

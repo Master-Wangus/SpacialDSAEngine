@@ -49,6 +49,10 @@ Scene Setup (25%)
 
 Bounding Volume Hierarchy (70%)
 -----------------------------------
+- Supports using:
+ - AABB
+ - Bounding Spheres
+ - OBB
 ### Top-Down builder
 - Supports 3 split heuristics selectable in ImGui:
   1. Median of BV centres (balanced, cheap).
@@ -67,6 +71,10 @@ Bounding Volume Hierarchy (70%)
 
 ### Implementation notes
 - Nodes are colour-coded by depth for visual inspection (Red → Orange → Yellow → … → Violet).
+
+EXTRA CREDIT (10%)
+-----------------
+- OBBs are included as part of the BVH Build BVH With.
 
 OBSERVATIONS:
 ----------
@@ -130,6 +138,16 @@ Source Files (src/):
 Shader Files (shaders/):
 - my-project-3.vert - Vertex shader for 3D object rendering
 - my-project-3.frag - Fragment shader for directional lighting
+
+Model Files (models/):
+- bunny.obj - Stanford Bunny mesh (201KB)
+- rhino.obj - Rhinoceros model (300KB)
+- cup.obj - Drinking cup model (1.2MB)
+- gun.obj - Weapon model (30KB)
+- arm.obj - Articulated arm model (7.2MB)
+- cat.obj - Cat character model (5.1MB)
+- stuffed.obj - Stuffed toy model (2.8MB)
+- cube.obj - Simple cube primitive (798B)
 
 TEST PLATFORM DETAILS:
 -------------------

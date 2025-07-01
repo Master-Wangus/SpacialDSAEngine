@@ -112,9 +112,6 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     // Create a separate widget for model controls
     ImGui::Begin("Model Controls");
     
-    // Model selection controls removed; all models are shown simultaneously.
-
-    // (Removed UI controls for switching models)
 
     ImGui::Separator();
     
@@ -142,11 +139,8 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
 
     ImGui::Separator();
     
-    // (Frustum visualization UI removed)
-
     ImGui::End();
 
-    // ───────────────────────────────── Assignment 3 ───────────────────────────
     ImGui::Begin("Assignment 3");
 
     ImGui::Text("BVH Controls:");
@@ -423,8 +417,9 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
 
     }
 
-    // Track visual mode previous value
-    static int prevVisualMode = BvhBuildConfig::s_BuildWithAabb ? 0 : 1;
+    // Track visual mode previous value (0=AABB,1=Sphere,2=OBB)
+    static int prevVisualMode = (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb) ? 0 :
+                                (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere) ? 1 : 2;
 
     // Detect changes in builder parameters (method/split/termination/heuristic)
     bool paramsChanged = (buildMethod != prevBuildMethod) ||
@@ -432,16 +427,23 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                          (termination   != prevTermination)   ||
                          (heuristic     != prevHeuristic);
 
-    static int visualMode = BvhBuildConfig::s_BuildWithAabb ? 0 : 1; // 0=AABB,1=Sphere
+    static int visualMode = (BvhBuildConfig::s_BVType == BvhVolumeType::Aabb) ? 0 :
+                            (BvhBuildConfig::s_BVType == BvhVolumeType::Sphere) ? 1 : 2; // 0=AABB,1=Sphere,2=OBB
     ImGui::Separator();
     ImGui::Text("Build BVH With:");
     ImGui::RadioButton("AABB",   &visualMode, 0); ImGui::SameLine();
-    ImGui::RadioButton("Bounding Sphere", &visualMode, 1);
+    ImGui::RadioButton("Bounding Sphere", &visualMode, 1); ImGui::SameLine();
+    ImGui::RadioButton("OBB", &visualMode, 2);
 
     bool visualChanged = false;
     if (visualMode != prevVisualMode)
     {
-        BvhBuildConfig::s_BuildWithAabb = (visualMode == 0);
+        switch (visualMode)
+        {
+            case 0: BvhBuildConfig::s_BVType = BvhVolumeType::Aabb; break;
+            case 1: BvhBuildConfig::s_BVType = BvhVolumeType::Sphere; break;
+            case 2: BvhBuildConfig::s_BVType = BvhVolumeType::Obb; break;
+        }
         visualChanged = true;
         prevVisualMode = visualMode;
     }
@@ -463,7 +465,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                                                   BvhBuildConfig::s_TDStrategy,
                                                   BvhBuildConfig::s_TDTermination,
                                                   BvhBuildConfig::s_BUHeuristic,
-                                                  BvhBuildConfig::s_BuildWithAabb);
+                                                  BvhBuildConfig::s_BVType);
             }
             else
             {
@@ -471,7 +473,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                                                   BvhBuildConfig::s_TDStrategy,
                                                   BvhBuildConfig::s_TDTermination,
                                                   BvhBuildConfig::s_BUHeuristic,
-                                                  BvhBuildConfig::s_BuildWithAabb);
+                                                  BvhBuildConfig::s_BVType);
             }
         }
 

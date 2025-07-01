@@ -28,6 +28,14 @@ enum class BvhBuildMethod
     BottomUp
 };
 
+// Supported bounding volume types for building and visualising the BVH.
+enum class BvhVolumeType
+{
+    Aabb,
+    Sphere,
+    Obb
+};
+
 // Splitting strategies for the top-down builder.
 enum class TDSSplitStrategy
 {
@@ -62,6 +70,9 @@ struct TreeNode
     Aabb   aabb;
     Sphere sphere;
 
+    // Oriented bounding box (built when BvhVolumeType::Obb is selected)
+    Obb    obb;
+
     // Leaf data 
     std::vector<Registry::Entity> objects; // Objects stored in this leaf
 
@@ -85,7 +96,7 @@ struct BvhBuildConfig
     static TDSSplitStrategy   s_TDStrategy;
     static TDSTermination     s_TDTermination;
     static BUSHeuristic       s_BUHeuristic;
-    static bool               s_BuildWithAabb;
+    static BvhVolumeType      s_BVType;
 };
 
 
@@ -149,21 +160,14 @@ public:
 
 
     /**
-     * @brief Generates one wire-frame cube or sphere per BVH node for visual
-     *        debugging.
+     * @brief Generates one wire-frame cube, sphere or OBB per BVH node for visual debugging.
      *
-     * The traversal order is root-first (pre-order) so the returned vector is
-     * parallel to @ref GetDepths(). Colours cycle through a fixed palette based
-     * on node depth.
-     *
-     * @param shader   Shader to be assigned to each generated renderable.
-     * @param useAabb  When true AABBs are rendered; when false PCA spheres are
-     *                 rendered instead.
-     * @return Vector of @c IRenderable shared pointers, one for each node.
+     * @param shader    Shader assigned to each generated renderable
+     * @param volumeType Which stored bounding volume should be drawn for every node
      */
     std::vector<std::shared_ptr<IRenderable>>
     CreateRenderables(const std::shared_ptr<Shader>& shader,
-                      bool useAabb = true) const;
+                      BvhVolumeType volumeType = BvhVolumeType::Aabb) const;
 
     /**
      * @brief Returns the depth, in tree levels, of every node returned by the last
@@ -215,7 +219,7 @@ private:
 
     // Helper to recursively create renderables from pointer-based tree
     void CollectRenderables(const TreeNode* node,
-                            bool useAabb,
+                            BvhVolumeType volumeType,
                             const std::shared_ptr<Shader>& shader,
                             std::vector<std::shared_ptr<IRenderable>>& out) const;
 

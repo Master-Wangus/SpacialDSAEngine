@@ -75,26 +75,6 @@ void FrustumFromVp(glm::mat4 const& vp, glm::vec3 fn[6], float fd[6]);
 void CreateAabbBruteForce(Vertex const* vertices, size_t count, Vertex* out_min, Vertex* out_max);
 
 /**
- * @brief Creates a bounding sphere using Ritter's algorithm.
- * @param vertices Array of vertices to process
- * @param count Number of vertices
- * @param out_c Output center vertex
- * @param out_r Output radius
- */
-void CreateSphereRitters(Vertex const* vertices, size_t count, Vertex* out_c, float* out_r);
-
-/**
- * @brief Creates a bounding sphere using iterative improvement.
- * @param vertices Array of vertices to process
- * @param count Number of vertices
- * @param iteration_count Number of iterations to perform
- * @param shrink_ratio Ratio to shrink sphere each iteration
- * @param out_c Output center vertex
- * @param out_r Output radius
- */
-void CreateSphereIterative(Vertex const* vertices, size_t count, int iteration_count, float shrink_ratio, Vertex* out_c, float* out_r);
-
-/**
  * @brief Creates a bounding sphere using Principal Component Analysis.
  * @param vertices Array of vertices to process
  * @param count Number of vertices

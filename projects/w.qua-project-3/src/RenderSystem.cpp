@@ -125,7 +125,7 @@ void RenderSystem::Render()
                  BvhBuildConfig::s_TDStrategy,
                  BvhBuildConfig::s_TDTermination,
                  BvhBuildConfig::s_BUHeuristic,
-                 BvhBuildConfig::s_BuildWithAabb);
+                 BvhBuildConfig::s_BVType);
     }
 
     auto cameraView = m_Registry.View<CameraComponent>();
@@ -544,7 +544,7 @@ void RenderSystem::BuildBVH(BvhBuildMethod method,
                             TDSSplitStrategy tdStrategy,
                             TDSTermination tdTermination,
                             BUSHeuristic buHeuristic,
-                            bool useAabbVisual)
+                            BvhVolumeType volumeType)
 {
     // Clean up old BVH visualisation
     for (auto& r : m_BvhRenderables)
@@ -571,8 +571,8 @@ void RenderSystem::BuildBVH(BvhBuildMethod method,
         m_Bvh->BuildBottomUp(m_Registry, entities, buHeuristic);
     }
 
-    m_BvhRenderables = m_Bvh->CreateRenderables(m_Shader, useAabbVisual);
-    m_UseAabbForBVH = useAabbVisual;
+    m_BvhRenderables = m_Bvh->CreateRenderables(m_Shader, volumeType);
+    m_BvhVolume = volumeType;
 
     // Store depth for each renderable (same order as nodes)
     m_BvhRenderableDepths = m_Bvh->GetDepths();
