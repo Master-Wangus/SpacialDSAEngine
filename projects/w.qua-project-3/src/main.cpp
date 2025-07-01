@@ -38,8 +38,8 @@ int main()
         glEnable(GL_DEPTH_TEST);
         
         auto shader = std::make_shared<Shader>(
-            "../projects/w.qua-project-2/shaders/my-project-2.vert",
-            "../projects/w.qua-project-2/shaders/my-project-2.frag"
+            "../projects/w.qua-project-2/shaders/my-project-3.vert",
+            "../projects/w.qua-project-2/shaders/my-project-3.frag"
         );
         
         Registry registry;

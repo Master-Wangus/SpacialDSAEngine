@@ -25,6 +25,7 @@
 #include <fstream>
 #include <sstream>
 #include <variant>
+#include <algorithm>
 
 // GLM
 #include <glm/glm.hpp>

@@ -31,9 +31,12 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     });
 
     // Subscribe to wireframe toggle events
-    EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [this](const EventData& eventData) {
-        if (auto keyCode = std::get_if<int>(&eventData)) {
-            if (*keyCode == Keybinds::KEY_F) {
+    EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [this](const EventData& eventData) 
+        {
+        if (auto keyCode = std::get_if<int>(&eventData)) 
+        {
+            if (*keyCode == Keybinds::KEY_F) 
+            {
                 SetGlobalWireframe(!m_GlobalWireframe);
                 std::cout << "Wireframe mode: " << (m_GlobalWireframe ? "ON" : "OFF") << std::endl;
             }
@@ -41,7 +44,8 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     });
 
     // Listen for transform changes to rebuild BVH automatically
-    EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData) {
+    EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData) 
+        {
         if (m_Bvh)
         {
             if (auto entPtr = std::get_if<entt::entity>(&eventData))
@@ -62,7 +66,8 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     });
 
     // Rebuild BVH when the entire scene is reset
-    EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&) {
+    EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&) 
+        {
         // Clear any previous hierarchy so we don't reference destroyed entities
         m_Bvh.reset();
         m_BvhDirty = true;
@@ -89,7 +94,6 @@ void RenderSystem::Initialize()
 
 void RenderSystem::Render()
 {
-    // Rotate directional light vertically over time -----------------------
     if (m_LightEntity != entt::null && m_Registry.HasComponent<DirectionalLightComponent>(m_LightEntity))
     {
         auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
@@ -111,14 +115,12 @@ void RenderSystem::Render()
             t.UpdateModelMatrix();
         }
 
-        // Upload to GPU UBO
         UpdateLighting();
     }
 
     // Rebuild BVH automatically if marked dirty (e.g., transforms changed)
     if (m_BvhDirty)
     {
-        // Rebuild using current settings chosen in ImGui 
         BuildBVH(BvhBuildConfig::s_Method,
                  BvhBuildConfig::s_TDStrategy,
                  BvhBuildConfig::s_TDTermination,
@@ -141,13 +143,11 @@ void RenderSystem::Render()
     m_Shader->Use();
     m_Shader->SetVec3("viewPos", cameraPosition);
     
-    // Update frustum planes for culling
     if (m_CameraSystem) 
     {
         m_CameraSystem->UpdateFrustumPlanes(camera, aspectRatio);
     }
     
-    // Apply global wireframe mode once per frame
     static GLenum s_CurrentPolyMode = GL_FILL;
     GLenum desiredMode = m_GlobalWireframe ? GL_LINE : GL_FILL;
     if (desiredMode != s_CurrentPolyMode)

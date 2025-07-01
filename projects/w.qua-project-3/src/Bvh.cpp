@@ -1,11 +1,7 @@
 #include "Bvh.hpp"
-#include <queue>
-#include <numeric>
 #include "CubeRenderer.hpp"
 #include "SphereRenderer.hpp"
 #include "Shader.hpp"
-#include <functional>
-#include <algorithm>
 
 // Forward declaration
 static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
@@ -16,12 +12,10 @@ static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
                                                  TDSTermination termination,
                                                  TreeNode* parent = nullptr);
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Utility helpers (anonymous namespace)
-// ──────────────────────────────────────────────────────────────────────────────
-
 namespace
 {
+    using Entity = Registry::Entity;
+
     inline float Volume(const Aabb& a)
     {
         glm::vec3 ext = a.max - a.min;
@@ -39,7 +33,6 @@ namespace
         return { glm::min(a.min, b.min), glm::max(a.max, b.max) };
     }
 
-    // Enclose two spheres with the minimal bounding sphere.
     inline Sphere Union(const Sphere& s1, const Sphere& s2)
     {
         // If one sphere fully contains the other, return the larger.
@@ -61,7 +54,8 @@ namespace
     {
         if (count <= 0) return {};
 
-        auto makeWorldAabb = [&](Registry::Entity e){
+        auto makeWorldAabb = [&](Registry::Entity e)
+            {
             auto aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
             if (registry.HasComponent<TransformComponent>(e))
             {
@@ -96,21 +90,72 @@ namespace
         }
         return s;
     }
+
+    // Decides how a node in the Top-down traversal is split into a left and right child
+    static int PartitionObjects(Registry& registry,
+        Entity* objects,
+        int numObjects,
+        TDSSplitStrategy strategy)
+    {
+        if (numObjects <= 1) return 1;
+
+        // Prepare centre / extent arrays
+        std::vector<glm::vec3> centres(numObjects);
+        std::vector<glm::vec3> extents(numObjects);
+
+        for (int i = 0; i < numObjects; ++i)
+        {
+            Aabb aabb = registry.GetComponent<BoundingComponent>(objects[i]).GetAABB();
+            if (registry.HasComponent<TransformComponent>(objects[i]))
+            {
+                aabb.Transform(registry.GetComponent<TransformComponent>(objects[i]).m_Model);
+            }
+            centres[i] = aabb.GetCenter();
+            extents[i] = aabb.GetExtents();
+        }
+
+        int axis = 0;
+        if (strategy == TDSSplitStrategy::MedianCenter || strategy == TDSSplitStrategy::KEven)
+        {
+            axis = Bvh::ChooseSplitAxis(centres);
+        }
+        else // MedianExtent
+        {
+            axis = Bvh::ChooseSplitAxis(extents);
+        }
+
+        // Determine split index k (median)
+        int k = numObjects / 2; // default median size
+
+        Entity* begin = objects;
+        Entity* mid = objects + k;
+        Entity* end = objects + numObjects;
+
+        auto keyGetter = [&](Entity e) {
+            Aabb aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
+            if (registry.HasComponent<TransformComponent>(e))
+                aabb.Transform(registry.GetComponent<TransformComponent>(e).m_Model);
+            return (strategy == TDSSplitStrategy::MedianExtent) ? aabb.GetExtents()[axis]
+                : aabb.GetCenter()[axis];
+            };
+
+        std::nth_element(begin, mid, end,
+            [&](Entity a, Entity b)
+            {
+                return keyGetter(a) < keyGetter(b);
+            });
+
+        return k;
+    }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Static configuration defaults
-// ──────────────────────────────────────────────────────────────────────────────
-
 BvhBuildMethod   BvhBuildConfig::s_Method        = BvhBuildMethod::TopDown;
 TDSSplitStrategy BvhBuildConfig::s_TDStrategy    = TDSSplitStrategy::MedianCenter;
 TDSTermination   BvhBuildConfig::s_TDTermination = TDSTermination::SingleObject;
 BUSHeuristic     BvhBuildConfig::s_BUHeuristic   = BUSHeuristic::MinCombinedVolume;
 bool             BvhBuildConfig::s_BuildWithAabb = true;
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Public interface
-// ──────────────────────────────────────────────────────────────────────────────
 
 void Bvh::Clear()
 {
@@ -139,9 +184,7 @@ void Bvh::BuildTopDown(Registry& registry,
                               strategy,
                               termination);
 
-    // ------------------------------------------------------------
     // Populate entity → leaf map & flat depth list for rendering
-    // ------------------------------------------------------------
     std::function<void(TreeNode*)> traverse = [&](TreeNode* node){
         if (!node) return;
         if (node->type == BvhNodeType::Leaf)
@@ -188,7 +231,8 @@ void Bvh::BuildBottomUp(Registry& registry,
         active.push_back(std::move(leaf));
     }
 
-    auto pairCost = [&](const TreeNode* a, const TreeNode* b){
+    auto pairCost = [&](const TreeNode* a, const TreeNode* b)
+    {
         if (BvhBuildConfig::s_BuildWithAabb)
         {
             Aabb u = Union(a->aabb, b->aabb);
@@ -215,7 +259,7 @@ void Bvh::BuildBottomUp(Registry& registry,
                     return (4.18879020479f) * u.radius * u.radius * u.radius; // 4/3*pi*r^3
                 case BUSHeuristic::MinCombinedSurfaceArea:
                 default:
-                    return 12.5663706144f * u.radius * u.radius; // 4*pi*r^2
+                    return (12.5663706144f) * u.radius * u.radius; // 4*pi*r^2
             }
         }
     };
@@ -321,15 +365,12 @@ void Bvh::RefitLeaf(Registry& registry, Entity entity)
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Private helpers
-// ──────────────────────────────────────────────────────────────────────────────
-
 Aabb Bvh::ComputeAabb(Registry& registry, const std::vector<Entity>& objs)
 {
     if (objs.empty()) return {};
 
-    auto makeWorldAabb = [&](Entity e){
+    auto makeWorldAabb = [&](Entity e)
+        {
         auto aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
         if (registry.HasComponent<TransformComponent>(e))
         {
@@ -398,14 +439,15 @@ void Bvh::CollectRenderables(const TreeNode* node,
 {
     if (!node) return;
 
-    static const glm::vec3 palette[7] = {
-        {1.0f, 0.0f, 0.0f},
-        {1.0f, 0.5f, 0.0f},
-        {1.0f, 1.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {0.3f, 0.0f, 0.5f},
-        {0.6f, 0.0f, 1.0f}
+    static const glm::vec3 palette[7] = 
+    {
+        {1.0f, 0.0f, 0.0f}, // red
+        {1.0f, 0.5f, 0.0f}, // orange
+        {1.0f, 1.0f, 0.0f}, // yellow
+        {0.0f, 1.0f, 0.0f}, // green
+        {0.0f, 0.0f, 1.0f}, // blue
+        {0.3f, 0.0f, 0.5f}, // dark violet
+        {0.6f, 0.0f, 1.0f}  // bright violet
     };
 
     glm::vec3 colour = palette[node->depth % 7];
@@ -436,80 +478,6 @@ const std::vector<int>& Bvh::GetDepths() const
 {
     return m_FlatDepths;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pointer-based top-down helpers (new implementation)
-// ─────────────────────────────────────────────────────────────────────────────
-
-namespace // anonymous
-{
-    // Forward declarations
-    using Entity = Registry::Entity;
-
-    // ComputeAabbRange defined earlier at global scope
-
-    static int PartitionObjects(Registry& registry,
-                                Entity* objects,
-                                int numObjects,
-                                TDSSplitStrategy strategy)
-    {
-        if (numObjects <= 1) return 1;
-
-        // Prepare centre / extent arrays
-        std::vector<glm::vec3> centres(numObjects);
-        std::vector<glm::vec3> extents(numObjects);
-
-        for (int i = 0; i < numObjects; ++i)
-        {
-            Aabb aabb = registry.GetComponent<BoundingComponent>(objects[i]).GetAABB();
-            if (registry.HasComponent<TransformComponent>(objects[i]))
-            {
-                aabb.Transform(registry.GetComponent<TransformComponent>(objects[i]).m_Model);
-            }
-            centres[i]  = aabb.GetCenter();
-            extents[i]  = aabb.GetExtents();
-        }
-
-        int axis = 0;
-        if (strategy == TDSSplitStrategy::MedianCenter || strategy == TDSSplitStrategy::KEven)
-        {
-            axis = Bvh::ChooseSplitAxis(centres);
-        }
-        else // MedianExtent
-    {
-            axis = Bvh::ChooseSplitAxis(extents);
-        }
-
-        // Determine split index k (median)
-        int k = numObjects / 2; // default median size
-
-        Entity* begin = objects;
-        Entity* mid   = objects + k;
-        Entity* end   = objects + numObjects;
-
-        auto keyGetter = [&](Entity e){
-            Aabb aabb = registry.GetComponent<BoundingComponent>(e).GetAABB();
-            if (registry.HasComponent<TransformComponent>(e))
-                aabb.Transform(registry.GetComponent<TransformComponent>(e).m_Model);
-            return (strategy == TDSSplitStrategy::MedianExtent) ? aabb.GetExtents()[axis]
-                                                               : aabb.GetCenter()[axis];
-        };
-
-        std::nth_element(begin, mid, end,
-                     [&](Entity a, Entity b)
-                     {
-                            return keyGetter(a) < keyGetter(b);
-                        });
-
-        return k;
-    }
-
-    // BuildTopDownTree defined in global scope below
-} // end anonymous namespace helpers 
-
-// ---------------------------------------------------------------------------
-// Global-scope implementation of BuildTopDownTree (pointer-based builder)
-// ---------------------------------------------------------------------------
 
 static std::unique_ptr<TreeNode> BuildTopDownTree(Registry& registry,
                                                   Registry::Entity* objects,

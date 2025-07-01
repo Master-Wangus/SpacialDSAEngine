@@ -28,29 +28,18 @@ namespace Systems
 
     void InitializeSystems(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader) 
     {
-        // Initialize EventSystem first as it may be used by other systems
-        EventSystem::Get().Initialize();
-        
-        // Initialize InputSystem next, which will use the EventSystem
+        EventSystem::Get().Initialize();        
         g_InputSystem = std::make_unique<InputSystem>(registry, window);
-        
         g_CameraSystem = std::make_unique<CameraSystem>(registry, window);
-        
         g_RenderSystem = std::make_unique<RenderSystem>(registry, window, shader);
-        
-        // Initialize PickingSystem (after Input & Camera systems so they are available)
-        g_PickingSystem = std::make_unique<PickingSystem>(registry, window);
-        
-        // Connect CameraSystem to RenderSystem for frustum culling
+        g_PickingSystem = std::make_unique<PickingSystem>(registry, window);        
         g_RenderSystem->SetCameraSystem(g_CameraSystem.get());
-        
         DemoScene::SetupScene(registry, window, g_CurrentDemoScene);
         g_RenderSystem->Initialize();
     }
     
     void UpdateSystems(Registry& registry, Window& window, float deltaTime) 
     {
-        EventSystem::Get().Update(deltaTime);
         g_InputSystem->Update(deltaTime);
         g_CameraSystem->OnRun(deltaTime);
     }
@@ -62,12 +51,10 @@ namespace Systems
     
     void ShutdownSystems(Registry& registry) 
     {
-        // Destroy systems in reverse order of creation
         g_RenderSystem.reset();
         g_CameraSystem.reset();
         g_InputSystem.reset();
         g_PickingSystem.reset();
-        // Shutdown the EventSystem
         EventSystem::Get().Shutdown();
     }
 
@@ -77,7 +64,6 @@ namespace Systems
         {
             DemoScene::ResetScene(registry, window);
             
-            // Fire a scene reset event
             EventSystem::Get().FireEvent(EventType::SceneReset);
         }
     }

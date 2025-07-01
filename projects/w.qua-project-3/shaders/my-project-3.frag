@@ -1,5 +1,5 @@
 /**
- * @file my-project-2.frag
+ * @file my-project-3.frag
  * @brief Fragment shader for 3D object rendering with directional lighting.
  *
  * This shader implements Blinn-Phong lighting model with ambient, diffuse, and specular

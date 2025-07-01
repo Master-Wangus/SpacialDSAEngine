@@ -27,7 +27,8 @@ EventSystem::~EventSystem()
 
 void EventSystem::Initialize()
 {
-    if (m_Initialized) {
+    if (m_Initialized) 
+    {
         return;
     }
     
@@ -37,15 +38,10 @@ void EventSystem::Initialize()
     m_Initialized = true;
 }
 
-void EventSystem::Update(float deltaTime)
-{
-    // Currently no per-frame updates needed
-    // This method exists to match the pattern of other systems
-}
-
 void EventSystem::Shutdown()
 {
-    if (!m_Initialized) {
+    if (!m_Initialized) 
+    {
         return;
     }
     

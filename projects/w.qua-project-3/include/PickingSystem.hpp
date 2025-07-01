@@ -9,25 +9,13 @@
 class Window;
 class Registry;
 
-/**
- * @struct Ray
- * @brief Simple ray representation with origin and (normalized) direction.
- */
 struct Ray
 {
     glm::vec3 origin;
     glm::vec3 direction;
 };
 
-/**
- * @class PickingSystem
- * @brief Performs object picking (selection) by casting a ray into the scene and
- *        testing for intersections with entities' axis-aligned bounding boxes (AABB).
- *
- * The system converts 2-D screen coordinates to a 3-D world-space ray, iterates over
- * all entities that possess both TransformComponent and BoundingComponent, and
- * returns the closest intersected entity, or entt::null if nothing is hit.
- */
+
 class PickingSystem
 {
 public:

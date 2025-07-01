@@ -1,5 +1,5 @@
 /**
- * @file my-project-2.vert
+ * @file my-project-3.vert
  * @brief Vertex shader for 3D object rendering with lighting support.
  *
  * This shader transforms vertices from model space to clip space and passes

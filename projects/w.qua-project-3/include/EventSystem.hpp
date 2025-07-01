@@ -68,12 +68,6 @@ public:
     void Initialize();
     
     /**
-     * @brief Updates the event system each frame.
-     * @param deltaTime Time elapsed since last frame
-     */
-    void Update(float deltaTime);
-    
-    /**
      * @brief Shuts down the event system and clears all subscriptions.
      */
     void Shutdown();

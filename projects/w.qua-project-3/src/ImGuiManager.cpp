@@ -378,15 +378,6 @@ void ImGuiManager::UpdateFrameRate(float deltaTime)
     }
 }
 
-// Stub: model selection UI removed
-void ImGuiManager::RenderModelSelectionControls(Registry& /*registry*/)
-{
-    // No model-selection UI; all models are visible by default.
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BVH Controls Window
-// ─────────────────────────────────────────────────────────────────────────────
 
 void ImGuiManager::RenderBVHControls(Registry& registry)
 {
@@ -396,7 +387,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         return;
     }
 
-    // Build method selection -------------------------------------------------
+    // Build method selection 
     static int buildMethod = 0; // 0 = Top-down, 1 = Bottom-up
     static int prevBuildMethod = buildMethod;
     static int splitStrategy = 0, prevSplitStrategy = 0;
@@ -421,7 +412,6 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         ImGui::RadioButton("Max Two", &termination, 1); ImGui::SameLine();
         ImGui::RadioButton("Height=2", &termination, 2);
 
-        // BVH is rebuilt automatically when transforms change; manual build removed.
     }
     else
     {
@@ -431,7 +421,6 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         ImGui::RadioButton("Min Volume", &heuristic, 1); ImGui::SameLine();
         ImGui::RadioButton("Min SA", &heuristic, 2);
 
-        // No manual build button needed.
     }
 
     // Track visual mode previous value
@@ -443,12 +432,11 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
                          (termination   != prevTermination)   ||
                          (heuristic     != prevHeuristic);
 
-    // ───── Visualisation type (AABB vs Sphere) ───────────────────────────
     static int visualMode = BvhBuildConfig::s_BuildWithAabb ? 0 : 1; // 0=AABB,1=Sphere
     ImGui::Separator();
-    ImGui::Text("Visualise BVH As:");
+    ImGui::Text("Build BVH With:");
     ImGui::RadioButton("AABB",   &visualMode, 0); ImGui::SameLine();
-    ImGui::RadioButton("Sphere", &visualMode, 1);
+    ImGui::RadioButton("Bounding Sphere", &visualMode, 1);
 
     bool visualChanged = false;
     if (visualMode != prevVisualMode)
@@ -462,13 +450,11 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
 
     if (rebuildNeeded)
     {
-        // Update global build configuration so that automatic rebuilds use latest settings.
         BvhBuildConfig::s_Method        = (buildMethod == 0) ? BvhBuildMethod::TopDown : BvhBuildMethod::BottomUp;
         BvhBuildConfig::s_TDStrategy    = static_cast<TDSSplitStrategy>(splitStrategy);
         BvhBuildConfig::s_TDTermination = static_cast<TDSTermination>(termination);
         BvhBuildConfig::s_BUHeuristic   = static_cast<BUSHeuristic>(heuristic);
 
-        // Manually trigger a rebuild immediately so the visual updates this frame.
         if (Systems::g_RenderSystem)
         {
             if (BvhBuildConfig::s_Method == BvhBuildMethod::TopDown)
@@ -496,7 +482,7 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
         prevHeuristic     = heuristic;
     }
 
-    // Per-level visibility ----------------------------------------------------
+    // Per-level visibility
     ImGui::Separator();
     ImGui::Text("Show Levels:");
     for (int lvl = 0; lvl < RenderSystem::kMaxBVHLevels; ++lvl)
@@ -511,6 +497,4 @@ void ImGuiManager::RenderBVHControls(Registry& registry)
     }
 
     ImGui::Separator();
-
-    // BVH is always visible; toggle removed.
 } 

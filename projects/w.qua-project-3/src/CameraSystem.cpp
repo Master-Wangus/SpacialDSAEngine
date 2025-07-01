@@ -116,9 +116,10 @@ void CameraSystem::SetupEventSubscriptions()
 
 void CameraSystem::HandleMouseButtonPressEvent(const EventData& eventData)
 {
-    if (auto buttonCode = std::get_if<int>(&eventData)) {
-        if (*buttonCode == Keybinds::MOUSE_BUTTON_RIGHT) {
-            // Start camera dragging
+    if (auto buttonCode = std::get_if<int>(&eventData))
+    {
+        if (*buttonCode == Keybinds::MOUSE_BUTTON_RIGHT) 
+        {
             m_MouseDragging = true;
             
             // Reset last mouse position to current position to prevent jumping
@@ -129,9 +130,10 @@ void CameraSystem::HandleMouseButtonPressEvent(const EventData& eventData)
 
 void CameraSystem::HandleMouseButtonReleaseEvent(const EventData& eventData)
 {
-    if (auto buttonCode = std::get_if<int>(&eventData)) {
-        if (*buttonCode == Keybinds::MOUSE_BUTTON_RIGHT) {
-            // Stop camera dragging
+    if (auto buttonCode = std::get_if<int>(&eventData))
+    {
+        if (*buttonCode == Keybinds::MOUSE_BUTTON_RIGHT) 
+        {
             m_MouseDragging = false;
         }
     }
@@ -139,7 +141,8 @@ void CameraSystem::HandleMouseButtonReleaseEvent(const EventData& eventData)
 
 void CameraSystem::HandleMouseScrollEvent(const EventData& eventData)
 {
-    if (auto scrollData = std::get_if<glm::vec2>(&eventData)) {
+    if (auto scrollData = std::get_if<glm::vec2>(&eventData)) 
+    {
         auto& camera = m_Registry.GetComponent<CameraComponent>(m_CameraEntity);
         if (camera.m_ActiveCameraType == CameraType::Orbital) 
         {
@@ -154,7 +157,8 @@ void CameraSystem::HandleKeyPressEvent(const EventData& eventData)
     {
         if (*keyCode == Keybinds::KEY_C) 
         {
-            if (!m_CKeyPressed) {
+            if (!m_CKeyPressed)
+            {
                 SwitchCameraType();
                 m_CKeyPressed = true;
             }
@@ -175,9 +179,9 @@ void CameraSystem::HandleKeyReleaseEvent(const EventData& eventData)
 
 void CameraSystem::OnRun(float deltaTime)
 {
-    // Only process input if we have a valid camera entity
     auto cameraView = m_Registry.View<CameraComponent>();
-    if (!cameraView.empty()) {
+    if (!cameraView.empty()) 
+    {
         ProcessKeyboardInput(deltaTime);
     }
 }
@@ -210,7 +214,7 @@ void CameraSystem::ProcessMouseMovement(const EventData& eventData)
             yOffset *= sensitivity;
             
             camera.m_FPS.m_YawAngle += xOffset;
-            camera.m_FPS.m_PitchAngle -= yOffset;  // Inverted for intuitive controls
+            camera.m_FPS.m_PitchAngle -= yOffset;  // Inverted 
             
             // Constrain pitch
             if (camera.m_FPS.m_PitchAngle > 89.0f) camera.m_FPS.m_PitchAngle = 89.0f;
@@ -220,7 +224,6 @@ void CameraSystem::ProcessMouseMovement(const EventData& eventData)
         }
         else if (camera.m_ActiveCameraType == CameraType::Orbital)
         {
-            // Top-down debug camera: right-drag pans across the XZ ground plane.
             const float panSpeed = 0.05f;
             glm::vec3 offset(-xOffset * panSpeed, 0.0f, yOffset * panSpeed);
             camera.m_TopDown.MoveTarget(offset);
@@ -277,7 +280,7 @@ void CameraSystem::SwitchCameraType()
     
     if (camera.m_ActiveCameraType == CameraType::FPS)
     {
-        // --- Switching to Top-Down ---
+        // Switching to Top-Down
         // Store current FPS state so we can restore later.
         m_StoredFPSPosition = camera.m_FPS.m_CameraPosition;
         m_StoredFPSYaw      = camera.m_FPS.m_YawAngle;
@@ -292,15 +295,52 @@ void CameraSystem::SwitchCameraType()
         }
         else
         {
-            camera.m_TopDown.m_Target   = camera.m_FPS.m_CameraPosition;
-            camera.m_TopDown.m_Distance = 10.0f;
+            // Compute scene centre from all entities' world-space AABBs so the
+            // first top-down view starts centred on the content.
+            glm::vec3 minWorld(std::numeric_limits<float>::max());
+            glm::vec3 maxWorld(-std::numeric_limits<float>::max());
+            bool hasObjects = false;
+
+            auto aabbView = m_Registry.View<BoundingComponent>();
+            for (auto ent : aabbView)
+            {
+                auto& bc = m_Registry.GetComponent<BoundingComponent>(ent);
+                Aabb worldAabb = bc.GetAABB();
+
+                // Bring to world space if the entity has a transform.
+                if (m_Registry.HasComponent<TransformComponent>(ent))
+                {
+                    const auto& model = m_Registry.GetComponent<TransformComponent>(ent).m_Model;
+                    worldAabb.Transform(model);
+                }
+
+                minWorld = glm::min(minWorld, worldAabb.min);
+                maxWorld = glm::max(maxWorld, worldAabb.max);
+                hasObjects = true;
+            }
+
+            if (hasObjects)
+            {
+                glm::vec3 sceneCentre = 0.5f * (minWorld + maxWorld);
+                camera.m_TopDown.m_Target = sceneCentre;
+
+                // Choose a distance that frames the entire scene (simple heuristic).
+                float sceneRadius = 0.5f * glm::length(maxWorld - minWorld);
+                camera.m_TopDown.m_Distance = glm::clamp(sceneRadius * 2.0f, 5.0f, 100.0f);
+            }
+            else
+            {
+                // Fallback: use FPS position as before.
+                camera.m_TopDown.m_Target   = camera.m_FPS.m_CameraPosition;
+                camera.m_TopDown.m_Distance = 10.0f;
+            }
         }
 
         camera.m_ActiveCameraType = CameraType::Orbital;
     }
     else
     {
-        // --- Switching back to FPS ---
+        // Switching back to FPS
         // Save current top-down state for later restoration
         m_StoredTDTarget   = camera.m_TopDown.m_Target;
         m_StoredTDDistance = camera.m_TopDown.m_Distance;
@@ -338,7 +378,6 @@ void CameraSystem::UpdateFrustumPlanes(const CameraComponent& camera, float aspe
     glm::mat4 projection = m_ReferenceCameraProjection.GetProjectionMatrix(aspectRatio);
     glm::mat4 viewProjection = projection * view;
     
-    // Extract frustum planes from the view-projection matrix
     FrustumFromVp(viewProjection, m_FrustumNormals, m_FrustumDistances);
     
     m_FrustumUpdated = true;
