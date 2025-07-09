@@ -1,0 +1,13 @@
+ppsection6/part_a/g1.obj
+ppsection6/part_a/g7.obj
+ppsection6/part_a/g9.obj
+ppsection6/part_a/g11.obj
+ppsection6/part_a/g8.obj
+ppsection6/part_a/g2.obj
+ppsection6/part_a/g3.obj
+ppsection6/part_a/g6.obj
+ppsection6/part_a/g4.obj
+ppsection6/part_a/g0.obj
+ppsection6/part_a/g10.obj
+ppsection6/part_a/g12.obj
+ppsection6/part_a/g5.obj
