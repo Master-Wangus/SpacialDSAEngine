@@ -1,8 +1,22 @@
-# CSD-3151: Build Instructions Using CMake
+## Projects
+1. Project 1 demonstrates collision tests between AABBs, Bounding Spheres, Rays and Planes.
+2. Project 2 demonstrates bounding volumes construction and fustrum intersection/culling.
+3. Project 3 demonstrates fast Bounding Volume Hiereachy construction from top down to bottom up with AABB, Bounding Spheres and OBBs.
+4. Project 4 demonstrates fast Kd trees and Octrees. (WIP)
 
-This guide explains how to manually build the project using  $\text{CMake}$ commands, similar to what the `run.bat` script does.
+## Framework Additions
+On top of the sample framework provided by Digipen, I have added:
+1. An ECS architecture built with EnTT, a must-have for any modern rendering engines.
+2. An event system to enable clean communication between systems.
+3. A picking system for models to demonstrate model transforms as well as QOL.
+4. An interface system built with ImGui, no need to touch code to see any outputs for debugging.
+5. A simple resource system to hold references to all resources in use.
+6. Pre-compiled headers for a faster startup. Also I like having to see my std includes in one place. 
+7. Enforced coding conventions, code in every project has a part to play and no stray code or includes. 
+   Header files should only show functions to be used and all implementation is done in .cpps. (except for a spare few).
+8. A detailed and frequent commit history.
 
-## 📦 Prerequisites
+## 📦 Instructions provided by sample framework
 
 Before building the sample-project complete the following installations:
 
