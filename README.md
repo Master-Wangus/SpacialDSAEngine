@@ -10,7 +10,7 @@ On top of the sample framework provided by Digipen, I have added:
 2. An event system to enable clean communication between systems.
 3. A picking system for models to demonstrate model transforms as well as QOL.
 4. An interface system built with ImGui, no need to touch code to see any outputs for debugging.
-5. A simple resource system to hold references to all resources in use.
+5. A simple resource system with Assimp as a resource loader to hold references to all resources in use.
 6. Pre-compiled headers for a faster startup. Also I like having to see my std includes in one place. 
 7. Enforced coding conventions, code in every project has a part to play and no stray code or includes. 
    Header files should only show functions to be used and all implementation is done in .cpps. (except for a spare few).
