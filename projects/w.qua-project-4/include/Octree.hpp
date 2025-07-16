@@ -53,6 +53,9 @@ public:
     void CollectRenderables(const std::shared_ptr<Shader>& shader,
                             std::vector<std::shared_ptr<CubeRenderer>>& out);
 
+    // Accessor for unit tests to inspect the built tree
+    const TreeNode* GetRoot() const;
+
 private:
     void ComputeSceneBounds(Aabb& outBounds);
     void DestroyTree(TreeNode* node);

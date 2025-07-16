@@ -320,3 +320,8 @@ void Octree::CollectRenderables(const std::shared_ptr<Shader>& shader,
         out.push_back(std::move(cube));
     }
 } 
+
+const TreeNode* Octree::GetRoot() const
+{
+    return m_Root;
+} 

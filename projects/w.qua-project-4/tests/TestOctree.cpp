@@ -3,6 +3,7 @@
 #include "Registry.hpp"
 #include "Components.hpp"
 #include "Shapes.hpp"
+#include <algorithm>
 
 class OctreeTest : public ::testing::Test
 {
@@ -196,4 +197,105 @@ TEST_F(OctreeTest, MultipleBuild)
     
     // Build again with same entities
     octree->Build();
+} 
+
+// Test correct partitioning into eight octants when each octant has exactly one object
+TEST_F(OctreeTest, OctreePartitioningEightOctants)
+{
+    octree->SetMaxObjectsPerCell(1);
+
+    const float pos = 0.25f;
+    const float neg = -0.25f;
+    glm::vec3 positions[8] = {
+        {neg, neg, neg},
+        {pos, neg, neg},
+        {neg, pos, neg},
+        {pos, pos, neg},
+        {neg, neg, pos},
+        {pos, neg, pos},
+        {neg, pos, pos},
+        {pos, pos, pos}
+    };
+
+    for (const auto& p : positions)
+    {
+        CreateTestEntity(p, glm::vec3(0.1f));
+    }
+
+    octree->Build();
+
+    const TreeNode* root = octree->GetRoot();
+    ASSERT_NE(root, nullptr);
+
+    for (int i = 0; i < 8; ++i)
+    {
+        const TreeNode* child = root->pChildren[i];
+        ASSERT_NE(child, nullptr) << "Child " << i << " should exist";
+        EXPECT_EQ(child->pObjects.size(), 1u) << "Child " << i << " should contain exactly one object";
+    }
+}
+
+// Test that straddling objects stay at the parent level when using StayAtCurrentLevel method
+TEST_F(OctreeTest, StraddlingStayAtCurrentLevel)
+{
+    octree->SetMaxObjectsPerCell(1);
+    octree->SetStraddlingMethod(StraddlingMethod::StayAtCurrentLevel);
+
+    auto straddleEntity = CreateTestEntity(glm::vec3(0.0f), glm::vec3(2.0f));
+    auto otherEntity = CreateTestEntity(glm::vec3(3.0f, 3.0f, 3.0f), glm::vec3(0.1f));
+
+    octree->Build();
+
+    const TreeNode* root = octree->GetRoot();
+    ASSERT_NE(root, nullptr);
+
+    // Straddling entity should remain at root
+    ASSERT_EQ(root->pObjects.size(), 1u);
+    EXPECT_EQ(root->pObjects[0], straddleEntity);
+
+    // Other entity should be located in one of the children
+    bool foundOther = false;
+    for (int i = 0; i < 8; ++i)
+    {
+        const TreeNode* child = root->pChildren[i];
+        if (child && std::find(child->pObjects.begin(), child->pObjects.end(), otherEntity) != child->pObjects.end())
+        {
+            foundOther = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundOther);
+}
+
+// Helper to gather maximum depth encountered in the tree
+static void CollectMaxDepth(const TreeNode* node, int& maxDepth)
+{
+    if (!node) return;
+    maxDepth = std::max(maxDepth, node->level);
+    for (const auto child : node->pChildren)
+    {
+        CollectMaxDepth(child, maxDepth);
+    }
+}
+
+// Ensure the tree depth never exceeds the configured maximum
+TEST_F(OctreeTest, DepthDoesNotExceedLimit)
+{
+    // Create many entities to encourage deeper subdivision
+    for (int x = -5; x <= 5; ++x)
+        for (int y = -5; y <= 5; ++y)
+            for (int z = -5; z <= 5; ++z)
+            {
+                CreateTestEntity(glm::vec3(x * 0.5f, y * 0.5f, z * 0.5f), glm::vec3(0.1f));
+            }
+
+    octree->Build();
+
+    const TreeNode* root = octree->GetRoot();
+    ASSERT_NE(root, nullptr);
+
+    int maxDepth = 0;
+    CollectMaxDepth(root, maxDepth);
+
+    EXPECT_LE(maxDepth, 4);
 } 
