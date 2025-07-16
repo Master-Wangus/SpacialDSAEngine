@@ -24,6 +24,7 @@ SideResult ClassifyPlaneAabb(glm::vec3 const& n, float d, Vertex const& min, Ver
 
     bool inside = false;
     bool outside = false;
+    bool onPlane = false;
 
     for (const glm::vec3& vertex : vertices)
     {
@@ -36,10 +37,29 @@ SideResult ClassifyPlaneAabb(glm::vec3 const& n, float d, Vertex const& min, Ver
         {
             inside = true;
         }
+        else 
+        {
+            // Vertex is within epsilon of the plane (on the plane)
+            onPlane = true;
+        }
+        
+        // Early exit if we have vertices on both sides
         if (inside && outside) 
         {
             return SideResult::eOVERLAPPING;
         }
+    }
+
+    // If we have vertices on the plane and vertices on one side, it's overlapping
+    if (onPlane && (inside || outside)) 
+    {
+        return SideResult::eOVERLAPPING;
+    }
+    
+    // If all vertices are on the plane, it's overlapping
+    if (onPlane && !inside && !outside) 
+    {
+        return SideResult::eOVERLAPPING;
     }
 
     return inside ? SideResult::eINSIDE : SideResult::eOUTSIDE;

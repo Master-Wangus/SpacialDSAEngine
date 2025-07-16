@@ -46,6 +46,13 @@ struct Aabb
      */
     void Transform(const glm::mat4& transform);
 
+    /**
+     * @brief Checks if this AABB overlaps with another AABB.
+     * @param other The other AABB to test overlap with
+     * @return True if the AABBs overlap, false otherwise
+     */
+    bool Overlaps(const Aabb& other) const;
+
     glm::vec3 min; 
     glm::vec3 max; 
 };

@@ -89,9 +89,10 @@ namespace DemoScene
         {
             const float targetExtent = 0.5f; // desired maximum half-size per section
 
-            // First pass: compute largest extent among meshes
+            // First pass: load each mesh once, cache handle and compute largest extent
             float maxExtent = 0.0f;
-            std::vector<std::string> objPaths;
+            struct MeshInfo { std::string path; ResourceHandle handle; glm::vec3 centre; glm::vec3 extents; };
+            std::vector<MeshInfo> meshes;
             for (const auto& txt : txtFiles)
             {
                 std::ifstream fin(baseUNCPath + txt);
@@ -105,12 +106,14 @@ namespace DemoScene
                 {
                     if (relPath.empty()) continue;
                     std::string fullPath = baseUNCPath + relPath;
-                    objPaths.push_back(fullPath);
-                    // load mesh temporarily to inspect bounds
-                    ResourceHandle meshHandleTmp = ResourceSystem::GetInstance().LoadMesh(fullPath);
-                    BoundingComponent tmpBC(meshHandleTmp);
-                    float ext = glm::compMax(tmpBC.GetAABB().GetExtents());
+                    ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
+
+                    BoundingComponent tmpBC(meshHandle);
+                    const Aabb& aabb = tmpBC.GetAABB();
+                    float ext = glm::compMax(aabb.GetExtents());
                     maxExtent = std::max(maxExtent, ext);
+
+                    meshes.push_back({fullPath, meshHandle, aabb.GetCenter(), aabb.GetExtents()});
                 }
             }
 
@@ -118,13 +121,11 @@ namespace DemoScene
             float baseScale = targetExtent / maxExtent;
             s_SectionBaseScale[static_cast<int>(secId)] = baseScale;
 
-            // Second pass: actually create entities with base scale
-            for (const auto& fullPath : objPaths)
+            // Second pass: create entities 
+            for (const auto& info : meshes)
             {
-                ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
-
-                BoundingComponent tempBC(meshHandle);
-                glm::vec3 centre = tempBC.GetAABB().GetCenter();
+                ResourceHandle meshHandle = info.handle;
+                glm::vec3 centre = info.centre;
 
                 float initialScale = baseScale * s_SectionUserScale[static_cast<int>(secId)];
                 glm::vec3 finalScale(initialScale);
@@ -144,9 +145,51 @@ namespace DemoScene
             }
         };
  
-        loadSectionFromTxts({"4a.txt", "4b.txt"}, glm::vec3(-15.0f, 0.0f, 0.0f), SectionId::Section4);
-        loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, glm::vec3(0.0f), SectionId::Section5);
-        loadSectionFromTxts({"6a.txt", "6b.txt"}, glm::vec3(15.0f, 0.0f, 0.0f), SectionId::Section6);
+        // Comment out UNC section loading
+        //loadSectionFromTxts({"4a.txt", "4b.txt"}, glm::vec3(-15.0f, 0.0f, 0.0f), SectionId::Section4);
+        //loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, glm::vec3(0.0f), SectionId::Section5);
+        //loadSectionFromTxts({"6a.txt", "6b.txt"}, glm::vec3(15.0f, 0.0f, 0.0f), SectionId::Section6);
+        
+        // Load all individual models from /models directory
+        const std::string basePath = "../projects/w.qua-project-4/models/";
+        const std::vector<std::pair<std::string, glm::vec3>> modelData = {
+            {"bunny.obj", glm::vec3(-6.0f, 0.0f, -3.0f)},
+            {"rhino.obj", glm::vec3(-3.0f, 0.0f, -3.0f)},
+            {"cup.obj", glm::vec3(0.0f, 0.0f, -3.0f)},
+            {"gun.obj", glm::vec3(3.0f, 0.0f, -3.0f)},
+            {"cube.obj", glm::vec3(6.0f, 0.0f, -3.0f)},
+            {"arm.obj", glm::vec3(-4.0f, 0.0f, 0.0f)},
+            {"cat.obj", glm::vec3(0.0f, 0.0f, 0.0f)},
+            {"stuffed.obj", glm::vec3(4.0f, 0.0f, 0.0f)}
+        };
+        
+        for (const auto& [modelFile, position] : modelData) {
+            std::string fullPath = basePath + modelFile;
+            ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
+            
+            if (meshHandle != INVALID_RESOURCE_HANDLE) {
+                BoundingComponent tmpBC(meshHandle);
+                const Aabb& aabb = tmpBC.GetAABB();
+                float maxExtent = glm::compMax(aabb.GetExtents());
+                float scale = (maxExtent > 0.0f) ? (1.0f / maxExtent) : 1.0f;
+                
+                glm::vec3 center = aabb.GetCenter();
+                glm::vec3 finalPos = position - center * scale;
+                
+                auto entity = registry.Create();
+                registry.AddComponent<TransformComponent>(entity, 
+                    TransformComponent(finalPos, glm::vec3(0.0f), glm::vec3(scale)));
+                
+                auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
+                BoundingComponent bc(meshHandle);
+                bc.InitializeRenderables(shader);
+                
+                registry.AddComponent<BoundingComponent>(entity, bc);
+                registry.AddComponent<RenderComponent>(entity, RenderComponent(meshRenderer));
+                
+                s_SectionEntities[static_cast<int>(SectionId::Section5)].push_back(entity);
+            }
+        }
     }
 
     void SetSectionScale(Registry& registry, SectionId section, float scale)

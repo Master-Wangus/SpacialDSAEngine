@@ -17,6 +17,7 @@
 #include "DemoScene.hpp"
 #include "Window.hpp"
 #include "Keybinds.hpp"
+#include "Octree.hpp" // NEW: For StraddlingMethod enum
 // (Removed BVH dependency)
 
 ImGuiManager::ImGuiManager(Window& window)
@@ -246,6 +247,40 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
     if (ImGui::Checkbox("PCA OBB", &showOBB))
     {
         Systems::g_RenderSystem->SetShowOBB(showOBB);
+    }
+
+    // ---- Octree controls -------------------------------------------------
+    ImGui::Separator();
+    ImGui::Text("Octree Controls:");
+
+    bool showOctree = Systems::g_RenderSystem->IsOctreeVisible();
+    if (ImGui::Checkbox("Show Octree Cells", &showOctree))
+    {
+        Systems::g_RenderSystem->SetShowOctree(showOctree);
+    }
+
+    int maxObjs = Systems::g_RenderSystem->GetOctreeMaxObjects();
+    if (ImGui::SliderInt("Objects / Cell", &maxObjs, 1, 50))
+    {
+        Systems::g_RenderSystem->SetOctreeMaxObjects(maxObjs);
+    }
+
+    ImGui::Text("Straddling Method:");
+    int currentMethod = static_cast<int>(Systems::g_RenderSystem->GetStraddlingMethod());
+    
+    if (ImGui::RadioButton("Use Object Center", currentMethod == 0))
+    {
+        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::UseCenter);
+    }
+    
+    if (ImGui::RadioButton("Associate All Overlapping", currentMethod == 1))
+    {
+        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::AssociateAll);
+    }
+    
+    if (ImGui::RadioButton("Stay At Current Level", currentMethod == 2))
+    {
+        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::StayAtCurrentLevel);
     }
 
     ImGui::Separator();

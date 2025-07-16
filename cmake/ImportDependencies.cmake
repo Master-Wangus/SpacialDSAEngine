@@ -140,6 +140,26 @@ macro(import_eigen)
     endif()
 endmacro()
 
+# Macro to import Google Test
+macro(import_gtest)
+    if(NOT TARGET gtest)  # Guard to prevent multiple inclusion
+        FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG release-1.12.1
+        )
+        
+        # Configure gtest build options
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        
+        FetchContent_MakeAvailable(googletest)
+        
+        include_directories(${googletest_SOURCE_DIR}/googletest/include)
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -171,6 +191,10 @@ macro(importDependencies)
     message(STATUS "Importing Eigen...")
     import_eigen()
     message(STATUS "Eigen imported successfully.")
+    
+    message(STATUS "Importing Google Test...")
+    import_gtest()
+    message(STATUS "Google Test imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

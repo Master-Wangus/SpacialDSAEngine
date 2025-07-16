@@ -19,7 +19,7 @@
 #include "CameraSystem.hpp"
 #include "EventSystem.hpp"
 #include "Keybinds.hpp"
-//#include "Bvh.hpp" // Removed BVH dependency
+#include "Octree.hpp"
 #include <array>
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
@@ -43,19 +43,68 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
         }
     });
 
-    // Listen for transform changes to rebuild BVH automatically
-    EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData) 
+    // Listen for transform changes to rebuild Octree automatically
+    EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData)
         {
-        // m_BvhDirty = true; // Removed BVH automatic rebuild
-    });
+            m_OctreeDirty = true;
+        });
 
-    // Rebuild BVH when the entire scene is reset
-    EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&) 
+    // Rebuild Octree when the entire scene is reset
+    EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&)
         {
-        // Clear any previous hierarchy so we don't reference destroyed entities
-        // m_Bvh.reset(); // Removed BVH automatic rebuild
-    });
+            m_OctreeDirty = true;
+        });
 }
+
+// ---------------------- Octree helpers ----------------------
+void RenderSystem::BuildOctree()
+{
+    if (!m_Octree)
+    {
+        m_Octree = std::make_unique<Octree>(m_Registry, m_OctreeMaxObjects, m_StradMethod);
+    }
+    else
+    {
+        m_Octree->SetMaxObjectsPerCell(m_OctreeMaxObjects);
+        m_Octree->SetStraddlingMethod(m_StradMethod);
+    }
+
+    m_Octree->MarkDirty(); // ensure rebuild
+    m_Octree->Build();
+
+    m_OctreeRenderables.clear();
+    m_Octree->CollectRenderables(m_Shader, m_OctreeRenderables);
+    m_OctreeDirty = false;
+}
+
+void RenderSystem::SetShowOctree(bool show)
+{
+    m_ShowOctreeCells = show;
+    // if turning on, ensure renderables are prepared
+    if (show)
+        m_OctreeDirty = true;
+}
+
+bool RenderSystem::IsOctreeVisible() const { return m_ShowOctreeCells; }
+
+void RenderSystem::SetOctreeMaxObjects(int maxObjects)
+{
+    m_OctreeMaxObjects = std::max(1, maxObjects);
+    m_OctreeDirty = true;
+}
+int RenderSystem::GetOctreeMaxObjects() const { return m_OctreeMaxObjects; }
+
+void RenderSystem::SetStraddlingMethod(StraddlingMethod method)
+{
+    if (m_StradMethod != method)
+    {
+        m_StradMethod = method;
+        m_OctreeDirty = true;
+    }
+}
+StraddlingMethod RenderSystem::GetStraddlingMethod() const { return m_StradMethod; }
+
+// -----------------------------------------------------------
 
 void RenderSystem::Initialize()
 {
@@ -73,6 +122,9 @@ void RenderSystem::Initialize()
 
     SetupLighting();
     SetupMaterial();
+
+    // Build initial octree after scene is ready
+    BuildOctree();
 }
 
 void RenderSystem::Render()
@@ -101,15 +153,11 @@ void RenderSystem::Render()
         UpdateLighting();
     }
 
-    // Rebuild BVH automatically if marked dirty (e.g., transforms changed)
-    // if (m_BvhDirty) // Removed BVH automatic rebuild
-    // {
-    //     BuildBVH(BvhBuildConfig::s_Method,
-    //              BvhBuildConfig::s_TDStrategy,
-    //              BvhBuildConfig::s_TDTermination,
-    //              BvhBuildConfig::s_BUHeuristic,
-    //              BvhBuildConfig::s_BVType);
-    // }
+    // Rebuild octree lazily if marked dirty (e.g., transforms changed)
+    if (m_OctreeDirty)
+    {
+        BuildOctree();
+    }
 
     auto cameraView = m_Registry.View<CameraComponent>();
     if (cameraView.empty()) return;
@@ -229,6 +277,15 @@ void RenderSystem::Render()
 
             // Reapply default material so subsequent objects use correct shading.
             UpdateMaterialUBO(m_DefaultMaterial);
+        }
+    }
+
+    // After drawing main objects and bounding volumes, draw octree cells if requested
+    if (m_ShowOctreeCells)
+    {
+        for (const auto& cube : m_OctreeRenderables)
+        {
+            cube->Render(glm::mat4(1.0f), viewMatrix, projectionMatrix);
         }
     }
 

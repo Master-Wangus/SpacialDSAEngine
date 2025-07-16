@@ -10,6 +10,7 @@
 
 #include "pch.h"
 #include "Lighting.hpp"
+#include "Octree.hpp" // NEW: Adaptive Octree data structure
 class Shader;
 class Window;
 class CameraSystem;
@@ -176,6 +177,16 @@ public:
     float GetLightRotationSpeed() const { return m_LightRotationSpeed; }
     void  SetLightRotationSpeed(float radiansPerSec) { m_LightRotationSpeed = radiansPerSec; }
 
+    // Octree controls
+    void SetShowOctree(bool show);
+    bool IsOctreeVisible() const;
+
+    void SetOctreeMaxObjects(int maxObjects);
+    int  GetOctreeMaxObjects() const;
+
+    void SetStraddlingMethod(StraddlingMethod method);
+    StraddlingMethod GetStraddlingMethod() const;
+
 private:
     /**
      * @brief Sets up lighting system and uniform buffer objects.
@@ -236,4 +247,14 @@ private:
     
     // Global wireframe toggle
     bool m_GlobalWireframe = false;
+
+    // ---------------- Octree members ----------------
+    std::unique_ptr<Octree>                      m_Octree;
+    std::vector<std::shared_ptr<CubeRenderer>>   m_OctreeRenderables;
+    bool                                         m_ShowOctreeCells = false;
+    bool                                         m_OctreeDirty     = true;
+    int                                          m_OctreeMaxObjects = 10;
+    StraddlingMethod                             m_StradMethod     = StraddlingMethod::UseCenter;
+
+    void                                         BuildOctree();
 }; 
