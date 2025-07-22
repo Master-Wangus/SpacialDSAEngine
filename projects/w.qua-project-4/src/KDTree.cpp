@@ -34,11 +34,13 @@ float KDTree::ChooseSplitPosition(const std::vector<Registry::Entity>& entities,
 
     if (values.empty()) return 0.0f;
 
+    // Wesley: nth_element sorts all values based on the middle index, left values < middle index < right values.
+    //         We return the middle index as the partition
     std::nth_element(values.begin(), values.begin() + values.size() / 2, values.end());
     return values[values.size() / 2];
 }
 
-std::unique_ptr<KdNode> KDTree::BuildRecursive(const std::vector<Registry::Entity>& entities,
+std::unique_ptr<KdNode> KDTree::BuildKdTree(const std::vector<Registry::Entity>& entities,
                                                const Aabb& bounds,
                                                int level)
 {
@@ -96,8 +98,8 @@ std::unique_ptr<KdNode> KDTree::BuildRecursive(const std::vector<Registry::Entit
     maxLeft[axis]  = splitPos;
     minRight[axis] = splitPos;
 
-    node->left  = BuildRecursive(leftSet,  Aabb(minLeft,  maxLeft),  level + 1);
-    node->right = BuildRecursive(rightSet, Aabb(minRight, maxRight), level + 1);
+    node->left  = BuildKdTree(leftSet,  Aabb(minLeft,  maxLeft),  level + 1);
+    node->right = BuildKdTree(rightSet, Aabb(minRight, maxRight), level + 1);
 
     return node;
 }
@@ -123,7 +125,7 @@ void KDTree::Build()
     Aabb sceneBounds;
     SpatialTreeUtils::ComputeSceneBounds(m_Registry, sceneBounds);
 
-    m_Root = BuildRecursive(allEntities, sceneBounds, 0);
+    m_Root = BuildKdTree(allEntities, sceneBounds, 0);
 
     m_Dirty = false;
 }
