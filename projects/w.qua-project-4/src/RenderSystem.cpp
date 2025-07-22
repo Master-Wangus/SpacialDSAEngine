@@ -20,7 +20,6 @@
 #include "EventSystem.hpp"
 #include "Keybinds.hpp"
 #include "Octree.hpp"
-#include <array>
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader), m_GlobalWireframe(false)
@@ -30,7 +29,6 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
         glViewport(0, 0, width, height);
     });
 
-    // Subscribe to wireframe toggle events
     EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [this](const EventData& eventData) 
         {
         if (auto keyCode = std::get_if<int>(&eventData)) 
@@ -43,30 +41,28 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
         }
     });
 
-    // Listen for transform changes to rebuild Octree automatically
     EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData)
         {
             m_OctreeDirty = true;
         });
 
-    // Rebuild Octree when the entire scene is reset
     EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&)
         {
             m_OctreeDirty = true;
         });
 }
 
-// ---------------------- Octree helpers ----------------------
 void RenderSystem::BuildOctree()
 {
     if (!m_Octree)
     {
-        m_Octree = std::make_unique<Octree>(m_Registry, m_OctreeMaxObjects, m_StradMethod);
+        m_Octree = std::make_unique<Octree>(m_Registry, m_OctreeMaxObjects, m_StradMethod, m_OctreeMaxDepth);
     }
     else
     {
         m_Octree->SetMaxObjectsPerCell(m_OctreeMaxObjects);
         m_Octree->SetStraddlingMethod(m_StradMethod);
+        m_Octree->SetMaxDepth(m_OctreeMaxDepth);
     }
 
     m_Octree->MarkDirty(); // ensure rebuild
@@ -80,7 +76,6 @@ void RenderSystem::BuildOctree()
 void RenderSystem::SetShowOctree(bool show)
 {
     m_ShowOctreeCells = show;
-    // if turning on, ensure renderables are prepared
     if (show)
         m_OctreeDirty = true;
 }
@@ -104,7 +99,14 @@ void RenderSystem::SetStraddlingMethod(StraddlingMethod method)
 }
 StraddlingMethod RenderSystem::GetStraddlingMethod() const { return m_StradMethod; }
 
-// -----------------------------------------------------------
+void RenderSystem::SetOctreeMaxDepth(int depth)
+{
+    m_OctreeMaxDepth = std::max(1, depth);
+    m_OctreeDirty = true;
+}
+
+int RenderSystem::GetOctreeMaxDepth() const { return m_OctreeMaxDepth; }
+
 
 void RenderSystem::Initialize()
 {
@@ -123,7 +125,6 @@ void RenderSystem::Initialize()
     SetupLighting();
     SetupMaterial();
 
-    // Build initial octree after scene is ready
     BuildOctree();
 }
 
@@ -133,15 +134,12 @@ void RenderSystem::Render()
     {
         auto& lightComp = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity);
 
-        // Compute new direction based on elapsed time
         float time = static_cast<float>(m_Window.GetTime());
         float angle = time * m_LightRotationSpeed; // radians
 
-        // Rotate in the YZ plane (vertical swing)
         glm::vec3 dir = glm::normalize(glm::vec3(0.0f, -cos(angle), -sin(angle)));
         lightComp.m_Light.m_Direction = glm::vec4(dir, 0.0f);
 
-        // Move the visualization sphere opposite the light direction
         if (m_LightVisualizationEntity != entt::null && m_Registry.HasComponent<TransformComponent>(m_LightVisualizationEntity))
         {
             glm::vec3 lightPos = -dir * 5.0f;
@@ -153,7 +151,6 @@ void RenderSystem::Render()
         UpdateLighting();
     }
 
-    // Rebuild octree lazily if marked dirty (e.g., transforms changed)
     if (m_OctreeDirty)
     {
         BuildOctree();
@@ -211,22 +208,18 @@ void RenderSystem::Render()
         {
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
 
-            // Compute world-space versions
             Aabb worldAabb = boundingComp.GetAABB();
             worldAabb.Transform(transform.m_Model);
 
             Sphere worldPCA    = boundingComp.GetPCASphere();
 
-            // Transform sphere centers
             auto transformPoint = [&](const glm::vec3& p){ return glm::vec3(transform.m_Model * glm::vec4(p,1.0f)); };
             worldPCA.center = transformPoint(worldPCA.center);
 
-            // Scale radii by maximum scale factor (uniform approximation)
             float maxScale = glm::compMax(glm::abs(transform.m_Scale));
             worldPCA.radius    *= maxScale;
 
             Obb worldObb = boundingComp.GetOBB();
-            // Transform OBB center & axes
             worldObb.center = transformPoint(worldObb.center);
             for(int i=0;i<3;++i){
                 worldObb.axes[i] = glm::normalize(glm::mat3(transform.m_Model) * worldObb.axes[i]);
@@ -248,16 +241,12 @@ void RenderSystem::Render()
         }
         
         if (m_ShowMainObjects && renderComp.m_Renderable) 
-        {
-            // Lighting is always enabled now.
-            
+        {            
             renderComp.m_Renderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
         }
         
         if (m_Registry.HasComponent<BoundingComponent>(entity))
-        {
-            // Bounding volumes rendered with lighting enabled.
-            
+        {            
             auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
                         
             if (m_ShowAABB && boundingComp.m_AABBRenderable)
@@ -275,12 +264,10 @@ void RenderSystem::Render()
                  boundingComp.m_PCARenderable->Render(transform.m_Model, viewMatrix, projectionMatrix);
             }
 
-            // Reapply default material so subsequent objects use correct shading.
             UpdateMaterialUBO(m_DefaultMaterial);
         }
     }
 
-    // After drawing main objects and bounding volumes, draw octree cells if requested
     if (m_ShowOctreeCells)
     {
         for (const auto& cube : m_OctreeRenderables)
@@ -288,21 +275,6 @@ void RenderSystem::Render()
             cube->Render(glm::mat4(1.0f), viewMatrix, projectionMatrix);
         }
     }
-
-    // ───── Draw BVH hierarchy (optional) ─────────────────────────────────────
-    // if (!m_BvhRenderables.empty()) // Removed BVH hierarchy drawing loop
-    // {
-    //     glm::mat4 identity(1.0f);
-    //     for (size_t i = 0; i < m_BvhRenderables.size(); ++i)
-    //     {
-    //         int depth = (i < m_BvhRenderableDepths.size()) ? m_BvhRenderableDepths[i] : 0;
-    //         if (depth < kMaxBVHLevels && !m_BvhLevelVisible[depth])
-    //             continue;
-
-    //         if (m_BvhRenderables[i])
-    //             m_BvhRenderables[i]->Render(identity, viewMatrix, projectionMatrix);
-    //     }
-    // }
 }
 
 void RenderSystem::Shutdown()
@@ -311,28 +283,18 @@ void RenderSystem::Shutdown()
     {
         auto& renderComp = m_Registry.GetComponent<RenderComponent>(entity);
         
-        // Clean up main renderable
         if (renderComp.m_Renderable) 
         {
             renderComp.m_Renderable->CleanUp();
         }
     }
     
-    // Clean up bounding component renderables
     for (auto entity : m_Registry.View<BoundingComponent>()) 
     {
         auto& boundingComp = m_Registry.GetComponent<BoundingComponent>(entity);
         boundingComp.CleanupRenderables();
     }
 
-    // Clean up any previous visualisation
-    // for (auto& r : m_BvhRenderables) // Removed BVH automatic rebuild
-    // {
-    //     if (r) r->CleanUp();
-    // }
-    // m_BvhRenderables.clear();
-
-    // m_BvhRenderableDepths.clear(); // Removed BVH helper methods
 }
 
 // Bounding volume visibility controls
@@ -366,7 +328,6 @@ bool RenderSystem::IsOBBVisible() const
     return m_ShowOBB;
 }
 
-// Main object visibility controls
 void RenderSystem::SetShowMainObjects(bool show)
 {
     m_ShowMainObjects = show;
@@ -396,7 +357,6 @@ void RenderSystem::SetupLighting()
         light = m_Registry.GetComponent<DirectionalLightComponent>(m_LightEntity).m_Light;
     }
     
-    // Create a visual representation of the light source
     CreateLightSourceVisualization(light);
     
     UpdateLighting();
@@ -405,11 +365,9 @@ void RenderSystem::SetupLighting()
 void RenderSystem::CreateLightSourceVisualization(const DirectionalLight& light)
 {
 
-    // Place it in the opposite direction of the light direction
     glm::vec3 lightDirection = glm::normalize(glm::vec3(light.m_Direction));
     glm::vec3 lightPosition = -lightDirection * 5.0f; // Place 5 units away
     
-    // Create a small yellow sphere to represent the light source
     m_LightVisualizationEntity = m_Registry.Create();
     
     auto lightSphereRenderer = std::make_shared<SphereRenderer>(
@@ -430,7 +388,6 @@ void RenderSystem::SetupMaterial()
 {
     m_DefaultMaterial = Material();
     
-    // Slightly toned-down default values
     m_DefaultMaterial.m_AmbientIntensity  = 0.5f;
     m_DefaultMaterial.m_SpecularIntensity = 0.5f;
     m_DefaultMaterial.m_Shininess         = 32.0f;
@@ -439,7 +396,6 @@ void RenderSystem::SetupMaterial()
     {
         m_MaterialUBO = Buffer::CreateUniformBuffer(sizeof(Material), 1);
         
-        // Bind the Material uniform block to binding point 1
         GLuint materialBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "Material");
         if (materialBlockIndex != GL_INVALID_INDEX) {
             glUniformBlockBinding(m_Shader->GetID(), materialBlockIndex, 1);
@@ -469,7 +425,6 @@ void RenderSystem::UpdateLighting()
         {
             lightUBO = Buffer::CreateUniformBuffer(sizeof(DirectionalLight), 0);
             
-            // Bind the DirectionalLight uniform block to binding point 0
             GLuint lightBlockIndex = glGetUniformBlockIndex(m_Shader->GetID(), "DirectionalLight");
             if (lightBlockIndex != GL_INVALID_INDEX) {
                 glUniformBlockBinding(m_Shader->GetID(), lightBlockIndex, 0);
@@ -559,64 +514,3 @@ bool RenderSystem::IsGlobalWireframeEnabled() const
 {
     return m_GlobalWireframe;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// BVH level mask setters/getters
-// ─────────────────────────────────────────────────────────────────────────────
-
-// void RenderSystem::SetBVHLevelVisible(int level, bool visible) // Removed BVH helper methods
-// {
-//     if (level >=0 && level < kMaxBVHLevels)
-//         m_BvhLevelVisible[level] = visible;
-// }
-
-// bool RenderSystem::IsBVHLevelVisible(int level) const // Removed BVH helper methods
-// {
-//     if (level>=0 && level<kMaxBVHLevels) return m_BvhLevelVisible[level];
-//     return true;
-// }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// BVH functionality
-// ──────────────────────────────────────────────────────────────────────────────
-
-// void RenderSystem::BuildBVH(BvhBuildMethod method, // Removed BVH helper methods
-//                             TDSSplitStrategy tdStrategy,
-//                             TDSTermination tdTermination,
-//                             BUSHeuristic buHeuristic,
-//                             BvhVolumeType volumeType)
-// {
-//     // Clean up old BVH visualisation
-//     for (auto& r : m_BvhRenderables)
-//     {
-//         if (r) r->CleanUp();
-//     }
-//     m_BvhRenderables.clear();
-
-//     // Collect all entities that have bounding components
-//     std::vector<Registry::Entity> entities;
-//     auto view = m_Registry.View<BoundingComponent>();
-//     for (auto e : view) entities.push_back(e);
-
-//     if (entities.empty()) return;
-
-//     m_Bvh = std::make_unique<Bvh>();
-
-//     if (method == BvhBuildMethod::TopDown)
-//     {
-//         m_Bvh->BuildTopDown(m_Registry, entities, tdStrategy, tdTermination);
-//     }
-//     else
-//     {
-//         m_Bvh->BuildBottomUp(m_Registry, entities, buHeuristic);
-//     }
-
-//     m_BvhRenderables = m_Bvh->CreateRenderables(m_Shader, volumeType);
-//     m_BvhVolume = volumeType;
-
-//     // Store depth for each renderable (same order as nodes)
-//     m_BvhRenderableDepths = m_Bvh->GetDepths();
-
-//     // BVH up-to-date
-//     m_BvhDirty = false;
-// } 

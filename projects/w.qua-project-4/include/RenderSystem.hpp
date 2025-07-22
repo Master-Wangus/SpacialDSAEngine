@@ -10,7 +10,7 @@
 
 #include "pch.h"
 #include "Lighting.hpp"
-#include "Octree.hpp" // NEW: Adaptive Octree data structure
+#include "Octree.hpp" 
 class Shader;
 class Window;
 class CameraSystem;
@@ -187,6 +187,10 @@ public:
     void SetStraddlingMethod(StraddlingMethod method);
     StraddlingMethod GetStraddlingMethod() const;
 
+    // NEW: Octree depth controls
+    void SetOctreeMaxDepth(int maxDepth);
+    int  GetOctreeMaxDepth() const;
+
 private:
     /**
      * @brief Sets up lighting system and uniform buffer objects.
@@ -254,6 +258,7 @@ private:
     bool                                         m_ShowOctreeCells = false;
     bool                                         m_OctreeDirty     = true;
     int                                          m_OctreeMaxObjects = 10;
+    int                                          m_OctreeMaxDepth  = 8; // default maximum depth
     StraddlingMethod                             m_StradMethod     = StraddlingMethod::UseCenter;
 
     void                                         BuildOctree();

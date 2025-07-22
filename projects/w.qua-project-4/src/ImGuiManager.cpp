@@ -17,8 +17,7 @@
 #include "DemoScene.hpp"
 #include "Window.hpp"
 #include "Keybinds.hpp"
-#include "Octree.hpp" // NEW: For StraddlingMethod enum
-// (Removed BVH dependency)
+#include "Octree.hpp" 
 
 ImGuiManager::ImGuiManager(Window& window)
     : m_Window(window)
@@ -249,7 +248,6 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
         Systems::g_RenderSystem->SetShowOBB(showOBB);
     }
 
-    // ---- Octree controls -------------------------------------------------
     ImGui::Separator();
     ImGui::Text("Octree Controls:");
 
@@ -265,6 +263,13 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
         Systems::g_RenderSystem->SetOctreeMaxObjects(maxObjs);
     }
 
+    // Max depth slider
+    int maxDepth = Systems::g_RenderSystem->GetOctreeMaxDepth();
+    if (ImGui::SliderInt("Max Depth", &maxDepth, 1, 16))
+    {
+        Systems::g_RenderSystem->SetOctreeMaxDepth(maxDepth);
+    }
+
     ImGui::Text("Straddling Method:");
     int currentMethod = static_cast<int>(Systems::g_RenderSystem->GetStraddlingMethod());
     
@@ -273,12 +278,7 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
         Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::UseCenter);
     }
     
-    if (ImGui::RadioButton("Associate All Overlapping", currentMethod == 1))
-    {
-        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::AssociateAll);
-    }
-    
-    if (ImGui::RadioButton("Stay At Current Level", currentMethod == 2))
+    if (ImGui::RadioButton("Stay At Current Level", currentMethod == 1))
     {
         Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::StayAtCurrentLevel);
     }
@@ -363,6 +363,3 @@ void ImGuiManager::UpdateFrameRate(float deltaTime)
         m_FrameTimeAccumulator = 0.0f;
     }
 }
-
-
-// (Removed RenderBVHControls implementation) 

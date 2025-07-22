@@ -18,34 +18,31 @@
 #include "InputSystem.hpp"
 #include "EventSystem.hpp"
 #include "Keybinds.hpp"
-#include <fstream>
 
 namespace DemoScene 
 {
     static std::vector<Registry::Entity> s_SectionEntities[static_cast<int>(SectionId::Count)];
 
-    // Fixed offsets for sections (must match those used in loadSectionFromTxts)
     static const glm::vec3 s_SectionOffsets[static_cast<int>(SectionId::Count)] = {
         glm::vec3(-15.0f, 0.0f, 0.0f), // Section4
         glm::vec3(0.0f, 0.0f, 0.0f),    // Section5
         glm::vec3(15.0f, 0.0f, 0.0f)    // Section6
     };
 
-    // Base normalisation scale computed once per section (fits largest mesh to targetExtent)
     static float s_SectionBaseScale[static_cast<int>(SectionId::Count)] = {1.0f,1.0f,1.0f};
 
-    // User slider scale per section (defaults 1.0)
     static float s_SectionUserScale[static_cast<int>(SectionId::Count)] = {1.0f,1.0f,1.0f};
 
     void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType) 
     {
         SetupMeshScene(registry);
         
-        // Setup scene reset shortcut using EventSystem
-        EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [&](const EventData& eventData) {
-            // Check if the event data contains an integer (key code)
-            if (auto keyCode = std::get_if<int>(&eventData)) {
-                if (*keyCode == Keybinds::KEY_R) {
+        EventSystem::Get().SubscribeToEvent(EventType::KeyPress, [&](const EventData& eventData) 
+            {
+            if (auto keyCode = std::get_if<int>(&eventData))
+            {
+                if (*keyCode == Keybinds::KEY_R) 
+                {
                     ResetScene(registry, window);
                     std::cout << "Scene reset!" << std::endl;
                 }
@@ -75,6 +72,7 @@ namespace DemoScene
 
     void ResetScene(Registry& registry, Window& window)
     {
+        // Wesley: This probably dosen't work
         ClearScene(registry);        
         SetupScene(registry, window, Systems::g_CurrentDemoScene);
     }
@@ -87,7 +85,7 @@ namespace DemoScene
 
         auto loadSectionFromTxts = [&](const std::vector<std::string>& txtFiles, const glm::vec3& offset, SectionId secId)
         {
-            const float targetExtent = 0.5f; // desired maximum half-size per section
+            const float targetExtent = 0.5f; 
 
             // First pass: load each mesh once, cache handle and compute largest extent
             float maxExtent = 0.0f;
@@ -145,12 +143,11 @@ namespace DemoScene
             }
         };
  
-        // Comment out UNC section loading
-        //loadSectionFromTxts({"4a.txt", "4b.txt"}, glm::vec3(-15.0f, 0.0f, 0.0f), SectionId::Section4);
-        //loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, glm::vec3(0.0f), SectionId::Section5);
-        //loadSectionFromTxts({"6a.txt", "6b.txt"}, glm::vec3(15.0f, 0.0f, 0.0f), SectionId::Section6);
+        // Comment this section out to load no powerplant models
+        loadSectionFromTxts({"4a.txt", "4b.txt"}, glm::vec3(-15.0f, 0.0f, 0.0f), SectionId::Section4);
+        loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, glm::vec3(0.0f), SectionId::Section5);
+        loadSectionFromTxts({"6a.txt", "6b.txt"}, glm::vec3(15.0f, 0.0f, 0.0f), SectionId::Section6);
         
-        // Load all individual models from /models directory
         const std::string basePath = "../projects/w.qua-project-4/models/";
         const std::vector<std::pair<std::string, glm::vec3>> modelData = {
             {"bunny.obj", glm::vec3(-6.0f, 0.0f, -3.0f)},
@@ -163,33 +160,37 @@ namespace DemoScene
             {"stuffed.obj", glm::vec3(4.0f, 0.0f, 0.0f)}
         };
         
-        for (const auto& [modelFile, position] : modelData) {
-            std::string fullPath = basePath + modelFile;
-            ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
-            
-            if (meshHandle != INVALID_RESOURCE_HANDLE) {
-                BoundingComponent tmpBC(meshHandle);
-                const Aabb& aabb = tmpBC.GetAABB();
-                float maxExtent = glm::compMax(aabb.GetExtents());
-                float scale = (maxExtent > 0.0f) ? (1.0f / maxExtent) : 1.0f;
-                
-                glm::vec3 center = aabb.GetCenter();
-                glm::vec3 finalPos = position - center * scale;
-                
-                auto entity = registry.Create();
-                registry.AddComponent<TransformComponent>(entity, 
-                    TransformComponent(finalPos, glm::vec3(0.0f), glm::vec3(scale)));
-                
-                auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
-                BoundingComponent bc(meshHandle);
-                bc.InitializeRenderables(shader);
-                
-                registry.AddComponent<BoundingComponent>(entity, bc);
-                registry.AddComponent<RenderComponent>(entity, RenderComponent(meshRenderer));
-                
-                s_SectionEntities[static_cast<int>(SectionId::Section5)].push_back(entity);
-            }
-        }
+        // Comment this section out to load no normal models
+        //for (const auto& [modelFile, position] : modelData) 
+        //{
+        //    std::string fullPath = basePath + modelFile;
+        //    ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
+        //    
+        //    if (meshHandle != INVALID_RESOURCE_HANDLE) 
+        //    {
+        //        BoundingComponent tmpBC(meshHandle);
+        //        const Aabb& aabb = tmpBC.GetAABB();
+        //        float maxExtent = glm::compMax(aabb.GetExtents());
+        //        float scale = (maxExtent > 0.0f) ? (1.0f / maxExtent) : 1.0f;
+        //        
+        //        glm::vec3 center = aabb.GetCenter();
+        //        glm::vec3 finalPos = position - center * scale;
+        //        
+        //        auto entity = registry.Create();
+        //        registry.AddComponent<TransformComponent>(entity, 
+        //            TransformComponent(finalPos, glm::vec3(0.0f), glm::vec3(scale)));
+        //        
+        //        auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
+        //        BoundingComponent bc(meshHandle);
+        //        bc.InitializeRenderables(shader);
+        //        
+        //        registry.AddComponent<BoundingComponent>(entity, bc);
+        //        registry.AddComponent<RenderComponent>(entity, RenderComponent(meshRenderer));
+        //        
+        //        s_SectionEntities[static_cast<int>(SectionId::Section5)].push_back(entity);
+        //    }
+        //}
+        
     }
 
     void SetSectionScale(Registry& registry, SectionId section, float scale)
