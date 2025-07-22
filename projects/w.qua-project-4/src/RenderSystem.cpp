@@ -20,6 +20,7 @@
 #include "EventSystem.hpp"
 #include "Keybinds.hpp"
 #include "Octree.hpp"
+#include "KDTree.hpp"
 
 RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared_ptr<Shader>& shader)
     : m_Registry(registry), m_Window(window), m_Shader(shader), m_GlobalWireframe(false)
@@ -44,11 +45,13 @@ RenderSystem::RenderSystem(Registry& registry, Window& window, const std::shared
     EventSystem::Get().SubscribeToEvent(EventType::TransformChanged, [this](const EventData& eventData)
         {
             m_OctreeDirty = true;
+            m_KDTreeDirty = true;
         });
 
     EventSystem::Get().SubscribeToEvent(EventType::SceneReset, [this](const EventData&)
         {
             m_OctreeDirty = true;
+            m_KDTreeDirty = true;
         });
 }
 
@@ -71,6 +74,28 @@ void RenderSystem::BuildOctree()
     m_OctreeRenderables.clear();
     m_Octree->CollectRenderables(m_Shader, m_OctreeRenderables);
     m_OctreeDirty = false;
+}
+
+void RenderSystem::BuildKDTree()
+{
+    if (!m_KDTree)
+    {
+        m_KDTree = std::make_unique<KDTree>(m_Registry, m_KDTreeMaxObjects, m_KdSplitMethod, m_KDTreeMaxDepth);
+    }
+    else
+    {
+        m_KDTree->SetMaxObjectsPerNode(m_KDTreeMaxObjects);
+        m_KDTree->SetSplitMethod(m_KdSplitMethod);
+        m_KDTree->SetMaxDepth(m_KDTreeMaxDepth);
+    }
+
+    m_KDTree->MarkDirty();
+    m_KDTree->Build();
+
+    m_KDTreeRenderables.clear();
+    m_KDTree->CollectRenderables(m_Shader, m_KDTreeRenderables);
+
+    m_KDTreeDirty = false;
 }
 
 void RenderSystem::SetShowOctree(bool show)
@@ -107,6 +132,42 @@ void RenderSystem::SetOctreeMaxDepth(int depth)
 
 int RenderSystem::GetOctreeMaxDepth() const { return m_OctreeMaxDepth; }
 
+// KD-tree public setters/getters implementation
+void RenderSystem::SetShowKDTree(bool show)
+{
+    m_ShowKDTreeCells = show;
+    if (show) m_KDTreeDirty = true;
+}
+
+bool RenderSystem::IsKDTreeVisible() const { return m_ShowKDTreeCells; }
+
+void RenderSystem::SetKDTreeMaxObjects(int maxObjects)
+{
+    m_KDTreeMaxObjects = std::max(1, maxObjects);
+    m_KDTreeDirty = true;
+}
+
+int RenderSystem::GetKDTreeMaxObjects() const { return m_KDTreeMaxObjects; }
+
+void RenderSystem::SetKDSplitMethod(KdSplitMethod method)
+{
+    if (m_KdSplitMethod != method)
+    {
+        m_KdSplitMethod = method;
+        m_KDTreeDirty = true;
+    }
+}
+
+KdSplitMethod RenderSystem::GetKDSplitMethod() const { return m_KdSplitMethod; }
+
+void RenderSystem::SetKDTreeMaxDepth(int depth)
+{
+    m_KDTreeMaxDepth = std::max(1, depth);
+    m_KDTreeDirty = true;
+}
+
+int RenderSystem::GetKDTreeMaxDepth() const { return m_KDTreeMaxDepth; }
+
 
 void RenderSystem::Initialize()
 {
@@ -126,6 +187,7 @@ void RenderSystem::Initialize()
     SetupMaterial();
 
     BuildOctree();
+    BuildKDTree();
 }
 
 void RenderSystem::Render()
@@ -154,6 +216,10 @@ void RenderSystem::Render()
     if (m_OctreeDirty)
     {
         BuildOctree();
+    }
+    if (m_KDTreeDirty)
+    {
+        BuildKDTree();
     }
 
     auto cameraView = m_Registry.View<CameraComponent>();
@@ -271,6 +337,14 @@ void RenderSystem::Render()
     if (m_ShowOctreeCells)
     {
         for (const auto& cube : m_OctreeRenderables)
+        {
+            cube->Render(glm::mat4(1.0f), viewMatrix, projectionMatrix);
+        }
+    }
+
+    if (m_ShowKDTreeCells)
+    {
+        for (const auto& cube : m_KDTreeRenderables)
         {
             cube->Render(glm::mat4(1.0f), viewMatrix, projectionMatrix);
         }

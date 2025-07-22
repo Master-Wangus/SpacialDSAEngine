@@ -55,7 +55,6 @@ public:
     const TreeNode* GetRoot() const;
 
 private:
-    void ComputeSceneBounds(Aabb& outBounds);    
     std::unique_ptr<TreeNode> BuildOctree(const glm::vec3& center, float halfWidth, 
                                                   const std::vector<Registry::Entity>& entities, int level);
     

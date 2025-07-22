@@ -1,19 +1,6 @@
 #include "Octree.hpp"
 #include "Geometry.hpp"  
-
-static const glm::vec3 kLevelColors[] = 
-{
-    {1.0f, 0.0f, 0.0f}, // red
-    {0.0f, 1.0f, 0.0f}, // green
-    {0.0f, 0.0f, 1.0f}, // blue
-    {1.0f, 1.0f, 0.0f}, // yellow
-    {1.0f, 0.0f, 1.0f}, // magenta
-    {0.0f, 1.0f, 1.0f}, // cyan
-    {1.0f, 1.0f, 1.0f}, // white
-    {0.5f, 0.5f, 0.5f}, // gray
-    {1.0f, 0.5f, 0.0f}, // orange
-    {0.5f, 0.0f, 1.0f}  // purple
-};
+#include "SpatialTreeUtils.hpp"
 
 Octree::Octree(Registry& registry, int maxObjectsPerCell, StraddlingMethod method, int maxDepth)
     : m_Registry(registry),
@@ -21,28 +8,6 @@ Octree::Octree(Registry& registry, int maxObjectsPerCell, StraddlingMethod metho
       m_Method(method),
       m_MaxDepth(maxDepth)
 {
-}
-
-void Octree::ComputeSceneBounds(Aabb& outBounds)
-{
-    glm::vec3 minAll = glm::vec3(-1.0f), maxAll = glm::vec3( 1.0f);
-
-    auto view = m_Registry.View<TransformComponent, BoundingComponent>();
-    for (auto entity : view)
-    {
-        auto& t  = view.get<TransformComponent>(entity);
-        auto& bc = view.get<BoundingComponent>(entity);
-        Aabb box = bc.GetAABB();
-        box.Transform(t.m_Model);
-
-        minAll = glm::min(minAll, box.min);
-        maxAll = glm::max(maxAll, box.max);
-    }
-
-    glm::vec3 center = (minAll + maxAll) * 0.5f;
-    glm::vec3 ext    = (maxAll - minAll) * 0.5f;
-    float maxExtent  = glm::compMax(ext);
-    outBounds = Aabb(center - glm::vec3(maxExtent), center + glm::vec3(maxExtent));
 }
 
 void Octree::GetChildIndex(const TreeNode* pNode,
@@ -180,7 +145,7 @@ void Octree::Build()
     m_Root.reset();
 
     Aabb rootBounds(glm::vec3(0.0f), 1.0f);
-    ComputeSceneBounds(rootBounds);
+    SpatialTreeUtils::ComputeSceneBounds(m_Registry, rootBounds);
 
     glm::vec3 center = rootBounds.GetCenter();
     float halfWidth  = rootBounds.GetExtents().x;
@@ -228,9 +193,7 @@ void Octree::CollectRenderables(const std::shared_ptr<Shader>& shader,
         glm::vec3 center = node->center;
         glm::vec3 size   = glm::vec3(node->halfwidth * 2.0f);
         
-        // Use the level stored in the node for color
-        int colorIndex = node->level % (sizeof(kLevelColors)/sizeof(kLevelColors[0]));
-        glm::vec3 color = kLevelColors[colorIndex];
+        glm::vec3 color = SpatialTreeUtils::LevelColor(node->level);
 
         auto cube = std::make_shared<CubeRenderer>(center, size, color, true /*wireframe*/);
         cube->Initialize(shader);

@@ -109,6 +109,8 @@ public:
      */
     void RenderScalingControls(Registry& registry);
 
+    void RenderAssignment4Controls(Registry& registry);
+
 private:
     Window& m_Window;
     bool m_Initialized = false;

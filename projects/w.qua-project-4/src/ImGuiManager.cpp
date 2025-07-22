@@ -18,6 +18,7 @@
 #include "Window.hpp"
 #include "Keybinds.hpp"
 #include "Octree.hpp" 
+#include "KDTree.hpp"
 
 ImGuiManager::ImGuiManager(Window& window)
     : m_Window(window)
@@ -141,6 +142,10 @@ void ImGuiManager::RenderMainWindow(Registry& registry)
     
     ImGui::End();
 
+    ImGui::Begin("Assignment 4");
+    RenderAssignment4Controls(registry);
+    ImGui::End();
+
     // (BVH UI removed)
 }
 
@@ -248,42 +253,7 @@ void ImGuiManager::RenderBoundingVolumeControls(Registry& registry)
         Systems::g_RenderSystem->SetShowOBB(showOBB);
     }
 
-    ImGui::Separator();
-    ImGui::Text("Octree Controls:");
-
-    bool showOctree = Systems::g_RenderSystem->IsOctreeVisible();
-    if (ImGui::Checkbox("Show Octree Cells", &showOctree))
-    {
-        Systems::g_RenderSystem->SetShowOctree(showOctree);
-    }
-
-    int maxObjs = Systems::g_RenderSystem->GetOctreeMaxObjects();
-    if (ImGui::SliderInt("Objects / Cell", &maxObjs, 1, 50))
-    {
-        Systems::g_RenderSystem->SetOctreeMaxObjects(maxObjs);
-    }
-
-    // Max depth slider
-    int maxDepth = Systems::g_RenderSystem->GetOctreeMaxDepth();
-    if (ImGui::SliderInt("Max Depth", &maxDepth, 1, 16))
-    {
-        Systems::g_RenderSystem->SetOctreeMaxDepth(maxDepth);
-    }
-
-    ImGui::Text("Straddling Method:");
-    int currentMethod = static_cast<int>(Systems::g_RenderSystem->GetStraddlingMethod());
-    
-    if (ImGui::RadioButton("Use Object Center", currentMethod == 0))
-    {
-        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::UseCenter);
-    }
-    
-    if (ImGui::RadioButton("Stay At Current Level", currentMethod == 1))
-    {
-        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::StayAtCurrentLevel);
-    }
-
-    ImGui::Separator();
+    // End of bounding volume visibility controls
 }
 
 void ImGuiManager::RenderWireframeControls(Registry& registry)
@@ -361,5 +331,81 @@ void ImGuiManager::UpdateFrameRate(float deltaTime)
         m_FrameRate = static_cast<float>(m_FrameCount) / m_FrameTimeAccumulator;
         m_FrameCount = 0;
         m_FrameTimeAccumulator = 0.0f;
+    }
+}
+
+void ImGuiManager::RenderAssignment4Controls(Registry& registry)
+{
+    if (!Systems::g_RenderSystem)
+    {
+        ImGui::Text("Render system not available");
+        return;
+    }
+
+    // Octree Controls
+    ImGui::Text("Octree Controls:");
+
+    bool showOctree = Systems::g_RenderSystem->IsOctreeVisible();
+    if (ImGui::Checkbox("Show Octree Cells", &showOctree))
+    {
+        Systems::g_RenderSystem->SetShowOctree(showOctree);
+    }
+
+    int maxObjs = Systems::g_RenderSystem->GetOctreeMaxObjects();
+    if (ImGui::SliderInt("Objects / Cell", &maxObjs, 1, 50))
+    {
+        Systems::g_RenderSystem->SetOctreeMaxObjects(maxObjs);
+    }
+
+    int maxDepth = Systems::g_RenderSystem->GetOctreeMaxDepth();
+    if (ImGui::SliderInt("Max Depth", &maxDepth, 1, 16))
+    {
+        Systems::g_RenderSystem->SetOctreeMaxDepth(maxDepth);
+    }
+
+    ImGui::Text("Straddling Method:");
+    int currentMethod = static_cast<int>(Systems::g_RenderSystem->GetStraddlingMethod());
+
+    if (ImGui::RadioButton("Use Object Center", currentMethod == 0))
+    {
+        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::UseCenter);
+    }
+    if (ImGui::RadioButton("Stay At Current Level", currentMethod == 1))
+    {
+        Systems::g_RenderSystem->SetStraddlingMethod(StraddlingMethod::StayAtCurrentLevel);
+    }
+
+    ImGui::Separator();
+
+    // KD-Tree Controls
+    ImGui::Text("KD-Tree Controls:");
+
+    bool showKDTree = Systems::g_RenderSystem->IsKDTreeVisible();
+    if (ImGui::Checkbox("Show KD-Tree Cells", &showKDTree))
+    {
+        Systems::g_RenderSystem->SetShowKDTree(showKDTree);
+    }
+
+    int kdMaxObjs = Systems::g_RenderSystem->GetKDTreeMaxObjects();
+    if (ImGui::SliderInt("KD Objects / Node", &kdMaxObjs, 1, 50))
+    {
+        Systems::g_RenderSystem->SetKDTreeMaxObjects(kdMaxObjs);
+    }
+
+    int kdMaxDepth = Systems::g_RenderSystem->GetKDTreeMaxDepth();
+    if (ImGui::SliderInt("KD Max Depth", &kdMaxDepth, 1, 32))
+    {
+        Systems::g_RenderSystem->SetKDTreeMaxDepth(kdMaxDepth);
+    }
+
+    ImGui::Text("Split Method:");
+    int currentKdMethod = static_cast<int>(Systems::g_RenderSystem->GetKDSplitMethod());
+    if (ImGui::RadioButton("Median Centre", currentKdMethod == 0))
+    {
+        Systems::g_RenderSystem->SetKDSplitMethod(KdSplitMethod::MedianCenter);
+    }
+    if (ImGui::RadioButton("Median Extent", currentKdMethod == 1))
+    {
+        Systems::g_RenderSystem->SetKDSplitMethod(KdSplitMethod::MedianExtent);
     }
 }

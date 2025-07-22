@@ -11,6 +11,7 @@
 #include "pch.h"
 #include "Lighting.hpp"
 #include "Octree.hpp" 
+#include "KDTree.hpp"
 class Shader;
 class Window;
 class CameraSystem;
@@ -191,6 +192,19 @@ public:
     void SetOctreeMaxDepth(int maxDepth);
     int  GetOctreeMaxDepth() const;
 
+    // NEW: KD-tree controls
+    void SetShowKDTree(bool show);
+    bool IsKDTreeVisible() const;
+
+    void SetKDTreeMaxObjects(int maxObjects);
+    int  GetKDTreeMaxObjects() const;
+
+    void SetKDSplitMethod(KdSplitMethod method);
+    KdSplitMethod GetKDSplitMethod() const;
+
+    void SetKDTreeMaxDepth(int maxDepth);
+    int  GetKDTreeMaxDepth() const;
+
 private:
     /**
      * @brief Sets up lighting system and uniform buffer objects.
@@ -262,4 +276,15 @@ private:
     StraddlingMethod                             m_StradMethod     = StraddlingMethod::UseCenter;
 
     void                                         BuildOctree();
+
+    // ---------------- KD-tree members ----------------
+    std::unique_ptr<KDTree>                      m_KDTree;
+    std::vector<std::shared_ptr<CubeRenderer>>   m_KDTreeRenderables;
+    bool                                         m_ShowKDTreeCells = false;
+    bool                                         m_KDTreeDirty     = true;
+    int                                          m_KDTreeMaxObjects = 10;
+    int                                          m_KDTreeMaxDepth  = 32;
+    KdSplitMethod                                m_KdSplitMethod   = KdSplitMethod::MedianCenter;
+
+    void                                         BuildKDTree();
 }; 
