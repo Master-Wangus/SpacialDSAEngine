@@ -5,8 +5,6 @@
 #include "Components.hpp"
 #include "Registry.hpp"
 #include "CubeRenderer.hpp"
-#include <array>
-#include <memory>
 
 // Split strategies for KD-Tree
 enum class KdSplitMethod
@@ -58,7 +56,7 @@ public:
     const KdNode* GetRoot() const { return m_Root.get(); }
 
 private:
-    std::unique_ptr<KdNode> BuildRecursive(const std::vector<Registry::Entity>& entities,
+    std::unique_ptr<KdNode> BuildKdTree(const std::vector<Registry::Entity>& entities,
                                            const Aabb& bounds,
                                            int level);
 

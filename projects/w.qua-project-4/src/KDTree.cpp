@@ -1,6 +1,5 @@
 #include "KDTree.hpp"
 #include "Geometry.hpp"
-#include <algorithm> // for nth_element
 #include "SpatialTreeUtils.hpp"
 
 KDTree::KDTree(Registry& registry, int maxObjectsPerNode, KdSplitMethod splitMethod, int maxDepth)
@@ -72,9 +71,13 @@ std::unique_ptr<KdNode> KDTree::BuildRecursive(const std::vector<Registry::Entit
 
         float centerVal = box.GetCenter()[axis];
         if (centerVal < splitPos)
+        {
             leftSet.push_back(entity);
+        }
         else
+        {
             rightSet.push_back(entity);
+        }
     }
 
     // If one side empty -> terminate
