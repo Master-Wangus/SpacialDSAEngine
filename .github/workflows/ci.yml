@@ -1,29 +1,36 @@
-name: C++ CI (Windows)
+name: C++ CI (Windows-MSVC)
 
 on:
-  pull_request:           # every PR
-  push:                   # optional – keep if you also want pushes to default branch checked
+  pull_request:
+  push:
     branches: [ main ]
 
 jobs:
   build-and-test:
-    runs-on: windows-latest     # ← only Windows
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # (Optional) Ninja gives faster multithreaded MSVC builds
-    - name: Install Ninja
-      uses: seanmiddleditch/gha-setup-ninja@v3    # small, cached action
+    # Ensure MSVC toolchain is the one CMake sees
+    - name: Set up MSVC env vars
+      uses: ilammy/msvc-dev-cmd@v1        # sets PATH, CC, CXX → cl.exe
 
-    # ----- Configure & build -------------------------------------------------
-    - name: Configure (CMake)
+    # Optional: Ninja (faster than MSBuild)
+    - name: Install Ninja
+      uses: seanmiddleditch/gha-setup-ninja@v3
+
+    # ---------- Configure & build with MSVC ----------
+    - name: Configure (CMake – Ninja + MSVC)
       run: cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+      env:
+        CC: cl
+        CXX: cl
 
     - name: Build
       run: cmake --build build --parallel
 
-    # ----- Run Google-Tests ---------------------------------------------------
-    - name: Run unit tests
+    # ---------- Run unit tests ----------
+    - name: Run tests
       run: ctest --test-dir build --output-on-failure --verbose
