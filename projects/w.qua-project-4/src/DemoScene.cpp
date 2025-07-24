@@ -145,9 +145,9 @@ namespace DemoScene
         };
  
         // Comment this section out to load no powerplant models
-        //loadSectionFromTxts({"4a.txt", "4b.txt"}, s_SectionOffsets[0], SectionId::Section4);
-        //loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, s_SectionOffsets[1], SectionId::Section5);
-        //loadSectionFromTxts({"6a.txt", "6b.txt"}, s_SectionOffsets[2], SectionId::Section6);
+        loadSectionFromTxts({"4a.txt", "4b.txt"}, s_SectionOffsets[0], SectionId::Section4);
+        loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, s_SectionOffsets[1], SectionId::Section5);
+        loadSectionFromTxts({"6a.txt", "6b.txt"}, s_SectionOffsets[2], SectionId::Section6);
         
         const std::string basePath = "../projects/w.qua-project-4/models/";
         const std::vector<std::pair<std::string, glm::vec3>> modelData = {
@@ -162,35 +162,35 @@ namespace DemoScene
         };
         
         // Comment this section out to load no normal models
-        for (const auto& [modelFile, position] : modelData) 
-        {
-            std::string fullPath = basePath + modelFile;
-            ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
-            
-            if (meshHandle != INVALID_RESOURCE_HANDLE) 
-            {
-                BoundingComponent tmpBC(meshHandle);
-                const Aabb& aabb = tmpBC.GetAABB();
-                float maxExtent = glm::compMax(aabb.GetExtents());
-                float scale = (maxExtent > 0.0f) ? (1.0f / maxExtent) : 1.0f;
-                
-                glm::vec3 center = aabb.GetCenter();
-                glm::vec3 finalPos = position - center * scale;
-                
-                auto entity = registry.Create();
-                registry.AddComponent<TransformComponent>(entity, 
-                    TransformComponent(finalPos, glm::vec3(0.0f), glm::vec3(scale)));
-                
-                auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
-                BoundingComponent bc(meshHandle);
-                bc.InitializeRenderables(shader);
-                
-                registry.AddComponent<BoundingComponent>(entity, bc);
-                registry.AddComponent<RenderComponent>(entity, RenderComponent(meshRenderer));
-                
-                s_SectionEntities[static_cast<int>(SectionId::Section5)].push_back(entity);
-            }
-        }
+        //for (const auto& [modelFile, position] : modelData) 
+        //{
+        //    std::string fullPath = basePath + modelFile;
+        //    ResourceHandle meshHandle = ResourceSystem::GetInstance().LoadMesh(fullPath);
+        //    
+        //    if (meshHandle != INVALID_RESOURCE_HANDLE) 
+        //    {
+        //        BoundingComponent tmpBC(meshHandle);
+        //        const Aabb& aabb = tmpBC.GetAABB();
+        //        float maxExtent = glm::compMax(aabb.GetExtents());
+        //        float scale = (maxExtent > 0.0f) ? (1.0f / maxExtent) : 1.0f;
+        //        
+        //        glm::vec3 center = aabb.GetCenter();
+        //        glm::vec3 finalPos = position - center * scale;
+        //        
+        //        auto entity = registry.Create();
+        //        registry.AddComponent<TransformComponent>(entity, 
+        //            TransformComponent(finalPos, glm::vec3(0.0f), glm::vec3(scale)));
+        //        
+        //        auto meshRenderer = std::make_shared<MeshRenderer>(meshHandle, glm::vec3(0.0f, 1.0f, 0.0f));
+        //        BoundingComponent bc(meshHandle);
+        //        bc.InitializeRenderables(shader);
+        //        
+        //        registry.AddComponent<BoundingComponent>(entity, bc);
+        //        registry.AddComponent<RenderComponent>(entity, RenderComponent(meshRenderer));
+        //        
+        //        s_SectionEntities[static_cast<int>(SectionId::Section5)].push_back(entity);
+        //    }
+        //}
         
     }
 
