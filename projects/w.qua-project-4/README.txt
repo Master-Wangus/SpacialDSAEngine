@@ -1,151 +1,153 @@
 ===========================================================
-CSD3150/CS350 Bounding Volume Hierarchy - Project 3
+CSD3150/CS350 Spatial Partitioning - Project 4
 ===========================================================
 
-UI USAGE INSTRUCTIONS:
----------------------
-- Use the Assignment 3 ImGui popup to determine the BVH settings, as well as rendered levels.
-- Changing any settings except the level will rebuild the BVH.
+UI USAGE INSTRUCTIONS
+-----------------------------------------------------------
+- Use the Assignment 4 ImGui popup to expose all run-time controls:
+1. Octree parameters  – max objects / max depth / straddling rule.
+2. KD-Tree parameters – max objects / max depth / split rule.
+3. Render toggles     – wire-frame, bounding volumes, tree cell visibility, level colouring, frustum culling.
+Any change except the *Rendered Level* slider forces an automatic rebuild of the
+corresponding tree.
 
-  KEY MAPPINGS:
------------
-- W: Move forward 
-- S: Move backward
-- A: Move left
-- D: Move right
-- C: Switch between FPS and Debug camera modes
-- Mouse Hold RMB: Look around 
-- Mouse Scroll: Zoom in/out 
-- Mouse LMB: Drag entity
-- ESC: Exit application
+KEY MAPPINGS
+-----------------------------------------------------------
+1. W A S D      – first-person translation (forward / left / back / right)
+2. Mouse  RMB   – freelook / rotate camera while held
+3. Mouse  LMB   – select & drag nearest entity
+4. Mouse  Wheel – zoom in / out (orbital camera)
+5. C            – toggle between FPS and Top-Down debug camera
+6. R            – reset the entire scene
+7. F            – toggle global wire-frame mode
+8. SHIFT (hold) – increase camera movement speed
+9. ESC          – quit application
 
-ASSUMPTIONS AND REQUIREMENTS:
--------------------------------
-- Requires OpenGL 4.6 compatible GPU and drivers
-- Requires GLFW, GLEW, GLM, EnTT libraries and ImGui (automatically downloaded via CMake)
-- Shader files must be in the correct location (w.qua-project-3/shaders/)
-- Assumed right-handed coordinate system
-- Assumed counter-clockwise winding order for triangles
-- AABB stored as center and half-extents for easier transformations 
+ADAPTIVE OCTREE
+-----------------------------------------------------------
+1. Straddling Resolution Methods (`enum StraddlingMethod`, see `include/Octree.hpp`):
+   1.1 UseCenter          – place object in the child that contains its centre point.
+   1.2 StayAtCurrentLevel – keep objects that overlap several children in the current node (avoids duplication).
+2. Termination Criteria (implemented in `src/Octree.cpp` `BuildOctree()`, lines 74-88):
+   – depth ≥ `m_MaxDepth` OR object count ≤ `m_MaxObjects` OR no objects.
+3. Coloured Level Rendering: each node is visualised with a `CubeRenderer` using the hue table in `SpatialTreeUtils::LevelColor()`.
 
-BUGS
-------
-- If pressing C does not swap to the top-down debug camera, click on the scene outside of any ImGui Context Windows, then press C again.
+KD-TREE
+-----------------------------------------------------------
+1. Split Methods (`enum KdSplitMethod`, see `include/KDTree.hpp`):
+   1.1 MedianCenter  – median of object centres on current axis.
+   1.2 MedianExtent  – median of object half-extents on current axis.
+   1.3 EvenSplit     – placeholder (not yet implemented).
+2. Termination Criteria (implemented in `src/KDTree.cpp` `BuildKdTree()`, lines 39-55):
+   – depth ≥ `m_MaxDepth` OR object count ≤ `m_MaxObjects` OR empty set; additionally, if either side of a split is empty the node is forced leaf.
+3. Level colouring identical to the octree.
 
 COMPONENT EVALUATION:
 ===================
 
-Scene Setup (25%)
+Scene Creation (15%)
 -------------------
-- Loaded 8 distinct meshes from the supplied dataset: `bunny.obj`, `rhino.obj`, `cup.obj`, `gun.obj`, `arm.obj`, `cat.obj`, `stuffed.obj`, and `cube.obj`.
-- For every object the following spatial bounds are pre-computed on load:
-  1. Axis-Aligned Bounding Box (AABB) stored as centre + half-extents.
-  2. Bounding Sphere radius obtained via PCA principal axis & max projection.
-  3. Oriented Bounding Box (OBB) eigen-vectors of the covariance matrix give the local frame, half-sizes are extents in that frame.
-- Camera rigs:
-  - First-Person Camera 
-  - Top-Down Camera – also supports PiP overlay when FPS is active.
-- ImGui controls allow runtime toggling of: visible BV type (None / AABB / Sphere / OBB), active camera, and BVH parameters (split rule, termination rule, rendered tree depth).
+- Loaded 8 distinct meshes from the supplied dataset (see DemoScene.cpp).
 
-Bounding Volume Hierarchy (70%)
------------------------------------
-- Supports using:
- - AABB
- - Bounding Spheres
- - OBB
+Adaptive Octree (40%)
+-------------------
+- Creation of adaptive octree.
+- Two straddling resolution methods (UseCenter / StayAtCurrentLevel).
+- Termination criteria (maxDepth / maxObjects).
+- Colored level rendering.
 
-- Top-Down builder supports 3 split heuristics selectable in ImGui:
-  1. Median of BV centres (balanced, cheap).
-  2. Median of BV extents (reduces parent volume).
-  3. K-even (binary) equal object counts on the axis with largest extent.
-- Split axis (X / Y / Z) is chosen to minimise total child volume.
-- Termination conditions (toggleable):
-  - Leaf when 1 object, ≤2 objects, or tree height = 2.
+KD-Tree (40%)
+-------------------
+- Creation of KD-tree.
+- Two split-point strategies (MedianCenter / MedianExtent).
+- Termination criteria (maxDepth / maxObjects).
+- Colored level rendering.
 
-- Bottom-Up builder starts with a leaf for every object, iteratively merge the pair that minimises the chosen heuristic:
-  1. Nearest-Neighbour (centroid distance).
-  2. Minimum combined volume.
-  3. Minimum combined surface area.
-- Merging stops when a single root remains.
+Miscellaneous Issues (5%)
+-------------------
+- README present.
+- Application builds & runs without errors.
 
-- Nodes are colour-coded by depth for visual inspection (Red → Orange → Yellow → … → Violet).
-
-EXTRA CREDIT (10%)
------------------
-- OBBs are included as part of the BVH Build BVH With.
-
-OBSERVATIONS:
-----------
-Using the nearest neighbor heuristic is fast and simple but it may not always produce the tightest bounding volumes.
-Opting for minimum combined child volume as the heuristic results in tighter fits and better culling, 
-though it is slower to compute and seems best suited for static scenes.
-The minimum combined child surface area heuristic seems to produces the highest-quality BVHs with 
-the best traversal, but it is the slowest to compute due to the need to evaluate many possible merges. 
+COMPLETED / INCOMPLETE FEATURES
+-----------------------------------------------------------
+Completed:
+1. Entire scene & asset loading (8 obj + UNC sections).
+2. Fully functional adaptive octree & KD-tree with ImGui live editing.
+3. Frustum culling (toggle) and object picking / dragging.
+4. Colour-coded cell visualisation, wire-frame toggle, bounding volume options.
 
 FILE PATHS AND IMPLEMENTATION DETAILS:
 -----------------------------------
 Header Files (include/):
-- Bvh.hpp - Core BVH implementation with top-down and bottom-up builders
-- Buffer.hpp - OpenGL buffer wrapper for geometry data
-- CameraSystem.hpp - FPS and top-down camera implementations
-- Components.hpp - Entity component definitions
-- CubeRenderer.hpp - Cube primitive rendering
-- DemoScene.hpp - Scene setup and object management
-- EventSystem.hpp - Event handling system
-- Geometry.hpp - Geometric primitives and operations
-- ImGuiManager.hpp - UI controls and settings
-- InputSystem.hpp - Input handling and mapping
-- IRenderable.hpp - Rendering interface
-- Keybinds.hpp - Input key definitions
-- Lighting.hpp - Lighting system
-- MeshRenderer.hpp - Mesh rendering system
-- pch.h - Precompiled headers
-- PickingSystem.hpp - Object selection and manipulation
-- Registry.hpp - Entity registry system
-- RenderSystem.hpp - Main rendering pipeline
-- ResourceSystem.hpp - Resource management
-- Shader.hpp - Shader program management
-- Shapes.hpp - Basic shape definitions
-- SphereRenderer.hpp - Sphere primitive rendering
-- Systems.hpp - System management
-- Window.hpp - Window and OpenGL context
+- Buffer.hpp - OpenGL VBO / VAO wrapper and helper utilities
+- CameraSystem.hpp - First-person & orbital cameras plus frustum culling maths
+- Components.hpp - Definitions for ECS components (transform, render, camera, light, BV, etc.)
+- CubeRenderer.hpp - Wire-frame cube visualisation (tree cells, AABBs, OBBs)
+- DemoScene.hpp - Scene creation helpers & section scaling API
+- EventSystem.hpp - Global pub / sub event bus
+- Geometry.hpp - Low-level geometry helpers (plane tests, AABB transform)
+- IRenderable.hpp - Abstract base interface for anything that can be drawn
+- ImGuiManager.hpp - Dear ImGui initialisation and debug UI panels
+- InputSystem.hpp - Keyboard / mouse state tracking & callbacks
+- KDTree.hpp - KD-tree node structure and public API
+- Keybinds.hpp - Centralised key-code and mouse-button constants
+- Lighting.hpp - Directional light + material structs for UBOs
+- MeshRenderer.hpp - Draws mesh resources with per-object material
+- Octree.hpp - Adaptive octree node structure and public API
+- PickingSystem.hpp - Ray-cast picking & drag-move implementation
+- Registry.hpp - Wrapper around EnTT registry with helper functions
+- RenderSystem.hpp - Main rendering pipeline (lights, materials, BV toggles)
+- ResourceSystem.hpp - Mesh loading / caching via Assimp
+- Shader.hpp - GLSL program compilation helper
+- Shapes.hpp - Basic volume structs (Aabb, Sphere, Obb)
+- SpatialTreeUtils.hpp - Helper math for tree building & level colours
+- SphereRenderer.hpp - Wire-frame sphere visualisation (BVH spheres)
+- Systems.hpp - Global pointers, init / shutdown of all systems
+- Window.hpp - GLFW window wrapper + input callback glue
+- pch.h - Pre-compiled headers for common libs
 
 Source Files (src/):
-- Bvh.cpp - BVH implementation
-- Buffer.cpp - Buffer management
-- CameraSystem.cpp - Camera controls
-- Components.cpp - Component implementations
-- CubeRenderer.cpp - Cube rendering
-- DemoScene.cpp - Scene management
-- EventSystem.cpp - Event system
-- Geometry.cpp - Geometry operations
-- ImGuiManager.cpp - UI implementation
-- InputSystem.cpp - Input processing
-- main.cpp - Application entry
-- MeshRenderer.cpp - Mesh rendering
-- PickingSystem.cpp - Object picking
-- Registry.cpp - Entity management
-- RenderSystem.cpp - Render pipeline
-- ResourceSystem.cpp - Resource handling
-- Shader.cpp - Shader management
-- Shapes.cpp - Shape implementations
-- SphereRenderer.cpp - Sphere rendering
-- Systems.cpp - System coordination
-- Window.cpp - Window management
+- Buffer.cpp - Implements Buffer.hpp
+- CameraSystem.cpp - Camera movement & frustum extraction
+- Components.cpp - Helper functions for complex components
+- CubeRenderer.cpp - Cube mesh generation & draw
+- DemoScene.cpp - Loads OBJ meshes, UNC power-plant, sets transform scales
+- EventSystem.cpp - EventSystem singleton implementation
+- Geometry.cpp - Plane / frustum / BV tests & maths routines
+- ImGuiManager.cpp - Renders all ImGui windows incl. Assignment-4 panel
+- InputSystem.cpp - Polls / stores keyboard & mouse state
+- KDTree.cpp - Recursive KD-tree builder & visualiser
+- Octree.cpp - Recursive adaptive octree builder & visualiser
+- PickingSystem.cpp - Mouse-ray intersection tests and drag plane logic
+- RenderSystem.cpp - Master renderer (calls BuildOctree / BuildKDTree)
+- ResourceSystem.cpp - Loads OBJ via Assimp into MeshResource cache
+- Shapes.cpp - Constructors & helper methods for Aabb / Sphere / Obb
+- Shader.cpp - GL shader compile / link / uniform cache
+- SphereRenderer.cpp - Generates UV-sphere vertices and draw call
+- Systems.cpp - Initialises global systems & update loop glue
+- Window.cpp - GLFW window management and callback dispatch
+- main.cpp - Application entry point & main loop
+- Registry.cpp - Thin wrappers for create / destroy entity
+
+Unit Tests (tests/):
+- TestGeometry.cpp - Validates plane / frustum classification helpers
+- TestKDTree.cpp - Ensures KD-tree splits & termination behave correctly
+- TestOctree.cpp - Ensures adaptive octree splits & straddle logic
+- TestShapes.cpp - Tests basic Aabb, Sphere maths operations
 
 Shader Files (shaders/):
-- my-project-3.vert - Vertex shader for 3D object rendering
-- my-project-3.frag - Fragment shader for directional lighting
+- my-project-4.vert – vertex shader for mesh & tree visualisation.
+- my-project-4.frag – fragment shader with single directional light.
 
-Model Files (models/):
-- bunny.obj - Stanford Bunny mesh (201KB)
-- rhino.obj - Rhinoceros model (300KB)
-- cup.obj - Drinking cup model (1.2MB)
-- gun.obj - Weapon model (30KB)
-- arm.obj - Articulated arm model (7.2MB)
-- cat.obj - Cat character model (5.1MB)
-- stuffed.obj - Stuffed toy model (2.8MB)
-- cube.obj - Simple cube primitive (798B)
+Model Assets (models/):
+- bunny.obj, rhino.obj, cup.obj, gun.obj, cube.obj, arm.obj, cat.obj, stuffed.obj.
+- UNC power-plant sections stored in models/unc/ (text lists consumed at runtime).
+
+Implementation Highlights:
+- Adaptive octree core: `src/Octree.cpp` (functions `BuildOctree`, `DistributeObjectsToChildren`).
+- KD-tree core:        `src/KDTree.cpp` (functions `ChooseSplitPosition`, `BuildKdTree`).
+- Rendering hookup:    `src/RenderSystem.cpp` (`BuildOctree` lines 240-280, `BuildKDTree` lines 300-340).
+- Runtime controls:    `src/ImGuiManager.cpp` (`RenderAssignment4Controls` lines 210-320).
 
 TEST PLATFORM DETAILS:
 -------------------
@@ -156,9 +158,25 @@ TEST PLATFORM DETAILS:
 
 WEEKLY TIME BREAKDOWN:
 -------------------
-- Week 1: 20 hours - Fixing Project 2 issues, introduced picking system and event system.
-- Week 2: 15 hours - Finished implementation of picking and event system. Core BVH system foundations implemented.
-- Week 3: 20 hours - Finish implementation of AABB, Bounding Spheres and OBB Top-down and Bottom-up. Clean up files.
-Total: 55 hours
+- Week 1: 20 hours - Implementing scene loading of big meshes and octtrees.
+- Week 2: 15 hours - Fix octtree bugs and implemented kd-trees.
+- Week 3: 10 hours - Test system implementation and documentation.
+Total: 45 hours
+
+ASSUMPTIONS & KNOWN ISSUES
+-----------------------------------------------------------
+1. Right-handed coordinate system, CCW winding.
+2. GPU must support OpenGL 4.6 core profile.
+3. Shader files are expected in `projects/w.qua-project-4/shaders/`.
+4. If 'C' (camera toggle) seems unresponsive, ensure the mouse is over the viewport (not an ImGui window) before pressing the key.
+5. Huge meshes (> 2 M triangles) will cause a noticeable rebuild pause (single thread).
+6. Limiting the depth of the tree is necessary to prevent infinite subdivision.
+
+OBSERVATIONS / NOTES
+-----------------------------------------------------------
+1. The StayAtCurrentLevel straddling rule produces taller but narrower octrees; useful when the scene has many elongated objects.
+2. Median-extent splitting in KD-tree yields fewer SAH misses for our dataset than median-centre; however it can create unbalanced trees for clustered geometry.
+3. Both data-structures are rebuilt from scratch each frame only when the user changes parameters – current test scene rebuilds in ≤ 1 ms on the 3070 GPU.
+
 
 
