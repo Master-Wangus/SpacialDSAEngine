@@ -37,7 +37,6 @@ KD-TREE
 1. Split Methods (`enum KdSplitMethod`, see `include/KDTree.hpp`):
    1.1 MedianCenter  – median of object centres on current axis.
    1.2 MedianExtent  – median of object half-extents on current axis.
-   1.3 EvenSplit     – placeholder (not yet implemented).
 2. Termination Criteria (implemented in `src/KDTree.cpp` `BuildKdTree()`, lines 39-55):
    – depth ≥ `m_MaxDepth` OR object count ≤ `m_MaxObjects` OR empty set; additionally, if either side of a split is empty the node is forced leaf.
 3. Level colouring identical to the octree.

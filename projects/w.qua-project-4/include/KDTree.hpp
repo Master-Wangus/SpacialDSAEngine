@@ -20,7 +20,6 @@ enum class KdSplitMethod
 {
     MedianCenter = 0,   // Split at median of object centres along axis
     MedianExtent = 1,   // Split at median of object extents along axis (size)
-    EvenSplit    = 2    // k-even split (not yet implemented)
 };
 
 struct KdNode
