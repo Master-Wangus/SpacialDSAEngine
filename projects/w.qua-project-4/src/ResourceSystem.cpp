@@ -102,14 +102,13 @@ uint64_t ResourceSystem::GenerateRandomUUID()
 
 std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& path) 
 {
-    // Optimized post-processing flags - removed expensive operations
-    unsigned int flags = aiProcess_Triangulate |            // Ensure all faces are triangles (necessary)
-                        aiProcess_JoinIdenticalVertices |   // Optimize mesh (good for performance)
+    unsigned int flags = aiProcess_Triangulate |            // Ensure all faces are triangles 
+                        aiProcess_JoinIdenticalVertices |   // Optimize mesh
                         aiProcess_ValidateDataStructure  |  // Fast validation
+                        aiProcess_PreTransformVertices |    // Bake node transforms into vertex positions
                         aiProcess_GenSmoothNormals;         // Generate normals if missing
     
     // Only add these flags if really needed:
-    // aiProcess_GenSmoothNormals - expensive, only if normals missing
     // aiProcess_FlipUVs - only if UV coordinates are flipped
     
     const aiScene* scene = m_Loader->ReadFile(path, flags);
@@ -127,7 +126,8 @@ std::shared_ptr<MeshResource> ResourceSystem::LoadOBJFile(const std::string& pat
     
     // Pre-allocate total vertex count for better performance
     size_t totalVertices = 0;
-    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) 
+    {
         totalVertices += scene->mMeshes[i]->mNumFaces * 3; // 3 vertices per triangle
     }
     vertices.reserve(totalVertices);

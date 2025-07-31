@@ -56,7 +56,6 @@ namespace DemoScene
      */
     void SetupMeshScene(Registry& registry);
 
-    // Section-wide scaling helpers
-    void SetSectionScale(Registry& registry, SectionId section, float scale);
-    float GetSectionScale(Registry& registry, SectionId section);
+    void SetGlobalScale(Registry& registry, float scale);
+    float GetGlobalScale();
 } 

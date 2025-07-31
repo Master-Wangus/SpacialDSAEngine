@@ -18,21 +18,15 @@
 #include "InputSystem.hpp"
 #include "EventSystem.hpp"
 #include "Keybinds.hpp"
+#include <unordered_map>
 
 namespace DemoScene 
 {
     static std::vector<Registry::Entity> s_SectionEntities[static_cast<int>(SectionId::Count)];
 
-    static const glm::vec3 s_SectionOffsets[static_cast<int>(SectionId::Count)] = 
-    {
-        glm::vec3(-5.0f, 0.0f, 0.0f), // Section4
-        glm::vec3(0.0f, 0.0f, 0.0f),    // Section5
-        glm::vec3(5.0f, 0.0f, 0.0f)    // Section6
-    };
+    static std::unordered_map<Registry::Entity, float> s_EntityBaseScale;
 
-    static float s_SectionBaseScale[static_cast<int>(SectionId::Count)] = {1.0f,1.0f,1.0f};
-
-    static float s_SectionUserScale[static_cast<int>(SectionId::Count)] = {1.0f,1.0f,1.0f};
+    static float s_GlobalScale = 1.0f;
 
     void SetupScene(Registry& registry, Window& window, DemoSceneType sceneType) 
     {
@@ -84,7 +78,7 @@ namespace DemoScene
         
         const std::string baseUNCPath = "../projects/w.qua-project-4/models/unc/";
 
-        auto loadSectionFromTxts = [&](const std::vector<std::string>& txtFiles, const glm::vec3& offset, SectionId secId)
+        auto loadSectionFromTxts = [&](const std::vector<std::string>& txtFiles, SectionId secId)
         {
             const float targetExtent = 0.5f; 
 
@@ -118,17 +112,15 @@ namespace DemoScene
 
             if (maxExtent <= 0.0f) maxExtent = 1.0f;
             float baseScale = targetExtent / maxExtent;
-            s_SectionBaseScale[static_cast<int>(secId)] = baseScale;
 
             // Second pass: create entities 
             for (const auto& info : meshes)
             {
                 ResourceHandle meshHandle = info.handle;
-                glm::vec3 centre = info.centre;
 
-                float initialScale = baseScale * s_SectionUserScale[static_cast<int>(secId)];
+                float initialScale = baseScale * s_GlobalScale;
                 glm::vec3 finalScale(initialScale);
-                glm::vec3 finalPos = offset - centre * initialScale;
+                glm::vec3 finalPos = glm::vec3(0.0f);
 
                 auto e = registry.Create();
                 registry.AddComponent<TransformComponent>(e, TransformComponent(finalPos, glm::vec3(0.0f), finalScale));
@@ -138,16 +130,20 @@ namespace DemoScene
                 bc.InitializeRenderables(shader);
 
                 registry.AddComponent<BoundingComponent>(e, bc);
+
+                // Remember baseScale for future global scaling updates
+                s_EntityBaseScale[e] = baseScale;
+
                 registry.AddComponent<RenderComponent>(e, RenderComponent(meshRenderer));
 
                 s_SectionEntities[static_cast<int>(secId)].push_back(e);
             }
         };
  
-        // Comment this section out to load no powerplant models
-        loadSectionFromTxts({"4a.txt", "4b.txt"}, s_SectionOffsets[0], SectionId::Section4);
-        loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, s_SectionOffsets[1], SectionId::Section5);
-        loadSectionFromTxts({"6a.txt", "6b.txt"}, s_SectionOffsets[2], SectionId::Section6);
+        // Comment these lines out if you want to skip loading the UNC power-plant models
+        loadSectionFromTxts({"4a.txt", "4b.txt"}, SectionId::Section4);
+        loadSectionFromTxts({"5a.txt", "5b.txt", "5c.txt"}, SectionId::Section5);
+        loadSectionFromTxts({"6a.txt", "6b.txt"}, SectionId::Section6);
         
         const std::string basePath = "../projects/w.qua-project-4/models/";
         const std::vector<std::pair<std::string, glm::vec3>> modelData = {
@@ -194,37 +190,28 @@ namespace DemoScene
         
     }
 
-    void SetSectionScale(Registry& registry, SectionId section, float scale)
+    void SetGlobalScale(Registry& registry, float scale)
     {
-        int idx = static_cast<int>(section);
-        if (idx < 0 || idx >= static_cast<int>(SectionId::Count)) return;
+        s_GlobalScale = scale;
 
-        glm::vec3 offset = s_SectionOffsets[idx];
-        float baseScale = s_SectionBaseScale[idx];
-        s_SectionUserScale[idx] = scale; // store
-
-        for (auto e : s_SectionEntities[idx])
+        for (const auto& [entity, baseScale] : s_EntityBaseScale)
         {
-            if (registry.HasComponent<TransformComponent>(e) && registry.HasComponent<BoundingComponent>(e))
-            {
-                auto &t = registry.GetComponent<TransformComponent>(e);
-                auto &bc = registry.GetComponent<BoundingComponent>(e);
-                glm::vec3 centre = bc.GetAABB().GetCenter();
 
-                float finalScale = baseScale * scale;
+            if (registry.HasComponent<TransformComponent>(entity))
+            {
+                auto &t = registry.GetComponent<TransformComponent>(entity);
+                float finalScale = baseScale * s_GlobalScale;
                 t.m_Scale = glm::vec3(finalScale);
-                t.m_Position = offset - centre * finalScale;
+                // Keep baked positions => translation remains zero
+                t.m_Position = glm::vec3(0.0f);
                 t.UpdateModelMatrix();
-                EventSystem::Get().FireEvent(EventType::TransformChanged, e);
+                EventSystem::Get().FireEvent(EventType::TransformChanged, entity);
             }
         }
     }
 
-    float GetSectionScale(Registry& registry, SectionId section)
+    float GetGlobalScale()
     {
-        int idx = static_cast<int>(section);
-        if (idx < 0 || idx >= static_cast<int>(SectionId::Count)) return 1.0f;
-
-        return s_SectionUserScale[idx];
+        return s_GlobalScale;
     }
-} // namespace DemoScene 
+} 

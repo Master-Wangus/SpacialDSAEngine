@@ -284,24 +284,12 @@ void ImGuiManager::RenderObjectVisibilityControls(Registry& registry)
 
 void ImGuiManager::RenderScalingControls(Registry& registry)
 {
-    ImGui::Text("UNC Section Scales:");
+    ImGui::Text("UNC Global Scale:");
 
-    float section4Scale = DemoScene::GetSectionScale(registry, SectionId::Section4);
-    if (ImGui::SliderFloat("Section 4 Scale", &section4Scale, 0.05f, 5.0f, "%.2f"))
+    float globalScale = DemoScene::GetGlobalScale();
+    if (ImGui::SliderFloat("Global Scale", &globalScale, 0.05f, 5.0f, "%.2f"))
     {
-        DemoScene::SetSectionScale(registry, SectionId::Section4, section4Scale);
-    }
-
-    float section5Scale = DemoScene::GetSectionScale(registry, SectionId::Section5);
-    if (ImGui::SliderFloat("Section 5 Scale", &section5Scale, 0.05f, 5.0f, "%.2f"))
-    {
-        DemoScene::SetSectionScale(registry, SectionId::Section5, section5Scale);
-    }
-
-    float section6Scale = DemoScene::GetSectionScale(registry, SectionId::Section6);
-    if (ImGui::SliderFloat("Section 6 Scale", &section6Scale, 0.05f, 5.0f, "%.2f"))
-    {
-        DemoScene::SetSectionScale(registry, SectionId::Section6, section6Scale);
+        DemoScene::SetGlobalScale(registry, globalScale);
     }
 }
 
